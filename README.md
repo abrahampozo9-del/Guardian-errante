@@ -28,4 +28,4 @@ RPG de espadas en pixel art. Siete años después del Colapso, el Guardián defi
 - `codigo/java/` — código fuente de la versión Java.
 
 ## Si cambias el juego
-Sube el nuevo `index.html` y en `sw.js` sube el número de `guardian-v2` (a `guardian-v3`, y así sucesivamente), para que los móviles descarguen la versión nueva.
+Sube el nuevo `index.html` y en `sw.js` sube el número de `guardian-v4` (a `guardian-v5`, y así sucesivamente), para que los móviles descarguen la versión nueva.

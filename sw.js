@@ -1,6 +1,6 @@
 // Guarda el juego en el móvil para que funcione sin conexión.
 // Si cambias index.html, sube también este archivo cambiando el número de versión.
-const VERSION = 'guardian-v3';
+const VERSION = 'guardian-v4';
 const FILES = ['./', './index.html', './manifest.webmanifest', './icono-180.png', './icono-192.png', './icono-512.png'];
 
 self.addEventListener('install', e => {
@@ -13,6 +13,15 @@ self.addEventListener('activate', e => {
 
 self.addEventListener('fetch', e => {
   if (e.request.method !== 'GET') return;
+  // La página del juego: primero internet (para coger siempre la versión nueva), y si no hay conexión, la guardada.
+  if (e.request.mode === 'navigate') {
+    e.respondWith(fetch(e.request).then(res => {
+      const copy = res.clone();
+      caches.open(VERSION).then(c => c.put('./index.html', copy));
+      return res;
+    }).catch(() => caches.match('./index.html').then(r => r || caches.match('./'))));
+    return;
+  }
   e.respondWith(
     caches.match(e.request).then(hit => {
       const net = fetch(e.request).then(res => {

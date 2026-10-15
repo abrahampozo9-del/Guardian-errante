@@ -3,7 +3,7 @@ const Sound = (function () {
   const RATE = 22050;
   let ctx = null, ready = false, musicGain = null, sfxGain = null, current = null, currentName = null;
   const buf = {};
-  const S = { musicOn: true, wanted: 'calma' };
+  const S = { musicOn: true, wanted: 'noche', _gens: {} };
   try { S.musicOn = localStorage.getItem('guardian_musica') !== 'no'; } catch (e) { }
 
   function pluck(out, start, freq, amp, decay, R) {
@@ -94,7 +94,13 @@ const Sound = (function () {
       sfxGain = ctx.createGain(); sfxGain.gain.value = 0.9; sfxGain.connect(ctx.destination);
       // desbloqueo en iOS: sonido vacío dentro del gesto
       const b = ctx.createBuffer(1, 1, RATE), s = ctx.createBufferSource(); s.buffer = b; s.connect(ctx.destination); s.start(0);
-      setTimeout(() => { try { make(); ready = true; S.music(S.wanted); } catch (e) { } }, 0);
+      setTimeout(() => {
+        try { make(); ready = true; S.music(S.wanted); } catch (e) { }
+        // el resto de músicas se preparan poco a poco, para que no haya parones al cambiar de zona
+        const names = Object.keys(S._gens); let i = 0;
+        const next = () => { if (i >= names.length) return; const n = names[i++]; if (!buf[n]) { try { buf[n] = toBuffer(S._gens[n](RATE)); } catch (e) { } } setTimeout(next, 1500); };
+        setTimeout(next, 1000);
+      }, 0);
     } catch (e) { ctx = null; }
   };
   S.play = function (k) {
@@ -106,6 +112,8 @@ const Sound = (function () {
     if (!ready) return;
     const next = S.musicOn ? name : null;
     if (next === currentName) return;
+    if (next && !buf[next] && S._gens[next]) { try { buf[next] = toBuffer(S._gens[next](RATE)); } catch (e) { return; } }
+    if (next && !buf[next]) return;
     if (current) { try { current.stop(); } catch (e) { } current = null; }
     currentName = next;
     if (next) { current = ctx.createBufferSource(); current.buffer = buf[next]; current.loop = true; current.connect(musicGain); current.start(); }

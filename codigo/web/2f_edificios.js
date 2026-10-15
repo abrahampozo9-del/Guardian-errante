@@ -125,7 +125,43 @@ Art.initBuildings = function () {
     }
     for (let i = 0; i < 3; i++) p(b, R.int(16), R.int(16), 0x6a7a3a);
   });
-  for (const id of [T.ROOF, T.ROOF_DARK, T.CHURCH_ROOF, T.ROOF_SOLAR, T.WALL_WHITE, T.WINDOW, T.DOOR, T.WALL_STONE, T.DRYWALL, T.PORCH, T.BRIDGE]) {
+  // ---------------------------------------------------------------- interiores: tarima de madera continua (atlas 64×64)
+  {
+    const S = 64, f = img(S, S), R = RNG(2024);
+    const woods = [0x8a5a34, 0x96643a, 0xa06c40, 0x8e6038, 0x9a6a3e];
+    for (let row = 0; row < S / 5 + 1; row++) {
+      let x = -R.int(20);
+      while (x < S) {
+        const len = 14 + R.int(18), c = woods[R.int(woods.length)];
+        for (let yy = 0; yy < 5; yy++) for (let xx = 0; xx < len; xx++) {
+          const X = ((x + xx) % S + S) % S, Y = row * 5 + yy; if (Y >= S) continue;
+          let col = c;
+          if (yy === 4) col = 0x4e3018; else if (yy === 0) col = shade(c, 1.14);
+          else if (xx === 0) col = 0x5a3820;
+          else if (hash(X, Y >> 1, 77) < 0.12) col = shade(c, 0.88); // veta
+          f.d[Y * S + X] = (0xff000000 | col) >>> 0;
+        }
+        if (R.next() < 0.25) { const kx = ((x + 4 + R.int(len - 8)) % S + S) % S, ky = row * 5 + 2; if (ky < S) { f.d[ky * S + kx] = 0xff5a3820; } }
+        x += len;
+      }
+    }
+    Art.tiles[T.FLOOR] = [];
+    for (let k = 0; k < 16; k++) { const t = img(16, 16), i = k & 3, j = k >> 2; for (let y = 0; y < 16; y++) for (let x = 0; x < 16; x++) t.d[y * 16 + x] = f.d[(j * 16 + y) * S + i * 16 + x]; Art.tiles[T.FLOOR][k] = [t]; }
+    Art.atlasIds.add(T.FLOOR);
+  }
+  // baño: azulejo blanco con llaga gris
+  set(T.BATHFLOOR, (b, v, R) => { for (let y = 0; y < 16; y++) for (let x = 0; x < 16; x++) p(b, x, y, (x & 7) === 7 || (y & 7) === 7 ? 0xa8aeb4 : (x & 7) === 0 || (y & 7) === 0 ? 0xf8fafc : hash(x >> 3, y >> 3, v) < 0.5 ? 0xe4e8ec : 0xdce2e6); });
+  // pared de yeso con zócalo de azulejo andaluz (azul y blanco)
+  set(T.IWALL, (b, v, R) => {
+    for (let y = 0; y < 16; y++) for (let x = 0; x < 16; x++) p(b, x, y, hash(x, y, 3) < 0.15 ? 0xe6dccb : 0xf0e8d8);
+    r(b, 0, 0, 16, 1, 0xc8bca8);
+    for (let ty = 9; ty < 15; ty += 3) for (let tx = 0; tx < 16; tx += 3) { r(b, tx, ty, 3, 3, 0xf4f2ec); p(b, tx + 1, ty + 1, 0x2a5aa0); p(b, tx, ty, 0x6a8ac8); p(b, tx + 2, ty + 2, 0x6a8ac8); r(b, tx, ty + 2, 3, 1, 0xd8d4cc); }
+    r(b, 0, 8, 16, 1, 0x9a7a52); r(b, 0, 15, 16, 1, 0x6a4a2a);
+  });
+  set(T.IWALL_HI, (b, v, R) => { for (let y = 0; y < 16; y++) for (let x = 0; x < 16; x++) p(b, x, y, hash(x, y, 4) < 0.15 ? 0xe6dccb : 0xf0e8d8); r(b, 0, 0, 16, 2, 0xb8a888); r(b, 0, 2, 16, 1, 0x8a7a5a); });
+  set(T.WALLTOP, (b, v, R) => { for (let y = 0; y < 16; y++) for (let x = 0; x < 16; x++) p(b, x, y, hash(x, y, 6 + v) < 0.25 ? 0x2c2622 : 0x24201c); });
+  set(T.STAIRS, (b, v, R) => { for (let y = 0; y < 16; y += 4) { r(b, 0, y, 16, 4, shade(0x9a6a3e, 1 - y * 0.02)); r(b, 0, y, 16, 1, 0xc89a68); r(b, 0, y + 3, 16, 1, 0x4e3018); for (let x = 3; x < 16; x += 6) p(b, x, y + 2, 0x6a4424); } });
+  for (const id of [T.ROOF, T.ROOF_DARK, T.CHURCH_ROOF, T.ROOF_SOLAR, T.WALL_WHITE, T.WINDOW, T.DOOR, T.WALL_STONE, T.DRYWALL, T.PORCH, T.BRIDGE, T.BATHFLOOR, T.IWALL, T.IWALL_HI, T.WALLTOP, T.STAIRS]) {
     const d = Art.tiles[id][0][0].d; let rr = 0, gg = 0, bb = 0;
     for (let i = 0; i < 256; i++) { rr += (d[i] >> 16) & 255; gg += (d[i] >> 8) & 255; bb += d[i] & 255; }
     Art.tileColor[id] = ((rr / 256) << 16) | ((gg / 256) << 8) | (bb / 256);

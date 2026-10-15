@@ -129,6 +129,7 @@ G.renderWorld = function (g) {
   this.grade(g);
   const dk = Math.min(0.84, this.darkness() + this.stormDark());
   if (dk > 0.01) this.nightOverlay(g, dk, cx, cy);
+  this.fog(g, cx, cy);
   this.ambient(g, cx, cy, dk);
   this.drawWeather(g);
   this.vignette(g);
@@ -253,20 +254,20 @@ G.drawPlayer = function (g, cx, cy) {
   if (p.invul > 0 && !p.rolling && Math.floor(p.invul * 20) % 2 === 0 && !p.dead) return;
   const attacking = p.atkT > 0 && p.hasSword;
   const s = attacking ? Art.heroAtk[p.dir] : Art.hero[p.dir][p.moving ? 1 + Math.floor(p.anim * 7) % 2 : 0];
-  const sx = Math.round(p.x - 8) - cx, sy = Math.round(p.y - 23) - cy;
+  const sx = Math.round(p.x - s.w / 2) - cx, sy = Math.round(p.y - s.h + 1) - cy;
   this.shadow(g, p.x - cx, p.y - cy, 6);
   if (p.prayT > 0) this.glow(g, p.x - cx, p.y - 10 - cy, 22, `rgba(255,230,150,${0.43 * p.prayT})`);
   // espada a la espalda: en diagonal, empuñadura asomando por encima del hombro
   const back = p.hasSword && !attacking && !p.rolling && p.spinT <= 0;
   const backSword = () => {
     const off = [0, 0, 2, -2][p.dir], tilt = [-0.62, 0.62, 0.55, -0.55][p.dir];
-    g.save(); g.translate(p.x - cx + off + (p.dir === 0 ? 3 : 0), p.y - (p.dir === 0 ? 18 : 13) - cy); g.rotate(Math.PI + tilt);
+    g.save(); g.translate(p.x - cx + off + (p.dir === 0 ? 4 : 0), p.y - (p.dir === 0 ? 20 : 15) - cy); g.rotate(Math.PI + tilt);
     g.drawImage(cv(Art.sword), -2.5, -8, 5, 15); g.restore();
   };
   if (back && p.dir !== 1) backSword();
   if (attacking && p.dir === 1) this.drawSwing(g, cx, cy);
   if (p.spinT > 0) this.drawSpin(g, cx, cy, true);
-  if (p.rolling) { g.save(); g.translate(sx + 8, sy + 23); g.rotate((1 - p.rollT / 0.3) * Math.PI * 2 * (p.rollX < 0 ? -1 : 1)); g.drawImage(cv(s), -8, -16, 16, 18); g.restore(); }
+  if (p.rolling) { g.save(); g.translate(sx + 8, sy + 23); g.rotate((1 - p.rollT / 0.3) * Math.PI * 2 * (p.rollX < 0 ? -1 : 1)); g.drawImage(cv(s), -s.w / 2, -s.h * 0.75, s.w, s.h * 0.8); g.restore(); }
   else g.drawImage(cv(p.flash > 0 ? white(s) : s), sx, sy);
   if (attacking && p.dir !== 1) this.drawSwing(g, cx, cy);
   if (p.spinT > 0) this.drawSpin(g, cx, cy, false);
@@ -275,7 +276,7 @@ G.drawPlayer = function (g, cx, cy) {
 G.drawSpin = function (g, cx, cy, behind) {
   const p = this.player, t = 1 - p.spinT / 0.38, ang = -Math.PI / 2 + t * Math.PI * 2.2;
   const s = Math.sin(ang) < 0; if (s !== behind) return; // la mitad de arriba se pinta detrás del cuerpo
-  const hx = p.x - cx, hy = p.y - 11 - cy;
+  const hx = p.x - cx, hy = p.y - 13 - cy;
   g.strokeStyle = 'rgba(255,255,255,0.4)'; g.lineWidth = 3; g.lineCap = 'round';
   g.beginPath(); g.ellipse(hx, hy + 2, 20, 13, 0, ang - 1.6, ang); g.stroke();
   g.save(); g.translate(hx + Math.cos(ang) * 4, hy + Math.sin(ang) * 3); g.rotate(ang + Math.PI / 2); g.drawImage(cv(Art.sword), -3, -18); g.restore();
@@ -293,7 +294,7 @@ G.drawSwing = function (g, cx, cy) {
   }
   const rev = (p.dir === 2 || p.dir === 0) !== (p.atkKind === 'back');
   const a0 = rev ? base + 1.3 : base - 1.3, ang = rev ? a0 - t * 2.6 : a0 + t * 2.6;
-  const hx = p.x - cx + (p.dir === 2 ? -3 : p.dir === 3 ? 3 : 0), hy = p.y - 11 - cy;
+  const hx = p.x - cx + (p.dir === 2 ? -3 : p.dir === 3 ? 3 : 0), hy = p.y - 13 - cy;
   g.strokeStyle = 'rgba(255,255,255,0.35)'; g.lineWidth = 3; g.lineCap = 'round';
   g.beginPath(); g.arc(hx, hy, 15, Math.min(a0, ang), Math.max(a0, ang)); g.stroke();
   g.save(); g.translate(hx, hy); g.rotate(ang + Math.PI / 2); g.drawImage(cv(Art.sword), -3, -18); g.restore();
@@ -301,7 +302,7 @@ G.drawSwing = function (g, cx, cy) {
 G.nightOverlay = function (g, dk, cx, cy) {
   dctx.globalCompositeOperation = 'source-over';
   dctx.clearRect(0, 0, WW, WH);
-  dctx.fillStyle = `rgba(8,12,36,${dk})`;
+  dctx.fillStyle = `rgba(10,8,22,${dk})`;
   dctx.fillRect(0, 0, WW, WH);
   dctx.globalCompositeOperation = 'destination-out';
   const light = (x, y, r) => {
@@ -309,8 +310,8 @@ G.nightOverlay = function (g, dk, cx, cy) {
     gr.addColorStop(0, 'rgba(0,0,0,1)'); gr.addColorStop(0.35, 'rgba(0,0,0,0.84)'); gr.addColorStop(0.7, 'rgba(0,0,0,0.35)'); gr.addColorStop(1, 'rgba(0,0,0,0)');
     dctx.fillStyle = gr; dctx.beginPath(); dctx.arc(x, y, r, 0, Math.PI * 2); dctx.fill();
   };
-  light(this.player.x - cx, this.player.y - 10 - cy, 92);
-  for (const pr of this.world.props) if (pr.anim === 1 || pr.img === Art.P.cruzluz || pr.light) {
+  light(this.player.x - cx, this.player.y - 10 - cy, this.world.outdoor ? 110 : 120);
+  for (const pr of this.world.props) if (pr.anim === 1 || pr.img === Art.P.cruzluz || pr.light || pr.id === 'chimenea' || pr.id === 'tele' || pr.id === 'pc' || pr.id === 'radio') {
     const lx = pr.x - cx, ly = pr.y - (pr.light ? 26 : 6) - cy;
     if (lx > -90 && lx < WW + 90 && ly > -90 && ly < WH + 90) light(lx, ly, pr.light ? 58 + Math.sin(this.clock * 5 + pr.x) * 1.5 : pr.anim === 1 ? 72 + Math.sin(this.clock * 9) * 3 : 55);
   }
@@ -455,7 +456,7 @@ G.uiDialog = function (g) {
   let tx = x + 8;
   if (portrait) {
     g.fillStyle = 'rgba(60,44,30,0.8)'; g.fillRect(x + 6, y + 6, 36, 44);
-    g.drawImage(cv(portrait), x + 8, y + 4, 32, 48);
+    g.drawImage(cv(portrait), 0, 0, portrait.w, 19, x + 6, y + 8, 36, 34);
     tx = x + 48;
   }
   g.font = FT(7.6); this.text(g, who, tx, y + 12.5, GOLD);
@@ -516,7 +517,7 @@ G.uiTitle = function (g) {
   g.font = FT(24); this.center(g, 'El Guardián Errante', 66, PAPER);
   g.font = FT(9); this.center(g, 'Crónicas de Pozo Alcón', 82, GOLD);
   g.fillStyle = GOLD; g.fillRect(VW / 2 - 60, 88, 120, 0.7);
-  g.drawImage(cv(Art.hero[0][0]), VW / 2 - 16, 94, 32, 48);
+  g.drawImage(cv(Art.hero[0][0]), VW / 2 - 20, 88, 40, 56);
   this.menuList(g, this.menu(), 160, 15);
   g.font = FB(5.6);
   this.center(g, G.touch ? 'Toca una opción · Juega con el móvil en horizontal' : 'Flechas/WASD para elegir · Enter para aceptar · F11 pantalla completa', VH - 6, '#8a7a60');

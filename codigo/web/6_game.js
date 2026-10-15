@@ -27,6 +27,7 @@ G.boot = function () {
   Art.initVegetation();
   Art.initBuildings();
   Art.initProps2();
+  Art.initCharacters2();
   Art.initEnemies();
   this.buildWorlds();
   this.hasSave = !!this.readSave();
@@ -90,7 +91,7 @@ G.updateTitle = function () {
     else if (o === 'Controles') { this.helpBack = ST.TITLE; this.st = ST.HELP; }
   }
 };
-G.startIntro = function () { this.playCine('intro', () => this.newGame()); };
+G.startIntro = function () { Sound.music('infierno'); this.playCine('intro', () => this.newGame()); };
 G.startIntroOld = function () {
   this.introPages = [
     'Primero fueron los apagones. Luego, el silencio en la radio.\nY después... ellos.',
@@ -131,20 +132,36 @@ G.updatePause = function () {
       case 2: this.save(); this.toast('Partida guardada'); this.st = ST.PLAY; break;
       case 3: this.helpBack = ST.PAUSE; this.st = ST.HELP; break;
       case 4: Sound.toggle(); break;
-      case 5: this.st = ST.TITLE; this.menuIdx = 0; this.hasSave = !!this.readSave(); Sound.music('calma'); break;
+      case 5: this.st = ST.TITLE; this.menuIdx = 0; this.hasSave = !!this.readSave(); Sound.music('noche'); break;
     }
   }
 };
 
 G.hour = function () { return (this.day * 24 + 6) % 24; };
 G.isNight = function () { const h = this.hour(); return h >= 20.5 || h < 5.5; };
+// El mundo tras el Colapso nunca está del todo iluminado: de día el cielo sigue cubierto.
 G.darkness = function () {
-  if (!this.world.outdoor) return 0;
-  const h = this.hour();
-  if (h >= 7 && h < 18.5) return 0;
-  if (h >= 18.5 && h < 21) return (h - 18.5) / 2.5 * 0.74;
-  if (h >= 21 || h < 4.5) return 0.74;
-  return (1 - (h - 4.5) / 2.5) * 0.74;
+  if (!this.world.outdoor) return 0.46;
+  const h = this.hour(), DAY = 0.3, NIGHT = 0.88;
+  if (h >= 7 && h < 18.5) return DAY;
+  if (h >= 18.5 && h < 21) return DAY + (h - 18.5) / 2.5 * (NIGHT - DAY);
+  if (h >= 21 || h < 4.5) return NIGHT;
+  return NIGHT - (h - 4.5) / 2.5 * (NIGHT - DAY);
+};
+// la música cambia sola según dónde estás y qué pasa (con un margen para que no salte a cada momento)
+G.autoMusic = function (dt) {
+  const w = this.world, p = this.player;
+  let m;
+  if ((this.boss && !this.boss.dead) || w.monsters.some(x => !x.dead && x.kind === MK.DEMONIO && x.aggro)) m = 'jefe';
+  else if (w.monsters.some(x => !x.dead && x.aggro && Math.hypot(x.x - p.x, x.y - p.y) < 150)) m = 'batalla';
+  else if (!w.outdoor) m = w.id.startsWith('casa') ? 'calma' : 'pesadilla';
+  else if (this.playerSafe()) m = 'iglesia';
+  else if (this.isNight() || (typeof Wx !== 'undefined' && Wx.s > 0.5)) m = 'noche';
+  else m = 'pesadilla';
+  if (m !== Sound.wanted) {
+    this.musicT = (this.musicT || 0) + dt;
+    if (this.musicT > (m === 'batalla' || m === 'jefe' ? 0.1 : 2.5)) { this.musicT = 0; Sound.music(m); }
+  } else this.musicT = 0;
 };
 G.playerSafe = function () { return this.world.safeAt(Math.floor(this.player.x / TS), Math.floor(this.player.y / TS)); };
 
@@ -153,6 +170,7 @@ G.updatePlay = function (dt) {
   this.clock += dt;
   if (w.outdoor) this.day = (this.day + dt / DAY_LEN) % 1;
   this.updateWeather(dt);
+  this.autoMusic(dt);
   if (this.tableCool > 0) this.tableCool -= dt;
   if (this.pressed('Escape', 'KeyP')) { this.st = ST.PAUSE; this.menuIdx = 0; return; }
   if (this.pressed('KeyM', 'Tab')) { this.st = ST.MAP; return; }

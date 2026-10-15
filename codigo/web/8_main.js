@@ -44,7 +44,7 @@ const Touch = {
       ctx.globalAlpha = off ? 0.35 : 1;
       ctx.fillStyle = lit ? 'rgba(232,196,106,0.55)' : (b.id === 'skills' && p.pts > 0) ? `rgba(232,196,106,${0.25 + 0.2 * Math.sin(performance.now() / 200)})` : 'rgba(18,14,12,0.45)';
       ctx.beginPath(); ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2); ctx.fill();
-      ctx.lineWidth = 2; ctx.strokeStyle = 'rgba(232,196,106,0.75)'; ctx.stroke();
+      ctx.lineWidth = 2; ctx.strokeStyle = 'rgba(138,100,64,0.9)'; ctx.stroke(); ctx.lineWidth = 1; ctx.strokeStyle = 'rgba(10,7,6,0.8)'; ctx.beginPath(); ctx.arc(b.x, b.y, b.r + 1.5, 0, Math.PI * 2); ctx.stroke();
       ctx.fillStyle = PAPER; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
       ctx.font = FBB(Math.round((b.r > 25 ? 14 : 12) * this.k));
       if (b.id === 'atk') {

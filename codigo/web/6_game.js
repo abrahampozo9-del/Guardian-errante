@@ -226,11 +226,15 @@ G.swordCenter = function (r = 15) {
   const p = this.player;
   return [[p.x, p.y - 8 + r - 1], [p.x, p.y - 8 - r + 1], [p.x - r, p.y - 8], [p.x + r, p.y - 8]][p.dir];
 };
-G.damageMonster = function (m, d, crit, kx, ky) {
+G.damageMonster = function (m, d, crit, kx, ky, holy) {
   if (!m.vulnerable()) { this.fx.push(Fx.text(m.x, m.y - 14, 'bajo el agua', 0x9ad8d0)); return; }
+  if (m.kind === MK.DEMONIO) {
+    if (holy) { d = Math.round(d * 2.5); crit = true; }
+    else { d = Math.max(1, Math.round(d * 0.45)); if (!this.flags.has('tuto_demonio')) { this.flags.add('tuto_demonio'); this.toast('La espada apenas le hace mella. Solo la Luz lo quema de verdad.'); } }
+  }
   if (m.state === 'stun') { d = Math.round(d * 1.6); crit = true; }
   m.hp -= d; m.flash = 0.12;
-  const heavy = m.kind === MK.BESTIA || m.kind === MK.NIDO || (m.kind === MK.JABALI && m.state === 'atk') || (m.kind === MK.HUECO && m.state === 'wind');
+  const heavy = m.kind === MK.BESTIA || m.kind === MK.NIDO || m.kind === MK.DEMONIO || (m.kind === MK.JABALI && m.state === 'atk') || (m.kind === MK.HUECO && m.state === 'wind');
   if (!heavy) m.knock(kx, ky, crit ? 240 : 170); else if (crit && m.kind !== MK.NIDO) m.knock(kx, ky, 60);
   // golpear durante el aviso interrumpe a los enemigos ligeros
   if (m.state === 'wind' && (m.kind === MK.ALACRAN || m.kind === MK.SOMBRA || m.kind === MK.AHOGADO)) { m.setState('rec', 0.5); m.cool = 0.8; }
@@ -250,6 +254,7 @@ G.killMonster = function (m) {
     else this.toast('Engendros eliminados: ' + this.questKills + '/6');
   }
   if (m.kind === MK.BESTIA) this.bossDefeated();
+  if (m.kind === MK.DEMONIO) { Sound.play('purify'); this.shake(0.8); for (let i = 0; i < 30; i++) this.fx.push(Fx.spark(m.x, m.y - 20, this.rnd.gauss() * 70, this.rnd.gauss() * 70 - 30, i % 2 ? 0xff7a20 : 0x2a0606, 0.9)); this.toast('El demonio se deshace en ceniza y azufre.'); if (this.onDemonDead) { const f = this.onDemonDead; this.onDemonDead = null; f(m); } }
   if (m.lair) {
     const left = this.world.monsters.filter(o => o.lair === m.lair && !o.dead && !o.fromNest).length;
     if (left === 0) { m.lair.cleared = true; m.lair.active = false; this.toast('Guarida limpia: ' + m.lair.name); for (const o of this.world.monsters) if (o.lair === m.lair && !o.dead) { o.dead = true; } }
@@ -314,7 +319,7 @@ G.holyLight = function () {
   for (let i = 0; i < 24; i++) { const a = i * Math.PI / 12; this.fx.push(Fx.spark(p.x, p.y - 8, Math.cos(a) * 140, Math.sin(a) * 140, 0xfff0b0, 0.4)); }
   Sound.play('light'); this.shake(0.15);
   for (const m of [...this.world.monsters]) if (!m.dead && Math.hypot(m.x - p.x, m.y - p.y) < R + m.hw) {
-    this.damageMonster(m, Math.round((p.atk * 2 + 6) * (this.has('ardiente') ? 1.5 : 1)), false, m.x - p.x, m.y - p.y);
+    this.damageMonster(m, Math.round((p.atk * 2 + 6) * (this.has('ardiente') ? 1.5 : 1)), false, m.x - p.x, m.y - p.y, true);
     if (this.has('cruzluz') && !m.dead && m.kind !== MK.BESTIA && m.kind !== MK.NIDO && m.vulnerable()) m.setState('stun', 2);
   }
 };
@@ -473,6 +478,7 @@ G.talk = function (n) {
   Sound.play('talk');
   const p = this.player;
   switch (n.key) {
+    case 'angel': this.sayAs(n, ...(this.angelLines || ['No temas, Guardián. No todos te hemos olvidado.', 'La batalla no ha terminado. Sigue la luz... aunque la encuentres en la oscuridad.'])); break;
     case 'gato': this.say('Guardián', 'El gato atigrado duerme sobre el cojín, como siempre. Algunas cosas no cambian.'); break;
     case 'perro': this.say('Guardián', 'El perrillo mueve la cola. Es el mejor centinela del valle: ladra antes de que lleguen.'); break;
     case 'cura':

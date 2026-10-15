@@ -57,7 +57,7 @@
   const caja = document.getElementById('instalar');
   const ua = navigator.userAgent;
   const instalada = window.matchMedia('(display-mode: standalone)').matches || window.matchMedia('(display-mode: fullscreen)').matches || navigator.standalone === true;
-  if (instalada) return;
+  if (instalada || /[?&]pc=1/.test(location.search)) return; // dentro de la app de PC no hace falta
   const esIOS = /iPad|iPhone|iPod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
   const esAndroid = /Android/i.test(ua);
   if (!esIOS && !esAndroid) return; // en el PC no molesta

@@ -172,6 +172,76 @@ Art.initEnemies = function () {
     E.nest.push(b);
   }
 
+  // ---------------------------------------------------------------- Demonio (46×50, de lado, vuela)
+  function demonSpr(f, mode) {
+    const b = img(46, 50);
+    const sk = 0x4a1010, dk = 0x2a0606, hi = 0x6a1c14, mem = 0x3a0a0e, bone = 0xd8c8a8;
+    // alas de murciélago
+    const tip = mode === 'wind' ? -4 : mode === 'atk' ? 10 : [0, 6, 3][f % 3];
+    for (const side of [-1, 1]) {
+      const sx = 23 + side * 3, sy = 16;
+      const tx = 23 + side * 22, ty = 4 + tip;
+      for (let k = 0; k <= 10; k++) {
+        const t = k / 10, ex = sx + (tx - sx) * t, ey = sy + (ty - sy) * t, low = sy + 12 + Math.sin(t * Math.PI) * 4 - t * 4;
+        line(b, ex, ey, ex - side * 2, low, mem);
+      }
+      line(b, sx, sy, tx, ty, dk); line(b, sx, sy + 1, tx, ty + 1, hi);
+      for (const t of [0.45, 0.75]) { const ex = sx + (tx - sx) * t, ey = sy + (ty - sy) * t; line(b, ex, ey, ex - side * 3, sy + 14, dk); }
+      p(b, tx, ty - 1, bone);
+    }
+    // cola con punta de flecha
+    const tw = mode === 'atk' ? 2 : Math.round(Math.sin(f) * 2);
+    line(b, 21, 34, 12, 40 + tw, dk); line(b, 12, 40 + tw, 7, 37 + tw, dk); r(b, 5, 35 + tw, 3, 3, hi);
+    // piernas de macho cabrío
+    const st = mode === 'atk' ? 2 : 0;
+    r(b, 18 + st, 32, 3, 7, sk); r(b, 25 - st, 32, 3, 7, sk); r(b, 17 + st, 38, 3, 4, dk); r(b, 26 - st, 38, 3, 4, dk);
+    r(b, 17 + st, 42, 3, 2, 0x140404); r(b, 26 - st, 42, 3, 2, 0x140404);
+    // torso
+    ov(b, 23, 26, 7, 8, sk); ov(b, 23, 24, 6, 6, hi); line(b, 23, 20, 23, 31, dk); line(b, 19, 25, 27, 25, dk);
+    // brazos con garras
+    const ax = mode === 'atk' ? 9 : mode === 'wind' ? -2 : 0, ay = mode === 'wind' ? -6 : 0;
+    line(b, 17, 21, 13 - ax * 0.3, 29 + ay, sk); line(b, 29, 21, 34 + ax, 27 + ay, sk);
+    for (let i = 0; i < 3; i++) { p(b, 12 - ax * 0.3 - i, 30 + ay + (i % 2), bone); p(b, 35 + ax + i, 27 + ay + (i % 2), bone); }
+    // cabeza con cuernos
+    ov(b, 25, 13, 5, 5, sk); ov(b, 26, 12, 4, 3.5, hi);
+    line(b, 22, 10, 18, 4, bone); line(b, 18, 4, 19, 1, bone); line(b, 27, 9, 30, 3, bone); line(b, 30, 3, 33, 2, bone);
+    const eye = mode === 'wind' ? 0xffff60 : 0xffa020;
+    r(b, 26, 12, 2, 1, eye); r(b, 29, 12, 1, 1, eye);
+    r(b, 27, 16, 4, 1, 0x140404); if (mode !== 'walk') { r(b, 27, 16, 4, 2, 0x140404); p(b, 28, 16, bone); p(b, 30, 16, bone); }
+    if (mode === 'wind') { ov(b, 32, 16, 2.5, 2, 0xff8020); ov(b, 32, 16, 1.4, 1.2, 0xffe060); }
+    outline(b, 0x0a0202);
+    return b;
+  }
+  E.demon = [{}, {}];
+  for (const [k, f, m] of [['w0', 0, 'walk'], ['w1', 1, 'walk'], ['w2', 2, 'walk'], ['wind', 0, 'wind'], ['atk', 0, 'atk']]) { const s = demonSpr(f, m); E.demon[1][k] = s; E.demon[0][k] = flipH(s); }
+  const fire = img(10, 10); ov(fire, 5, 5, 4.5, 4.5, 0xa02008); ov(fire, 5, 5, 3.2, 3.2, 0xff7a20); ov(fire, 4.5, 4.5, 1.8, 1.8, 0xffe080); E.fire = fire;
+
+  // ---------------------------------------------------------------- Ángel (34×46, aliado, muy raro)
+  function angelSpr(f) {
+    const b = img(34, 46);
+    const robe = 0xf4f0e4, robe2 = 0xd8d0bc, wing = 0xfaf8f0, wing2 = 0xd8dce4, gold = 0xf0c850;
+    const lift = f === 1 ? -2 : 0;
+    for (const side of [-1, 1]) {
+      for (let k = 0; k < 6; k++) {
+        const x0 = 17 + side * 4, y0 = 15, x1 = 17 + side * (8 + k * 2.4), y1 = 4 + k * 4.2 + lift * (1 - k / 6);
+        line(b, x0, y0 + k, x1, y1, k % 2 ? wing2 : wing);
+        line(b, x0, y0 + k + 1, x1, y1 + 1, wing);
+      }
+      line(b, 17 + side * 4, 14, 17 + side * 8, 3 + lift, wing2);
+    }
+    for (let y = 18; y < 43; y++) { const w = 4 + (y - 18) * 0.28; r(b, 17 - w, y, w * 2, 1, (y % 6 === 0) ? robe2 : robe); }
+    line(b, 17, 20, 17, 42, robe2); r(b, 12, 24, 10, 1, gold);
+    r(b, 10, 19, 3, 9, robe); r(b, 22, 19, 3, 9, robe);
+    r(b, 24, 6, 2, 22, 0xfff8d0); r(b, 23, 6, 1, 20, 0xffe890); r(b, 21, 26, 7, 1, gold); r(b, 24, 27, 2, 3, 0xb08030);
+    ov(b, 17, 12, 3.6, 4, 0xf0d8c0); r(b, 13, 8, 8, 3, 0xe8d090); r(b, 13, 10, 2, 6, 0xe8d090); r(b, 19, 10, 2, 6, 0xe8d090);
+    p(b, 16, 12, 0x6a8ab8); p(b, 18, 12, 0x6a8ab8);
+    for (let x = 12; x <= 22; x++) { if (Math.abs(x - 17) >= 3) { p(b, x, 4, gold); p(b, x, 6, gold); } }
+    p(b, 12, 5, gold); p(b, 22, 5, gold);
+    outline(b, 0xa8a090);
+    return b;
+  }
+  E.angel = [angelSpr(0), angelSpr(1)];
+
   // icono de aviso "!"
   const ex = img(7, 11); r(ex, 2, 0, 3, 7, 0xffd040); r(ex, 2, 8, 3, 3, 0xffd040); outline(ex, 0x3a1a00); E.alert = ex;
 };

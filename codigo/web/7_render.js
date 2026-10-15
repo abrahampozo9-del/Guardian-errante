@@ -90,6 +90,7 @@ G.renderWorld = function (g) {
   for (const [, kind, e] of list) {
     if (kind === 0) g.drawImage(cv(e.img), e.left() - cx, e.top() - cy);
     else if (kind === 1) this.drawMonster(g, e, cx, cy);
+    else if (kind === 2 && e.key === 'angel') { const s = e.sprite(this.clock), hov = Math.sin(this.clock * 2) * 2 - 6; this.glow(g, e.x - cx, e.y - 20 - cy, 34, 'rgba(255,245,200,0.35)'); this.shadow(g, e.x - cx, e.y - cy, 7); g.drawImage(cv(s), Math.round(e.x - s.w / 2) - cx, Math.round(e.y - s.h + hov) - cy); }
     else if (kind === 2) { const s = e.sprite(this.clock); this.shadow(g, e.x - cx, e.y - cy, s.w / 2.5); g.drawImage(cv(s), Math.round(e.x - s.w / 2) - cx, Math.round(e.y - s.h) - cy); }
     else if (kind === 3) {
       const s = e.type === Pickup.RELIC ? Art.relic : Art.herb, bob = Math.sin(e.t * 3 + e.x) * 2;
@@ -99,7 +100,7 @@ G.renderWorld = function (g) {
     } else this.drawPlayer(g, cx, cy);
   }
   this.drawCombatFx(g, cx, cy);
-  for (const o of this.orbs) { const im = o.mud ? Art.E.mud : Art.orb; g.drawImage(cv(im), Math.floor(o.x) - (im.w >> 1) - cx, Math.floor(o.y) - (im.h >> 1) - cy); }
+  for (const o of this.orbs) { const im = o.fire ? Art.E.fire : o.mud ? Art.E.mud : Art.orb; g.drawImage(cv(im), Math.floor(o.x) - (im.w >> 1) - cx, Math.floor(o.y) - (im.h >> 1) - cy); }
   for (const f of this.fx) {
     const a = Math.max(0, Math.min(1, f.life / f.max));
     if (f.ring) {
@@ -178,7 +179,8 @@ G.drawMonster = function (g, m, cx, cy) {
   if (m.kind === MK.SOMBRA) alpha = 0.72 + 0.14 * Math.sin(m.anim * 4) + (m.state === 'wind' || m.state === 'atk' ? 0.15 : 0);
   if (m.spawnFade > 0) alpha *= Math.max(0, 1 - m.spawnFade / 0.6);
   g.globalAlpha = Math.max(0, Math.min(1, alpha));
-  const bob = m.kind === MK.SOMBRA ? Math.sin(m.anim * 3) * 2 - 4 : 0;
+  const bob = m.kind === MK.SOMBRA ? Math.sin(m.anim * 3) * 2 - 4 : m.kind === MK.DEMONIO ? Math.sin(m.anim * 5) * 3 - 12 : 0;
+  if (m.kind === MK.DEMONIO) this.glow(g, m.x - cx, m.y - cy - 4, 26, 'rgba(200,40,10,0.28)');
   const shake = m.state === 'wind' && m.kind !== MK.SOMBRA ? Math.round(Math.sin(m.anim * 60)) : 0;
   const sx = Math.round(m.x - s.w / 2) - cx + shake;
   let sy = Math.round(m.y - s.h + 2 + bob) - cy;
@@ -200,6 +202,12 @@ G.drawMonster = function (g, m, cx, cy) {
     if (m.kind === MK.JABALI) { // marca la línea de embestida
       g.strokeStyle = `rgba(255,70,40,${0.25 + 0.35 * t})`; g.lineWidth = 2; g.setLineDash([3, 3]);
       g.beginPath(); g.moveTo(m.x - cx, m.y - cy - 3); g.lineTo(m.x - cx + m.ax * 90, m.y - cy - 3 + m.ay * 90); g.stroke(); g.setLineDash([]);
+    }
+    if (m.kind === MK.DEMONIO) {
+      g.fillStyle = `rgba(255,80,20,${0.12 + 0.2 * t})`;
+      if (m.atkKind === 'fuego') { const a = Math.atan2(m.ay, m.ax); g.beginPath(); g.moveTo(m.x - cx, m.y - 20 - cy); g.arc(m.x - cx, m.y - 20 - cy, 110, a - 0.35, a + 0.35); g.fill(); }
+      else if (m.atkKind === 'picado') { g.strokeStyle = `rgba(255,70,40,${0.3 + 0.4 * t})`; g.lineWidth = 3; g.setLineDash([4, 3]); g.beginPath(); g.moveTo(m.x - cx, m.y - cy); g.lineTo(m.x - cx + m.ax * 130, m.y - cy + m.ay * 130); g.stroke(); g.setLineDash([]); }
+      else { g.beginPath(); g.arc(m.x + m.ax * 16 - cx, m.y - 10 + m.ay * 16 - cy, 18, 0, Math.PI * 2); g.fill(); }
     }
     if (m.kind === MK.HUECO || m.kind === MK.SOMBRA) {
       g.fillStyle = `rgba(255,60,40,${0.12 + 0.2 * t})`;

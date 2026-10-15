@@ -26,8 +26,8 @@ class Player extends Entity {
   canLight() { return this.lvl >= 3; }
 }
 
-const MK = { JABALI: 'JABALI', HUECO: 'HUECO', ALACRAN: 'ALACRAN', SOMBRA: 'SOMBRA', AHOGADO: 'AHOGADO', NIDO: 'NIDO', BESTIA: 'BESTIA' };
-const MNAME = { JABALI: 'Jabalí podrido', HUECO: 'Hueco', ALACRAN: 'Alacrán gigante', SOMBRA: 'Sombra del valle', AHOGADO: 'Ahogado del Guadalentín', NIDO: 'Nido de engendros', BESTIA: 'La Bestia de La Bolera' };
+const MK = { JABALI: 'JABALI', HUECO: 'HUECO', ALACRAN: 'ALACRAN', SOMBRA: 'SOMBRA', AHOGADO: 'AHOGADO', NIDO: 'NIDO', BESTIA: 'BESTIA', DEMONIO: 'DEMONIO' };
+const MNAME = { JABALI: 'Jabalí podrido', HUECO: 'Hueco', ALACRAN: 'Alacrán gigante', SOMBRA: 'Sombra del valle', AHOGADO: 'Ahogado del Guadalentín', NIDO: 'Nido de engendros', BESTIA: 'La Bestia de La Bolera', DEMONIO: 'Demonio' };
 const MRand = RNG(Date.now() & 0xffff);
 // vida, daño, velocidad, xp, semiancho, semialto, alcance para empezar el ataque, aviso, ataque, recuperación
 const MSTAT = {
@@ -37,6 +37,7 @@ const MSTAT = {
   SOMBRA:  { hp: 36, dmg: 14, sp: 40, xp: 15, hw: 5, hh: 3, range: 80, wind: 0.75, atk: 0.22, rec: 0.85 },
   AHOGADO: { hp: 40, dmg: 10, sp: 32, xp: 13, hw: 5, hh: 3, range: 120, wind: 0.75, atk: 0.15, rec: 1.4 },
   NIDO:    { hp: 110, dmg: 0, sp: 0,  xp: 30, hw: 12, hh: 5, range: 0, wind: 0, atk: 0, rec: 0 },
+  DEMONIO: { hp: 560, dmg: 22, sp: 70, xp: 260, hw: 10, hh: 4, range: 130, wind: 0.8, atk: 0.9, rec: 0.8 },
   BESTIA:  { hp: 700, dmg: 18, sp: 30, xp: 400, hw: 16, hh: 7, range: 0, wind: 0, atk: 0, rec: 0 },
 };
 
@@ -77,7 +78,7 @@ class Monster extends Entity {
     if (this.cool > 0) this.cool -= dt;
     this.anim += dt;
     const dx = p.x - this.x, dy = (p.y - 4) - this.y, d = Math.hypot(dx, dy);
-    const sense = this.kind === MK.BESTIA ? 400 : (g.isNight() ? 130 : 105);
+    const sense = this.kind === MK.BESTIA ? 400 : this.kind === MK.DEMONIO ? 220 : (g.isNight() ? 130 : 105);
     if (p.dead || g.playerSafe()) this.aggro = false;
     else if (d < sense) this.aggro = true;
     else if (d > sense * 1.8) this.aggro = false;
@@ -86,6 +87,7 @@ class Monster extends Entity {
     this.moving = false;
     if (this.kind === MK.BESTIA) { if (this.kbT <= 0) this.boss(g, dt, dx, dy, d); return; }
     if (this.kind === MK.NIDO) { this.nest(g, dt, d); return; }
+    if (this.kind === MK.DEMONIO) { if (this.kbT <= 0) this.demon(g, dt, dx, dy, d); return; }
 
     if (this.state !== 'idle' && this.state !== 'chase') {
       this.stT -= dt;
@@ -249,6 +251,57 @@ class Monster extends Entity {
     if (d > 30) { const sp = this.speed * (enraged ? 1.4 : 1); this.move(w, dx / d * sp * dt, dy / d * sp * dt); this.moving = true; this.faceTo(dx, dy); }
   }
 
+  // Demonio: vuela en círculos, escupe fuego, cae en picado y desgarra. La espada apenas le hiere; la Luz, sí.
+  demon(g, dt, dx, dy, d) {
+    const w = g.world, p = g.player, rage = this.hp < this.maxHp / 2;
+    if (rage && !this.raged) {
+      this.raged = true; Sound.play('roar'); g.shake(0.6);
+      g.toast('El demonio llama a los condenados...');
+      for (let i = 0; i < 2; i++) g.spawnNear(MK.HUECO, this.x + (i ? -36 : 36), this.y + 12, 1.4);
+    }
+    if (this.state === 'wind') {
+      this.stT -= dt;
+      if (this.atkKind !== 'picado') { const l = d || 1; this.ax = dx / l; this.ay = dy / l; }
+      this.faceTo(this.ax, this.ay);
+      if (this.stT <= 0) { this.setState('atk', { fuego: rage ? 1.1 : 0.85, zarpazo: 0.25, picado: 0.55 }[this.atkKind]); this.fireT = 0; Sound.play(this.atkKind === 'fuego' ? 'roar' : 'swing'); }
+      return;
+    }
+    if (this.state === 'atk') {
+      this.stT -= dt;
+      let hit = false;
+      if (this.atkKind === 'fuego') {
+        this.fireT -= dt;
+        if (this.fireT <= 0) {
+          this.fireT = rage ? 0.06 : 0.09;
+          const a = Math.atan2(this.ay, this.ax) + (MRand.next() - 0.5) * 0.7, sp = 140 + MRand.next() * 40;
+          g.orbs.push({ x: this.x + this.ax * 12, y: this.y - 26, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, dmg: Math.round(this.dmg * 0.4), life: 0.85, fire: true });
+        }
+      } else if (this.atkKind === 'picado') {
+        this.x += this.ax * 240 * dt; this.y += this.ay * 240 * dt; this.moving = true;
+        hit = Math.hypot(p.x - this.x, p.y - this.y) < 16;
+      } else hit = Math.hypot(p.x - (this.x + this.ax * 16), p.y - 8 - (this.y - 10 + this.ay * 16)) < 18;
+      if (hit && !this.hitDone && p.rolling && !p.dead) { this.hitDone = true; g.perfectDodge(); }
+      if (hit && !this.hitDone && p.invul <= 0 && !p.dead) { this.hitDone = true; g.hurtPlayer(this.dmg, this.x, this.y); }
+      if (this.stT <= 0) this.setState('rec', rage ? 0.45 : 0.8);
+      return;
+    }
+    if (this.state === 'rec' || this.state === 'stun') { this.stT -= dt; if (this.stT <= 0) { this.state = 'chase'; this.cool = rage ? 0.5 : 0.9; } return; }
+    if (!this.aggro) { this.state = 'idle'; this.wander(g, dt); return; }
+    this.state = 'chase';
+    // vuela en círculo alrededor del Guardián
+    const a = Math.atan2(-dy, -dx) + (rage ? 1.1 : 0.7) * dt * 3, R0 = 70;
+    const tx = p.x + Math.cos(a) * R0, ty = p.y - 4 + Math.sin(a) * R0 * 0.75;
+    const ex = tx - this.x, ey = ty - this.y, el = Math.hypot(ex, ey) || 1, sp = this.speed * (rage ? 1.3 : 1);
+    if (el > 2) { this.x += ex / el * Math.min(sp * dt, el); this.y += ey / el * Math.min(sp * dt, el); }
+    this.x = Math.max(24, Math.min(w.w * TS - 24, this.x)); this.y = Math.max(30, Math.min(w.h * TS - 10, this.y));
+    this.moving = true; this.faceTo(dx, dy);
+    if (this.cool <= 0 && d < this.st.range) {
+      const l = d || 1; this.ax = dx / l; this.ay = dy / l;
+      this.atkKind = d < 34 ? 'zarpazo' : (MRand.next() < (rage ? 0.45 : 0.32) ? 'picado' : 'fuego');
+      this.setState('wind', { zarpazo: 0.45, picado: 0.75, fuego: 0.8 }[this.atkKind]);
+    }
+  }
+
   frameKey() {
     if (this.state === 'wind') return 'wind';
     if (this.state === 'atk') return 'atk';
@@ -265,6 +318,7 @@ class Monster extends Entity {
       case MK.SOMBRA: s = E.shade[k === 'w0' || k === 'w1' ? 'w' + (Math.floor(this.anim * 6) % 3) : k]; break;
       case MK.AHOGADO: s = this.submerged ? E.drown[Math.floor(this.anim * 3) % 2 ? 's1' : 's0'] : E.drown[k]; break;
       case MK.NIDO: s = E.nest[Math.floor(this.anim * 3) % 3]; break;
+      case MK.DEMONIO: s = E.demon[this.lastH][k === 'w0' || k === 'w1' ? 'w' + (Math.floor(this.anim * 8) % 3) : k]; break;
       default: s = (this.flash > 0 ? Art.bossHurt : Art.boss)[(this.chargeT > 0 || this.shootT < 0.4) ? 1 : Math.floor(this.anim * 2) % 2];
     }
     if (this.flash > 0 && this.kind !== MK.BESTIA) s = white(s);

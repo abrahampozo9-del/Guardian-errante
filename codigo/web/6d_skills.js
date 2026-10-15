@@ -162,7 +162,7 @@ G.updateCombat = function (dt) {
       if (m.dead || p.hitSet.has(m)) continue;
       if (Math.hypot(m.x - c[0], (m.y - 6) - c[1]) < rad + m.hw) {
         this.swordHit(m, thrust ? 1.6 : p.atkKind === 'back' ? 0.9 : 1);
-        if (thrust && !m.dead && m.kind !== MK.BESTIA && m.kind !== MK.NIDO && m.vulnerable()) m.setState('stun', 0.6);
+        if (thrust && !m.dead && m.kind !== MK.BESTIA && m.kind !== MK.NIDO && m.kind !== MK.DEMONIO && m.vulnerable()) m.setState('stun', 0.6);
       }
     }
   }
@@ -174,7 +174,7 @@ G.updateCombat = function (dt) {
   this.waves = this.waves.filter(o => {
     o.x += o.vx * dt; o.y += o.vy * dt; o.life -= dt;
     for (const m of w.monsters) if (!m.dead && !o.hit.has(m) && Math.hypot(m.x - o.x, m.y - 6 - o.y) < 10 + m.hw) {
-      o.hit.add(m); const [d, crit] = this.swordDamage(1.1); this.damageMonster(m, d, crit, o.vx, o.vy);
+      o.hit.add(m); const [d, crit] = this.swordDamage(1.1); this.damageMonster(m, d, crit, o.vx, o.vy, true);
     }
     if (this.rnd.next() < 0.6) this.fx.push(Fx.spark(o.x, o.y, this.rnd.gauss() * 10, this.rnd.gauss() * 10, 0xfff0b0, 0.25));
     return o.life > 0 && !w.solid(Math.floor(o.x / TS), Math.floor((o.y + 8) / TS));
@@ -207,4 +207,21 @@ G.drawCombatFx = function (g, cx, cy) {
     g.strokeStyle = 'rgba(255,255,255,0.5)'; g.lineWidth = 1;
     g.beginPath(); g.arc(o.x - cx - Math.cos(a) * 3, o.y - cy - Math.sin(a) * 3, 8, a - 0.9, a + 0.9); g.stroke();
   }
+};
+
+// ---------------------------------------------------------------- demonios y ángeles (para la historia principal)
+// No aparecen sueltos por el mapa: la historia los pone donde toca.
+G.spawnDemon = function (x, y, tier, onDead) {
+  const m = new Monster(MK.DEMONIO, x, y, tier || 1); m.spawnFade = 1.2; m.aggro = true;
+  this.world.monsters.push(m); this.onDemonDead = onDead || null;
+  Sound.play('roar'); this.shake(0.7);
+  for (let i = 0; i < 30; i++) this.fx.push(Fx.spark(x, y - 20, this.rnd.gauss() * 60, this.rnd.gauss() * 60, i % 2 ? 0xff5a10 : 0x1a0404, 1));
+  return m;
+};
+G.spawnAngel = function (x, y, lines) {
+  const n = new Npc('Ángel', 'angel', null, Art.E.angel[0], Art.E.angel[1], x, y, 0);
+  this.world.npcs.push(n); if (lines) this.angelLines = lines;
+  Sound.play('purify');
+  for (let i = 0; i < 30; i++) this.fx.push(Fx.spark(x, y - 20, this.rnd.gauss() * 40, -20 - this.rnd.next() * 60, 0xfff4c0, 1.2));
+  return n;
 };

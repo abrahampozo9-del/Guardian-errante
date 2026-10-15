@@ -1142,6 +1142,76 @@ Art.initEnemies = function () {
     E.nest.push(b);
   }
 
+  // ---------------------------------------------------------------- Demonio (46×50, de lado, vuela)
+  function demonSpr(f, mode) {
+    const b = img(46, 50);
+    const sk = 0x4a1010, dk = 0x2a0606, hi = 0x6a1c14, mem = 0x3a0a0e, bone = 0xd8c8a8;
+    // alas de murciélago
+    const tip = mode === 'wind' ? -4 : mode === 'atk' ? 10 : [0, 6, 3][f % 3];
+    for (const side of [-1, 1]) {
+      const sx = 23 + side * 3, sy = 16;
+      const tx = 23 + side * 22, ty = 4 + tip;
+      for (let k = 0; k <= 10; k++) {
+        const t = k / 10, ex = sx + (tx - sx) * t, ey = sy + (ty - sy) * t, low = sy + 12 + Math.sin(t * Math.PI) * 4 - t * 4;
+        line(b, ex, ey, ex - side * 2, low, mem);
+      }
+      line(b, sx, sy, tx, ty, dk); line(b, sx, sy + 1, tx, ty + 1, hi);
+      for (const t of [0.45, 0.75]) { const ex = sx + (tx - sx) * t, ey = sy + (ty - sy) * t; line(b, ex, ey, ex - side * 3, sy + 14, dk); }
+      p(b, tx, ty - 1, bone);
+    }
+    // cola con punta de flecha
+    const tw = mode === 'atk' ? 2 : Math.round(Math.sin(f) * 2);
+    line(b, 21, 34, 12, 40 + tw, dk); line(b, 12, 40 + tw, 7, 37 + tw, dk); r(b, 5, 35 + tw, 3, 3, hi);
+    // piernas de macho cabrío
+    const st = mode === 'atk' ? 2 : 0;
+    r(b, 18 + st, 32, 3, 7, sk); r(b, 25 - st, 32, 3, 7, sk); r(b, 17 + st, 38, 3, 4, dk); r(b, 26 - st, 38, 3, 4, dk);
+    r(b, 17 + st, 42, 3, 2, 0x140404); r(b, 26 - st, 42, 3, 2, 0x140404);
+    // torso
+    ov(b, 23, 26, 7, 8, sk); ov(b, 23, 24, 6, 6, hi); line(b, 23, 20, 23, 31, dk); line(b, 19, 25, 27, 25, dk);
+    // brazos con garras
+    const ax = mode === 'atk' ? 9 : mode === 'wind' ? -2 : 0, ay = mode === 'wind' ? -6 : 0;
+    line(b, 17, 21, 13 - ax * 0.3, 29 + ay, sk); line(b, 29, 21, 34 + ax, 27 + ay, sk);
+    for (let i = 0; i < 3; i++) { p(b, 12 - ax * 0.3 - i, 30 + ay + (i % 2), bone); p(b, 35 + ax + i, 27 + ay + (i % 2), bone); }
+    // cabeza con cuernos
+    ov(b, 25, 13, 5, 5, sk); ov(b, 26, 12, 4, 3.5, hi);
+    line(b, 22, 10, 18, 4, bone); line(b, 18, 4, 19, 1, bone); line(b, 27, 9, 30, 3, bone); line(b, 30, 3, 33, 2, bone);
+    const eye = mode === 'wind' ? 0xffff60 : 0xffa020;
+    r(b, 26, 12, 2, 1, eye); r(b, 29, 12, 1, 1, eye);
+    r(b, 27, 16, 4, 1, 0x140404); if (mode !== 'walk') { r(b, 27, 16, 4, 2, 0x140404); p(b, 28, 16, bone); p(b, 30, 16, bone); }
+    if (mode === 'wind') { ov(b, 32, 16, 2.5, 2, 0xff8020); ov(b, 32, 16, 1.4, 1.2, 0xffe060); }
+    outline(b, 0x0a0202);
+    return b;
+  }
+  E.demon = [{}, {}];
+  for (const [k, f, m] of [['w0', 0, 'walk'], ['w1', 1, 'walk'], ['w2', 2, 'walk'], ['wind', 0, 'wind'], ['atk', 0, 'atk']]) { const s = demonSpr(f, m); E.demon[1][k] = s; E.demon[0][k] = flipH(s); }
+  const fire = img(10, 10); ov(fire, 5, 5, 4.5, 4.5, 0xa02008); ov(fire, 5, 5, 3.2, 3.2, 0xff7a20); ov(fire, 4.5, 4.5, 1.8, 1.8, 0xffe080); E.fire = fire;
+
+  // ---------------------------------------------------------------- Ángel (34×46, aliado, muy raro)
+  function angelSpr(f) {
+    const b = img(34, 46);
+    const robe = 0xf4f0e4, robe2 = 0xd8d0bc, wing = 0xfaf8f0, wing2 = 0xd8dce4, gold = 0xf0c850;
+    const lift = f === 1 ? -2 : 0;
+    for (const side of [-1, 1]) {
+      for (let k = 0; k < 6; k++) {
+        const x0 = 17 + side * 4, y0 = 15, x1 = 17 + side * (8 + k * 2.4), y1 = 4 + k * 4.2 + lift * (1 - k / 6);
+        line(b, x0, y0 + k, x1, y1, k % 2 ? wing2 : wing);
+        line(b, x0, y0 + k + 1, x1, y1 + 1, wing);
+      }
+      line(b, 17 + side * 4, 14, 17 + side * 8, 3 + lift, wing2);
+    }
+    for (let y = 18; y < 43; y++) { const w = 4 + (y - 18) * 0.28; r(b, 17 - w, y, w * 2, 1, (y % 6 === 0) ? robe2 : robe); }
+    line(b, 17, 20, 17, 42, robe2); r(b, 12, 24, 10, 1, gold);
+    r(b, 10, 19, 3, 9, robe); r(b, 22, 19, 3, 9, robe);
+    r(b, 24, 6, 2, 22, 0xfff8d0); r(b, 23, 6, 1, 20, 0xffe890); r(b, 21, 26, 7, 1, gold); r(b, 24, 27, 2, 3, 0xb08030);
+    ov(b, 17, 12, 3.6, 4, 0xf0d8c0); r(b, 13, 8, 8, 3, 0xe8d090); r(b, 13, 10, 2, 6, 0xe8d090); r(b, 19, 10, 2, 6, 0xe8d090);
+    p(b, 16, 12, 0x6a8ab8); p(b, 18, 12, 0x6a8ab8);
+    for (let x = 12; x <= 22; x++) { if (Math.abs(x - 17) >= 3) { p(b, x, 4, gold); p(b, x, 6, gold); } }
+    p(b, 12, 5, gold); p(b, 22, 5, gold);
+    outline(b, 0xa8a090);
+    return b;
+  }
+  E.angel = [angelSpr(0), angelSpr(1)];
+
   // icono de aviso "!"
   const ex = img(7, 11); r(ex, 2, 0, 3, 7, 0xffd040); r(ex, 2, 8, 3, 3, 0xffd040); outline(ex, 0x3a1a00); E.alert = ex;
 };
@@ -1855,8 +1925,8 @@ class Player extends Entity {
   canLight() { return this.lvl >= 3; }
 }
 
-const MK = { JABALI: 'JABALI', HUECO: 'HUECO', ALACRAN: 'ALACRAN', SOMBRA: 'SOMBRA', AHOGADO: 'AHOGADO', NIDO: 'NIDO', BESTIA: 'BESTIA' };
-const MNAME = { JABALI: 'Jabalí podrido', HUECO: 'Hueco', ALACRAN: 'Alacrán gigante', SOMBRA: 'Sombra del valle', AHOGADO: 'Ahogado del Guadalentín', NIDO: 'Nido de engendros', BESTIA: 'La Bestia de La Bolera' };
+const MK = { JABALI: 'JABALI', HUECO: 'HUECO', ALACRAN: 'ALACRAN', SOMBRA: 'SOMBRA', AHOGADO: 'AHOGADO', NIDO: 'NIDO', BESTIA: 'BESTIA', DEMONIO: 'DEMONIO' };
+const MNAME = { JABALI: 'Jabalí podrido', HUECO: 'Hueco', ALACRAN: 'Alacrán gigante', SOMBRA: 'Sombra del valle', AHOGADO: 'Ahogado del Guadalentín', NIDO: 'Nido de engendros', BESTIA: 'La Bestia de La Bolera', DEMONIO: 'Demonio' };
 const MRand = RNG(Date.now() & 0xffff);
 // vida, daño, velocidad, xp, semiancho, semialto, alcance para empezar el ataque, aviso, ataque, recuperación
 const MSTAT = {
@@ -1866,6 +1936,7 @@ const MSTAT = {
   SOMBRA:  { hp: 36, dmg: 14, sp: 40, xp: 15, hw: 5, hh: 3, range: 80, wind: 0.75, atk: 0.22, rec: 0.85 },
   AHOGADO: { hp: 40, dmg: 10, sp: 32, xp: 13, hw: 5, hh: 3, range: 120, wind: 0.75, atk: 0.15, rec: 1.4 },
   NIDO:    { hp: 110, dmg: 0, sp: 0,  xp: 30, hw: 12, hh: 5, range: 0, wind: 0, atk: 0, rec: 0 },
+  DEMONIO: { hp: 560, dmg: 22, sp: 70, xp: 260, hw: 10, hh: 4, range: 130, wind: 0.8, atk: 0.9, rec: 0.8 },
   BESTIA:  { hp: 700, dmg: 18, sp: 30, xp: 400, hw: 16, hh: 7, range: 0, wind: 0, atk: 0, rec: 0 },
 };
 
@@ -1906,7 +1977,7 @@ class Monster extends Entity {
     if (this.cool > 0) this.cool -= dt;
     this.anim += dt;
     const dx = p.x - this.x, dy = (p.y - 4) - this.y, d = Math.hypot(dx, dy);
-    const sense = this.kind === MK.BESTIA ? 400 : (g.isNight() ? 130 : 105);
+    const sense = this.kind === MK.BESTIA ? 400 : this.kind === MK.DEMONIO ? 220 : (g.isNight() ? 130 : 105);
     if (p.dead || g.playerSafe()) this.aggro = false;
     else if (d < sense) this.aggro = true;
     else if (d > sense * 1.8) this.aggro = false;
@@ -1915,6 +1986,7 @@ class Monster extends Entity {
     this.moving = false;
     if (this.kind === MK.BESTIA) { if (this.kbT <= 0) this.boss(g, dt, dx, dy, d); return; }
     if (this.kind === MK.NIDO) { this.nest(g, dt, d); return; }
+    if (this.kind === MK.DEMONIO) { if (this.kbT <= 0) this.demon(g, dt, dx, dy, d); return; }
 
     if (this.state !== 'idle' && this.state !== 'chase') {
       this.stT -= dt;
@@ -2078,6 +2150,57 @@ class Monster extends Entity {
     if (d > 30) { const sp = this.speed * (enraged ? 1.4 : 1); this.move(w, dx / d * sp * dt, dy / d * sp * dt); this.moving = true; this.faceTo(dx, dy); }
   }
 
+  // Demonio: vuela en círculos, escupe fuego, cae en picado y desgarra. La espada apenas le hiere; la Luz, sí.
+  demon(g, dt, dx, dy, d) {
+    const w = g.world, p = g.player, rage = this.hp < this.maxHp / 2;
+    if (rage && !this.raged) {
+      this.raged = true; Sound.play('roar'); g.shake(0.6);
+      g.toast('El demonio llama a los condenados...');
+      for (let i = 0; i < 2; i++) g.spawnNear(MK.HUECO, this.x + (i ? -36 : 36), this.y + 12, 1.4);
+    }
+    if (this.state === 'wind') {
+      this.stT -= dt;
+      if (this.atkKind !== 'picado') { const l = d || 1; this.ax = dx / l; this.ay = dy / l; }
+      this.faceTo(this.ax, this.ay);
+      if (this.stT <= 0) { this.setState('atk', { fuego: rage ? 1.1 : 0.85, zarpazo: 0.25, picado: 0.55 }[this.atkKind]); this.fireT = 0; Sound.play(this.atkKind === 'fuego' ? 'roar' : 'swing'); }
+      return;
+    }
+    if (this.state === 'atk') {
+      this.stT -= dt;
+      let hit = false;
+      if (this.atkKind === 'fuego') {
+        this.fireT -= dt;
+        if (this.fireT <= 0) {
+          this.fireT = rage ? 0.06 : 0.09;
+          const a = Math.atan2(this.ay, this.ax) + (MRand.next() - 0.5) * 0.7, sp = 140 + MRand.next() * 40;
+          g.orbs.push({ x: this.x + this.ax * 12, y: this.y - 26, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, dmg: Math.round(this.dmg * 0.4), life: 0.85, fire: true });
+        }
+      } else if (this.atkKind === 'picado') {
+        this.x += this.ax * 240 * dt; this.y += this.ay * 240 * dt; this.moving = true;
+        hit = Math.hypot(p.x - this.x, p.y - this.y) < 16;
+      } else hit = Math.hypot(p.x - (this.x + this.ax * 16), p.y - 8 - (this.y - 10 + this.ay * 16)) < 18;
+      if (hit && !this.hitDone && p.rolling && !p.dead) { this.hitDone = true; g.perfectDodge(); }
+      if (hit && !this.hitDone && p.invul <= 0 && !p.dead) { this.hitDone = true; g.hurtPlayer(this.dmg, this.x, this.y); }
+      if (this.stT <= 0) this.setState('rec', rage ? 0.45 : 0.8);
+      return;
+    }
+    if (this.state === 'rec' || this.state === 'stun') { this.stT -= dt; if (this.stT <= 0) { this.state = 'chase'; this.cool = rage ? 0.5 : 0.9; } return; }
+    if (!this.aggro) { this.state = 'idle'; this.wander(g, dt); return; }
+    this.state = 'chase';
+    // vuela en círculo alrededor del Guardián
+    const a = Math.atan2(-dy, -dx) + (rage ? 1.1 : 0.7) * dt * 3, R0 = 70;
+    const tx = p.x + Math.cos(a) * R0, ty = p.y - 4 + Math.sin(a) * R0 * 0.75;
+    const ex = tx - this.x, ey = ty - this.y, el = Math.hypot(ex, ey) || 1, sp = this.speed * (rage ? 1.3 : 1);
+    if (el > 2) { this.x += ex / el * Math.min(sp * dt, el); this.y += ey / el * Math.min(sp * dt, el); }
+    this.x = Math.max(24, Math.min(w.w * TS - 24, this.x)); this.y = Math.max(30, Math.min(w.h * TS - 10, this.y));
+    this.moving = true; this.faceTo(dx, dy);
+    if (this.cool <= 0 && d < this.st.range) {
+      const l = d || 1; this.ax = dx / l; this.ay = dy / l;
+      this.atkKind = d < 34 ? 'zarpazo' : (MRand.next() < (rage ? 0.45 : 0.32) ? 'picado' : 'fuego');
+      this.setState('wind', { zarpazo: 0.45, picado: 0.75, fuego: 0.8 }[this.atkKind]);
+    }
+  }
+
   frameKey() {
     if (this.state === 'wind') return 'wind';
     if (this.state === 'atk') return 'atk';
@@ -2094,6 +2217,7 @@ class Monster extends Entity {
       case MK.SOMBRA: s = E.shade[k === 'w0' || k === 'w1' ? 'w' + (Math.floor(this.anim * 6) % 3) : k]; break;
       case MK.AHOGADO: s = this.submerged ? E.drown[Math.floor(this.anim * 3) % 2 ? 's1' : 's0'] : E.drown[k]; break;
       case MK.NIDO: s = E.nest[Math.floor(this.anim * 3) % 3]; break;
+      case MK.DEMONIO: s = E.demon[this.lastH][k === 'w0' || k === 'w1' ? 'w' + (Math.floor(this.anim * 8) % 3) : k]; break;
       default: s = (this.flash > 0 ? Art.bossHurt : Art.boss)[(this.chargeT > 0 || this.shootT < 0.4) ? 1 : Math.floor(this.anim * 2) % 2];
     }
     if (this.flash > 0 && this.kind !== MK.BESTIA) s = white(s);
@@ -2462,11 +2586,15 @@ G.swordCenter = function (r = 15) {
   const p = this.player;
   return [[p.x, p.y - 8 + r - 1], [p.x, p.y - 8 - r + 1], [p.x - r, p.y - 8], [p.x + r, p.y - 8]][p.dir];
 };
-G.damageMonster = function (m, d, crit, kx, ky) {
+G.damageMonster = function (m, d, crit, kx, ky, holy) {
   if (!m.vulnerable()) { this.fx.push(Fx.text(m.x, m.y - 14, 'bajo el agua', 0x9ad8d0)); return; }
+  if (m.kind === MK.DEMONIO) {
+    if (holy) { d = Math.round(d * 2.5); crit = true; }
+    else { d = Math.max(1, Math.round(d * 0.45)); if (!this.flags.has('tuto_demonio')) { this.flags.add('tuto_demonio'); this.toast('La espada apenas le hace mella. Solo la Luz lo quema de verdad.'); } }
+  }
   if (m.state === 'stun') { d = Math.round(d * 1.6); crit = true; }
   m.hp -= d; m.flash = 0.12;
-  const heavy = m.kind === MK.BESTIA || m.kind === MK.NIDO || (m.kind === MK.JABALI && m.state === 'atk') || (m.kind === MK.HUECO && m.state === 'wind');
+  const heavy = m.kind === MK.BESTIA || m.kind === MK.NIDO || m.kind === MK.DEMONIO || (m.kind === MK.JABALI && m.state === 'atk') || (m.kind === MK.HUECO && m.state === 'wind');
   if (!heavy) m.knock(kx, ky, crit ? 240 : 170); else if (crit && m.kind !== MK.NIDO) m.knock(kx, ky, 60);
   // golpear durante el aviso interrumpe a los enemigos ligeros
   if (m.state === 'wind' && (m.kind === MK.ALACRAN || m.kind === MK.SOMBRA || m.kind === MK.AHOGADO)) { m.setState('rec', 0.5); m.cool = 0.8; }
@@ -2486,6 +2614,7 @@ G.killMonster = function (m) {
     else this.toast('Engendros eliminados: ' + this.questKills + '/6');
   }
   if (m.kind === MK.BESTIA) this.bossDefeated();
+  if (m.kind === MK.DEMONIO) { Sound.play('purify'); this.shake(0.8); for (let i = 0; i < 30; i++) this.fx.push(Fx.spark(m.x, m.y - 20, this.rnd.gauss() * 70, this.rnd.gauss() * 70 - 30, i % 2 ? 0xff7a20 : 0x2a0606, 0.9)); this.toast('El demonio se deshace en ceniza y azufre.'); if (this.onDemonDead) { const f = this.onDemonDead; this.onDemonDead = null; f(m); } }
   if (m.lair) {
     const left = this.world.monsters.filter(o => o.lair === m.lair && !o.dead && !o.fromNest).length;
     if (left === 0) { m.lair.cleared = true; m.lair.active = false; this.toast('Guarida limpia: ' + m.lair.name); for (const o of this.world.monsters) if (o.lair === m.lair && !o.dead) { o.dead = true; } }
@@ -2550,7 +2679,7 @@ G.holyLight = function () {
   for (let i = 0; i < 24; i++) { const a = i * Math.PI / 12; this.fx.push(Fx.spark(p.x, p.y - 8, Math.cos(a) * 140, Math.sin(a) * 140, 0xfff0b0, 0.4)); }
   Sound.play('light'); this.shake(0.15);
   for (const m of [...this.world.monsters]) if (!m.dead && Math.hypot(m.x - p.x, m.y - p.y) < R + m.hw) {
-    this.damageMonster(m, Math.round((p.atk * 2 + 6) * (this.has('ardiente') ? 1.5 : 1)), false, m.x - p.x, m.y - p.y);
+    this.damageMonster(m, Math.round((p.atk * 2 + 6) * (this.has('ardiente') ? 1.5 : 1)), false, m.x - p.x, m.y - p.y, true);
     if (this.has('cruzluz') && !m.dead && m.kind !== MK.BESTIA && m.kind !== MK.NIDO && m.vulnerable()) m.setState('stun', 2);
   }
 };
@@ -2709,6 +2838,7 @@ G.talk = function (n) {
   Sound.play('talk');
   const p = this.player;
   switch (n.key) {
+    case 'angel': this.sayAs(n, ...(this.angelLines || ['No temas, Guardián. No todos te hemos olvidado.', 'La batalla no ha terminado. Sigue la luz... aunque la encuentres en la oscuridad.'])); break;
     case 'gato': this.say('Guardián', 'El gato atigrado duerme sobre el cojín, como siempre. Algunas cosas no cambian.'); break;
     case 'perro': this.say('Guardián', 'El perrillo mueve la cola. Es el mejor centinela del valle: ladra antes de que lleguen.'); break;
     case 'cura':
@@ -3669,7 +3799,7 @@ G.updateCombat = function (dt) {
       if (m.dead || p.hitSet.has(m)) continue;
       if (Math.hypot(m.x - c[0], (m.y - 6) - c[1]) < rad + m.hw) {
         this.swordHit(m, thrust ? 1.6 : p.atkKind === 'back' ? 0.9 : 1);
-        if (thrust && !m.dead && m.kind !== MK.BESTIA && m.kind !== MK.NIDO && m.vulnerable()) m.setState('stun', 0.6);
+        if (thrust && !m.dead && m.kind !== MK.BESTIA && m.kind !== MK.NIDO && m.kind !== MK.DEMONIO && m.vulnerable()) m.setState('stun', 0.6);
       }
     }
   }
@@ -3681,7 +3811,7 @@ G.updateCombat = function (dt) {
   this.waves = this.waves.filter(o => {
     o.x += o.vx * dt; o.y += o.vy * dt; o.life -= dt;
     for (const m of w.monsters) if (!m.dead && !o.hit.has(m) && Math.hypot(m.x - o.x, m.y - 6 - o.y) < 10 + m.hw) {
-      o.hit.add(m); const [d, crit] = this.swordDamage(1.1); this.damageMonster(m, d, crit, o.vx, o.vy);
+      o.hit.add(m); const [d, crit] = this.swordDamage(1.1); this.damageMonster(m, d, crit, o.vx, o.vy, true);
     }
     if (this.rnd.next() < 0.6) this.fx.push(Fx.spark(o.x, o.y, this.rnd.gauss() * 10, this.rnd.gauss() * 10, 0xfff0b0, 0.25));
     return o.life > 0 && !w.solid(Math.floor(o.x / TS), Math.floor((o.y + 8) / TS));
@@ -3714,6 +3844,23 @@ G.drawCombatFx = function (g, cx, cy) {
     g.strokeStyle = 'rgba(255,255,255,0.5)'; g.lineWidth = 1;
     g.beginPath(); g.arc(o.x - cx - Math.cos(a) * 3, o.y - cy - Math.sin(a) * 3, 8, a - 0.9, a + 0.9); g.stroke();
   }
+};
+
+// ---------------------------------------------------------------- demonios y ángeles (para la historia principal)
+// No aparecen sueltos por el mapa: la historia los pone donde toca.
+G.spawnDemon = function (x, y, tier, onDead) {
+  const m = new Monster(MK.DEMONIO, x, y, tier || 1); m.spawnFade = 1.2; m.aggro = true;
+  this.world.monsters.push(m); this.onDemonDead = onDead || null;
+  Sound.play('roar'); this.shake(0.7);
+  for (let i = 0; i < 30; i++) this.fx.push(Fx.spark(x, y - 20, this.rnd.gauss() * 60, this.rnd.gauss() * 60, i % 2 ? 0xff5a10 : 0x1a0404, 1));
+  return m;
+};
+G.spawnAngel = function (x, y, lines) {
+  const n = new Npc('Ángel', 'angel', null, Art.E.angel[0], Art.E.angel[1], x, y, 0);
+  this.world.npcs.push(n); if (lines) this.angelLines = lines;
+  Sound.play('purify');
+  for (let i = 0; i < 30; i++) this.fx.push(Fx.spark(x, y - 20, this.rnd.gauss() * 40, -20 - this.rnd.next() * 60, 0xfff4c0, 1.2));
+  return n;
 };
 // ====================================================================== dibujo
 const view = document.createElement('canvas'); view.width = WW; view.height = WH;
@@ -3807,6 +3954,7 @@ G.renderWorld = function (g) {
   for (const [, kind, e] of list) {
     if (kind === 0) g.drawImage(cv(e.img), e.left() - cx, e.top() - cy);
     else if (kind === 1) this.drawMonster(g, e, cx, cy);
+    else if (kind === 2 && e.key === 'angel') { const s = e.sprite(this.clock), hov = Math.sin(this.clock * 2) * 2 - 6; this.glow(g, e.x - cx, e.y - 20 - cy, 34, 'rgba(255,245,200,0.35)'); this.shadow(g, e.x - cx, e.y - cy, 7); g.drawImage(cv(s), Math.round(e.x - s.w / 2) - cx, Math.round(e.y - s.h + hov) - cy); }
     else if (kind === 2) { const s = e.sprite(this.clock); this.shadow(g, e.x - cx, e.y - cy, s.w / 2.5); g.drawImage(cv(s), Math.round(e.x - s.w / 2) - cx, Math.round(e.y - s.h) - cy); }
     else if (kind === 3) {
       const s = e.type === Pickup.RELIC ? Art.relic : Art.herb, bob = Math.sin(e.t * 3 + e.x) * 2;
@@ -3816,7 +3964,7 @@ G.renderWorld = function (g) {
     } else this.drawPlayer(g, cx, cy);
   }
   this.drawCombatFx(g, cx, cy);
-  for (const o of this.orbs) { const im = o.mud ? Art.E.mud : Art.orb; g.drawImage(cv(im), Math.floor(o.x) - (im.w >> 1) - cx, Math.floor(o.y) - (im.h >> 1) - cy); }
+  for (const o of this.orbs) { const im = o.fire ? Art.E.fire : o.mud ? Art.E.mud : Art.orb; g.drawImage(cv(im), Math.floor(o.x) - (im.w >> 1) - cx, Math.floor(o.y) - (im.h >> 1) - cy); }
   for (const f of this.fx) {
     const a = Math.max(0, Math.min(1, f.life / f.max));
     if (f.ring) {
@@ -3895,7 +4043,8 @@ G.drawMonster = function (g, m, cx, cy) {
   if (m.kind === MK.SOMBRA) alpha = 0.72 + 0.14 * Math.sin(m.anim * 4) + (m.state === 'wind' || m.state === 'atk' ? 0.15 : 0);
   if (m.spawnFade > 0) alpha *= Math.max(0, 1 - m.spawnFade / 0.6);
   g.globalAlpha = Math.max(0, Math.min(1, alpha));
-  const bob = m.kind === MK.SOMBRA ? Math.sin(m.anim * 3) * 2 - 4 : 0;
+  const bob = m.kind === MK.SOMBRA ? Math.sin(m.anim * 3) * 2 - 4 : m.kind === MK.DEMONIO ? Math.sin(m.anim * 5) * 3 - 12 : 0;
+  if (m.kind === MK.DEMONIO) this.glow(g, m.x - cx, m.y - cy - 4, 26, 'rgba(200,40,10,0.28)');
   const shake = m.state === 'wind' && m.kind !== MK.SOMBRA ? Math.round(Math.sin(m.anim * 60)) : 0;
   const sx = Math.round(m.x - s.w / 2) - cx + shake;
   let sy = Math.round(m.y - s.h + 2 + bob) - cy;
@@ -3917,6 +4066,12 @@ G.drawMonster = function (g, m, cx, cy) {
     if (m.kind === MK.JABALI) { // marca la línea de embestida
       g.strokeStyle = `rgba(255,70,40,${0.25 + 0.35 * t})`; g.lineWidth = 2; g.setLineDash([3, 3]);
       g.beginPath(); g.moveTo(m.x - cx, m.y - cy - 3); g.lineTo(m.x - cx + m.ax * 90, m.y - cy - 3 + m.ay * 90); g.stroke(); g.setLineDash([]);
+    }
+    if (m.kind === MK.DEMONIO) {
+      g.fillStyle = `rgba(255,80,20,${0.12 + 0.2 * t})`;
+      if (m.atkKind === 'fuego') { const a = Math.atan2(m.ay, m.ax); g.beginPath(); g.moveTo(m.x - cx, m.y - 20 - cy); g.arc(m.x - cx, m.y - 20 - cy, 110, a - 0.35, a + 0.35); g.fill(); }
+      else if (m.atkKind === 'picado') { g.strokeStyle = `rgba(255,70,40,${0.3 + 0.4 * t})`; g.lineWidth = 3; g.setLineDash([4, 3]); g.beginPath(); g.moveTo(m.x - cx, m.y - cy); g.lineTo(m.x - cx + m.ax * 130, m.y - cy + m.ay * 130); g.stroke(); g.setLineDash([]); }
+      else { g.beginPath(); g.arc(m.x + m.ax * 16 - cx, m.y - 10 + m.ay * 16 - cy, 18, 0, Math.PI * 2); g.fill(); }
     }
     if (m.kind === MK.HUECO || m.kind === MK.SOMBRA) {
       g.fillStyle = `rgba(255,60,40,${0.12 + 0.2 * t})`;
@@ -4487,7 +4642,7 @@ const Touch = {
   const caja = document.getElementById('instalar');
   const ua = navigator.userAgent;
   const instalada = window.matchMedia('(display-mode: standalone)').matches || window.matchMedia('(display-mode: fullscreen)').matches || navigator.standalone === true;
-  if (instalada) return;
+  if (instalada || /[?&]pc=1/.test(location.search)) return; // dentro de la app de PC no hace falta
   const esIOS = /iPad|iPhone|iPod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
   const esAndroid = /Android/i.test(ua);
   if (!esIOS && !esAndroid) return; // en el PC no molesta

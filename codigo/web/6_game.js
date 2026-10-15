@@ -23,6 +23,9 @@ G.confirm = function () { return this.pressed('Enter', 'KeyE', 'Space', 'KeyZ', 
 // --------------------------------------------------------------------- arranque
 G.boot = function () {
   Art.init();
+  Art.initTerrain();
+  Art.initVegetation();
+  Art.initBuildings();
   Art.initEnemies();
   this.buildWorlds();
   this.hasSave = !!this.readSave();

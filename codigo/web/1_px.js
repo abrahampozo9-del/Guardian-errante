@@ -78,6 +78,29 @@ const Px = {
       }
     }
   },
+  /** Da volumen a un sprite plano: borde izquierdo/superior de cada zona más claro, derecho/inferior más oscuro. */
+  autoShade(b) {
+    const W = b.w, H = b.h, src = new Uint32Array(b.d);
+    const col = (x, y) => (x < 0 || y < 0 || x >= W || y >= H) ? 0 : src[y * W + x];
+    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+      const v = src[y * W + x]; if ((v >>> 24) === 0) continue;
+      const c = v & 0xffffff;
+      const diff = n => (n >>> 24) === 0 || (n & 0xffffff) !== c;
+      let f = 1;
+      if (diff(col(x + 1, y))) f *= 0.84; if (diff(col(x, y + 1))) f *= 0.88;
+      if (diff(col(x - 1, y))) f *= 1.1; if (diff(col(x, y - 1))) f *= 1.08;
+      if (f !== 1) b.d[y * W + x] = (0xff000000 | Px.shade(c, f)) >>> 0;
+    }
+  },
+  /** Contorno teñido: cada píxel de borde toma el color vecino muy oscurecido (en vez de negro puro). */
+  outlineTint(b, k = 0.32) {
+    const W = b.w, H = b.h, mark = [];
+    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+      if (Px.op(b, x, y)) continue;
+      for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) if (Px.op(b, x + dx, y + dy)) { mark.push([x, y, b.d[(y + dy) * W + x + dx] & 0xffffff]); break; }
+    }
+    for (const [x, y, c] of mark) b.d[y * W + x] = (0xff000000 | Px.shade(Px.mix(c, 0x140c10, 0.55), k * 2)) >>> 0;
+  },
   voronoi(b, x0, y0, w, h, n, cols, border, R) {
     const sx = [], sy = [], cc = [];
     for (let i = 0; i < n; i++) { sx.push(R.next() * w); sy.push(R.next() * h); cc.push(cols[R.int(cols.length)]); }

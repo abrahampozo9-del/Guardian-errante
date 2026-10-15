@@ -153,6 +153,34 @@ const C = {
     if (opts.raise) { P(2, -16, 1, 2, '#3a3028'); cg.fillStyle = '#e0e4ea'; cg.fillRect(Math.floor(x + 2.2 * k), Math.floor(y - 30 * k), Math.max(1, k * 0.8), 14 * k); P(1, -16.5, 3, 0.8, '#c8a040'); }
     else { P(2.5, -9, 1, 1, '#c8a040'); cg.fillStyle = '#d0d4da'; cg.fillRect(Math.floor(x + 2.8 * k), Math.floor(y - 9 * k), Math.max(1, k * 0.7), 9 * k); }
   },
+  // el Guardián grande para las cinemáticas: capa, cota de malla, tabardo con cruz, barba y espada al rojo
+  knight(x, y, t) {
+    const wind = Math.sin(t * 1.6) * 2;
+    // capa
+    cg.fillStyle = '#1a2230';
+    cg.beginPath(); cg.moveTo(x - 7, y - 40); cg.lineTo(x + 6, y - 40); cg.quadraticCurveTo(x + 14, y - 18, x + 12 + wind, y); cg.lineTo(x - 22 - wind * 2, y + 1); cg.quadraticCurveTo(x - 16, y - 20, x - 7, y - 40); cg.fill();
+    cg.strokeStyle = '#2a3648'; cg.lineWidth = 1; for (const dx of [-12, -5, 3]) { cg.beginPath(); cg.moveTo(x + dx * 0.4, y - 34); cg.quadraticCurveTo(x + dx, y - 16, x + dx * 1.4 - wind, y); cg.stroke(); }
+    cg.fillStyle = '#0e141e'; cg.beginPath(); cg.moveTo(x - 20 - wind * 2, y + 1); cg.lineTo(x - 14, y - 6); cg.lineTo(x - 10, y + 1); cg.fill();
+    // piernas y botas
+    C.r(x - 5, y - 14, 4, 12, '#3a3a40'); C.r(x + 1, y - 14, 4, 12, '#34343a'); C.r(x - 6, y - 3, 5, 3, '#1e1610'); C.r(x + 1, y - 3, 5, 3, '#1e1610');
+    // cota de malla (tramada) y tabardo
+    for (let yy = y - 34; yy < y - 14; yy++) for (let xx = x - 7; xx < x + 7; xx++) C.r(xx, yy, 1, 1, (xx + yy) % 2 ? '#5a626c' : '#3e444c');
+    C.r(x - 4, y - 33, 8, 22, '#d8d2c2'); C.r(x - 4, y - 33, 1, 22, '#f0ead8'); C.r(x + 3, y - 33, 1, 22, '#a8a292');
+    C.r(x - 1, y - 30, 2, 12, '#a8261c'); C.r(x - 3.5, y - 26, 7, 2, '#a8261c'); C.r(x - 1, y - 30, 1, 12, '#c83a2a');
+    C.r(x - 7, y - 17, 14, 2, '#4a2e1a'); C.r(x - 1, y - 17, 2, 2, '#c8a040');
+    // hombreras
+    C.r(x - 9, y - 35, 5, 4, '#6a727c'); C.r(x + 4, y - 35, 5, 4, '#5a626c'); C.r(x - 9, y - 35, 5, 1, '#9aa2ac');
+    // cabeza: pelo, barba y cara en penumbra
+    C.r(x - 4, y - 46, 8, 8, '#b88a64'); C.r(x - 4, y - 46, 3, 8, '#8a6446');
+    C.r(x - 5, y - 48, 10, 4, '#2a1d16'); C.r(x - 5, y - 46, 2, 6, '#2a1d16');
+    C.r(x - 4, y - 41, 8, 6, '#2a1d16'); C.r(x - 2, y - 36, 5, 2, '#2a1d16');
+    C.r(x + 1, y - 44, 2, 1, '#e8e0c8');
+    // brazo y espada al rojo, apuntando al suelo
+    C.r(x + 6, y - 32, 4, 12, '#4a525c'); C.r(x + 7, y - 21, 4, 3, '#b88a64');
+    C.r(x + 5, y - 20, 8, 2, '#c8a040'); C.r(x + 8, y - 24, 2, 4, '#5a3a20');
+    for (let i = 0; i < 26; i++) { const k = i / 26, bx = x + 9 + i * 0.75, by = y - 18 + i * 0.85; const c = k < 0.3 ? '#d8dce4' : k < 0.6 ? '#ffb060' : '#ff6a20'; C.r(bx, by, 2, 2, c); }
+    C.glow(x + 22, y + 2, 16, 'rgba(255,110,30,0.55)');
+  },
   rain(t, n, a, slant = 0.4) {
     const R = RNG(77); cg.fillStyle = `rgba(200,210,220,${a})`;
     for (let i = 0; i < n; i++) {
@@ -165,6 +193,14 @@ const C = {
     C.r(0, y0, CW, y1 - y0, base);
     const R = RNG(9);
     for (let i = 0; i < 40; i++) { const y = y0 + R.int(y1 - y0), x = (R.int(CW) + t * (6 + R.next() * 8)) % CW; C.r(x, y, 3 + R.int(5), 1, hi); }
+  },
+  // refleja en el agua (desde y0 hacia abajo) la franja de encima, con ondulación y tinte
+  reflect(y0, h, t, tint) {
+    const src = cg.getImageData(0, Math.max(0, y0 - h), CW, h);
+    const tmp = document.createElement('canvas'); tmp.width = CW; tmp.height = h; tmp.getContext('2d').putImageData(src, 0, 0);
+    for (let i = 0; i < h && y0 + i < CH; i++) { const off = Math.round(Math.sin(i * 0.9 + t * 3) * (0.5 + i * 0.05)); cg.drawImage(tmp, 0, h - 1 - i, CW, 1, off, y0 + i, CW, 1); }
+    cg.fillStyle = tint; cg.fillRect(0, y0, CW, Math.min(h, CH - y0));
+    for (let i = 0; i < 18; i++) { const y = y0 + 2 + ((i * 7) % h), x = ((i * 53 + t * 8) % (CW + 20)) - 10; C.r(x, y, 6 + (i % 4) * 3, 1, 'rgba(255,255,255,0.18)'); }
   },
   glow(x, y, r, col) { const g = cg.createRadialGradient(x, y, 0, x, y, r); g.addColorStop(0, col); g.addColorStop(1, 'rgba(0,0,0,0)'); cg.fillStyle = g; cg.fillRect(x - r, y - r, r * 2, r * 2); },
   creature(x, y, s, t, i) {
@@ -332,6 +368,30 @@ const SCENES = {
     C.hero(150, 108, 1, t);
   },
   guardian(t) {
+    // el caballero bajo la luna (ref.: luna enorme, árboles muertos, ruinas, espada al rojo, brasas)
+    C.sky(['#0a1018', '#142230', '#22384a', '#3a5464']);
+    C.glow(118, 30, 70, 'rgba(220,240,230,0.35)');
+    cg.fillStyle = '#e8f0d8'; cg.beginPath(); cg.arc(118, 30, 19, 0, Math.PI * 2); cg.fill();
+    cg.fillStyle = 'rgba(190,210,190,0.45)'; for (const [x, y, rr] of [[112, 24, 4], [124, 34, 3], [116, 38, 2], [126, 22, 2]]) { cg.beginPath(); cg.arc(x, y, rr, 0, Math.PI * 2); cg.fill(); }
+    for (let i = 0; i < 4; i++) { const y = 26 + i * 6, x = ((i * 50 + t * (3 + i)) % 260) - 40; C.r(x, y, 46 - i * 6, 2, 'rgba(20,34,46,0.85)'); C.r(x + 6, y - 1, 26, 1, 'rgba(20,34,46,0.7)'); }
+    C.ridge(70, 8, 0.035, 131, '#1a2a36');
+    // ruinas
+    for (const [x, w, h] of [[22, 12, 34], [36, 7, 22], [150, 14, 38], [168, 8, 26], [182, 10, 18]]) { C.r(x, 84 - h, w, h, '#16222c'); for (let yy = 84 - h; yy < 84; yy += 4) C.r(x + ((yy / 4) % 2) * 3, yy, 3, 1, '#1e2e3a'); C.r(x, 84 - h, w, 1, '#2a3e4c'); }
+    // árboles muertos a los lados
+    const tree = (x, y, h, dir) => { cg.strokeStyle = '#0a1016'; cg.lineCap = 'round'; const br = (x0, y0, a, len, w, d) => { if (d > 5 || len < 2) return; const x1 = x0 + Math.cos(a) * len, y1 = y0 + Math.sin(a) * len; cg.lineWidth = w; cg.beginPath(); cg.moveTo(x0, y0); cg.lineTo(x1, y1); cg.stroke(); br(x1, y1, a - 0.45 * dir, len * 0.72, w * 0.65, d + 1); br(x1, y1, a + 0.35 * dir, len * 0.6, w * 0.6, d + 1); }; br(x, y, -Math.PI / 2 + 0.1 * dir, h, 3.2, 0); };
+    tree(10, 100, 26, 1); tree(192, 100, 30, -1); tree(176, 104, 18, 1);
+    // suelo empedrado con brasas
+    C.r(0, 84, CW, 29, '#121a20');
+    const R = RNG(140);
+    for (let i = 0; i < 70; i++) { const x = R.int(CW), y = 86 + R.int(26), w = 4 + R.int(6); C.r(x, y, w, 2, i % 3 ? '#1c2830' : '#24343e'); C.r(x, y, w, 1, '#2e424e'); }
+    for (let i = 0; i < 16; i++) { const x = 70 + R.int(80), y = 92 + R.int(18), on = Math.sin(t * 3 + i) > 0; C.r(x, y, 3, 1, on ? '#c84a1a' : '#7a2a10'); if (on) C.glow(x + 1, y, 5, 'rgba(255,110,40,0.35)'); }
+    // velas
+    for (const [x, y] of [[44, 100], [160, 104]]) { const f = Math.sin(t * 11 + x) * 0.6; C.r(x, y - 8, 3, 8, '#d8c8a0'); C.glow(x + 1.5, y - 11, 14, 'rgba(255,170,60,0.55)'); cg.fillStyle = '#ffd060'; cg.beginPath(); cg.moveTo(x, y - 8); cg.lineTo(x + 1.5 + f, y - 13); cg.lineTo(x + 3, y - 8); cg.fill(); }
+    C.knight(100, 95, t);
+    // brasas que suben
+    for (let i = 0; i < 26; i++) { const ph = (t * 0.25 + i * 0.137) % 1, x = 80 + ((i * 37) % 70) + Math.sin(t * 2 + i) * 4, y = 104 - ph * 90; C.r(x, y, 1, 1, `rgba(255,${120 + (i % 3) * 40},40,${1 - ph})`); }
+  },
+  tormenta(t) {
     // el cielo del cuadro: verde-negro, ascuas rojas a la izquierda, un haz a la derecha
     C.sky(['#0c100e', '#1a2420', '#2a302a', '#3a3428']);
     C.glow(20, 74, 70, 'rgba(200,60,24,0.45)');
@@ -429,8 +489,7 @@ const SCENES = {
     C.r(94, 60 - sun * 14, 12, 8, '#fff4d0');
     C.ridge(66, 8, 0.025, 81, '#a89090');
     C.ridge(72, 6, 0.04, 82, '#8a8070');
-    C.water(74, 96, '#7ab8c8', '#f8f0d0', t);
-    C.r(94, 76, 12, 18, 'rgba(255,240,200,0.35)'); // reflejo
+    C.reflect(74, 22, t, 'rgba(60,120,150,0.35)');
     C.r(0, 96, CW, 17, '#6a7a40');
     for (let i = 0; i < 6; i++) C.poplar(10 + i * 34, 104, 14 + (i % 2) * 4, '#4a6a28', '#6a8a38');
     // gente caminando hacia el pueblo
@@ -454,6 +513,7 @@ G.renderCine = function (g) {
   } else {
     const [scene, text] = k.c.pages[k.idx];
     cg.save(); (SCENES[scene] || SCENES.valle)(k.t); cg.restore();
+    cinePost();
     g.imageSmoothingEnabled = false;
     g.drawImage(cineC, 0, 0, CW * 2, CH * 2);
     if (k.t < 0.7) { g.fillStyle = `rgba(0,0,0,${1 - k.t / 0.7})`; g.fillRect(0, 0, VW, VH); }
@@ -474,3 +534,22 @@ G.renderCine = function (g) {
   this.text(g, sk, VW - g.measureText(sk).width - 8, 9, DIM);
   this.cineSkip = { x: VW - 56, y: 0, w: 56, h: 18 };
 };
+
+// ---------------------------------------------------------------- posproceso de las cinemáticas: brillo suave, grano y viñeta
+const bloomC = document.createElement('canvas'); bloomC.width = 50; bloomC.height = 28;
+const bloomG = bloomC.getContext('2d');
+let grainC = null;
+function cinePost() {
+  bloomG.imageSmoothingEnabled = true; bloomG.clearRect(0, 0, 50, 28); bloomG.drawImage(cineC, 0, 0, 50, 28);
+  cg.save(); cg.imageSmoothingEnabled = true; cg.globalCompositeOperation = 'screen'; cg.globalAlpha = 0.28; cg.drawImage(bloomC, 0, 0, CW, CH); cg.restore();
+  if (!grainC) {
+    grainC = document.createElement('canvas'); grainC.width = CW; grainC.height = CH;
+    const gg = grainC.getContext('2d'), id = gg.createImageData(CW, CH);
+    for (let i = 0; i < CW * CH; i++) { const v = Math.random() * 255; id.data[i * 4] = id.data[i * 4 + 1] = id.data[i * 4 + 2] = v; id.data[i * 4 + 3] = 18; }
+    gg.putImageData(id, 0, 0);
+  }
+  cg.drawImage(grainC, (Math.random() * 6) | 0 - 3, (Math.random() * 4) | 0 - 2);
+  const gr = cg.createRadialGradient(CW / 2, CH / 2, CH * 0.3, CW / 2, CH / 2, CW * 0.62);
+  gr.addColorStop(0, 'rgba(0,0,0,0)'); gr.addColorStop(1, 'rgba(0,0,0,0.5)');
+  cg.fillStyle = gr; cg.fillRect(0, 0, CW, CH);
+}

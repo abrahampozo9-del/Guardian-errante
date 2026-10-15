@@ -72,6 +72,18 @@ G.renderWorld = function (g) {
     if (x < 0 || y < 0 || x >= w.w || y >= w.h) continue;
     const t = w.get(x, y), sx = x * TS - cx, sy = y * TS - cy;
     g.drawImage(cv(Art.tile(t, x, y, frame)), sx, sy);
+    const tp = Art.blendPri[t];
+    if (tp !== undefined) { // fundido con los terrenos vecinos de más prioridad
+      const nN = w.get(x, y - 1), nE = w.get(x + 1, y), nS = w.get(x, y + 1), nW = w.get(x - 1, y);
+      const pN = Art.blendPri[nN] || 0, pE = Art.blendPri[nE] || 0, pS = Art.blendPri[nS] || 0, pW = Art.blendPri[nW] || 0;
+      const ow = T.isWater(t);
+      if (pN > tp) g.drawImage(Art.blend(nN, x, y, 0, ow), sx, sy);
+      if (pE > tp) g.drawImage(Art.blend(nE, x, y, 1, ow), sx, sy);
+      if (pS > tp) g.drawImage(Art.blend(nS, x, y, 2, ow), sx, sy);
+      if (pW > tp) g.drawImage(Art.blend(nW, x, y, 3, ow), sx, sy);
+      const corner = (dx, dy, m, pa, pb) => { const nd = w.get(x + dx, y + dy), pd = Art.blendPri[nd] || 0; if (pd > tp && pa < pd && pb < pd) g.drawImage(Art.blend(nd, x, y, m, ow), sx, sy); };
+      corner(1, -1, 4, pN, pE); corner(1, 1, 5, pS, pE); corner(-1, 1, 6, pS, pW); corner(-1, -1, 7, pN, pW);
+    }
     this.edgeDetail(g, t, x, y, sx, sy);
   }
   for (const d of w.decor) g.drawImage(cv(d.img), Math.floor(d.x) - cx, Math.floor(d.y) - cy);
@@ -113,9 +125,13 @@ G.renderWorld = function (g) {
       g.fillRect(Math.floor(f.x) - cx, Math.floor(f.y) - cy, s, s);
     }
   }
+  this.mood(g);
+  this.grade(g);
   const dk = Math.min(0.84, this.darkness() + this.stormDark());
   if (dk > 0.01) this.nightOverlay(g, dk, cx, cy);
+  this.ambient(g, cx, cy, dk);
   this.drawWeather(g);
+  this.vignette(g);
   if (w.outdoor && this.stage >= 6) {
     const gx = WG.crossX * TS + 8 - cx, gy = WG.crossY * TS - 8 - cy;
     if (gx > -60 && gx < WW + 60 && gy > -60 && gy < WH + 60) this.glow(g, gx, gy, 26 + Math.sin(this.clock * 2) * 3, 'rgba(255,230,150,0.24)');
@@ -143,7 +159,15 @@ const ROOFS = new Set([T.ROOF, T.ROOF_DARK, T.ROOF_SOLAR, T.CHURCH_ROOF]);
 const FACES = new Set([T.WALL_WHITE, T.WINDOW, T.DOOR, T.CHURCH_WALL, T.CHURCH_DOOR, T.SHED, T.WALL_STONE, T.DAM, T.IWALL, T.IWALL_STONE, T.BATHWALL, T.WALLTOP, T.GARAGE, T.PRETIL]);
 G.edgeDetail = function (g, t, x, y, sx, sy) {
   const w = this.world;
-  if (T.isWater(t)) {
+  if (T.isWater(t) && t !== T.POOL) {
+    const sh = n => T.isWater(n) || n === T.BRIDGE || Art.blendPri[n] !== undefined;
+    const up = w.get(x, y - 1);
+    if (!sh(up)) { g.fillStyle = '#2a6a66'; g.fillRect(sx, sy, TS, 2); g.fillStyle = '#a8e4dc'; g.fillRect(sx, sy + 2, TS, 1); }
+    g.fillStyle = '#9ad8d0';
+    if (!sh(w.get(x - 1, y))) g.fillRect(sx, sy, 1, TS);
+    if (!sh(w.get(x + 1, y))) g.fillRect(sx + TS - 1, sy, 1, TS);
+    if (!sh(w.get(x, y + 1))) { g.fillStyle = '#b8ece4'; g.fillRect(sx, sy + TS - 1, TS, 1); }
+  } else if (t === T.POOL) {
     const up = w.get(x, y - 1);
     if (!T.isWater(up) && up !== T.BRIDGE) { g.fillStyle = '#2a6a66'; g.fillRect(sx, sy, TS, 2); g.fillStyle = '#a8e4dc'; g.fillRect(sx, sy + 2, TS, 1); }
     g.fillStyle = '#9ad8d0';

@@ -3,12 +3,12 @@ const T = {
   VOID: 0, GRASS: 1, DIRT: 2, TRACK: 3, FIELD: 4, SAND: 5, ASPHALT: 6, PAVING: 7, CONCRETE: 8, TERRACE: 9, WATER: 10, DEEP: 11,
   CLIFF: 12, MOUNTAIN: 13, WALL_WHITE: 14, WALL_STONE: 15, WINDOW: 16, DOOR: 17, ROOF: 18, ROOF_SOLAR: 19, SHED: 20, DRYWALL: 21,
   BRAMBLE: 22, DAM: 23, BRIDGE: 24, FLOOR: 25, IWALL: 26, IWALL_STONE: 27, BATHWALL: 28, WALLTOP: 29, STAIRS: 30, CHURCH_WALL: 31,
-  CHURCH_DOOR: 32, BARRICADE: 33, GRASS_GREEN: 34, ROOF_DARK: 35, PORCH: 36, CHURCH_ROOF: 37, BATHFLOOR: 38, IWALL_HI: 39, GARAGE: 40, PRETIL: 41, COUNT: 42
+  CHURCH_DOOR: 32, BARRICADE: 33, GRASS_GREEN: 34, ROOF_DARK: 35, PORCH: 36, CHURCH_ROOF: 37, BATHFLOOR: 38, IWALL_HI: 39, GARAGE: 40, PRETIL: 41, POOL: 42, COUNT: 43
 };
 T.SOLID = new Array(T.COUNT).fill(false);
 for (const s of [T.VOID, T.WATER, T.DEEP, T.CLIFF, T.MOUNTAIN, T.WALL_WHITE, T.WALL_STONE, T.WINDOW, T.ROOF, T.ROOF_SOLAR, T.SHED, T.DRYWALL,
-  T.BRAMBLE, T.DAM, T.IWALL, T.IWALL_STONE, T.BATHWALL, T.WALLTOP, T.CHURCH_WALL, T.BARRICADE, T.ROOF_DARK, T.CHURCH_ROOF, T.IWALL_HI, T.GARAGE, T.PRETIL]) T.SOLID[s] = true;
-T.isWater = t => t === T.WATER || t === T.DEEP;
+  T.BRAMBLE, T.DAM, T.IWALL, T.IWALL_STONE, T.BATHWALL, T.WALLTOP, T.CHURCH_WALL, T.BARRICADE, T.ROOF_DARK, T.CHURCH_ROOF, T.IWALL_HI, T.GARAGE, T.PRETIL, T.POOL]) T.SOLID[s] = true;
+T.isWater = t => t === T.WATER || t === T.DEEP || t === T.POOL;
 
 // ====================================================================== dibujos (generados por código)
 const Art = { tiles: [], tileColor: [], P: {}, people: {} };
@@ -150,6 +150,11 @@ const Art = { tiles: [], tileColor: [], P: {}, people: {} };
         for (let y = 0; y < 16; y += 5) r(b, 0, y, 16, 1, 0x948260);
         for (let y = 0; y < 16; y += 5) for (let x = (y % 2) * 3; x < 16; x += 6) r(b, x, y, 1, 5, 0x948260);
         speck(b, 0, 0, 16, 16, 0xcbb994, 0.15, R);
+        break;
+      case T.POOL: // agua de piscina: azul limpio con la rejilla del gresite
+        r(b, 0, 0, 16, 16, 0x3aa8d8);
+        for (let i = 0; i < 16; i += 4) { r(b, i, 0, 1, 16, 0x48b6e2); r(b, 0, i, 16, 1, 0x48b6e2); }
+        for (let i = 0; i < 3; i++) { const y = 2 + R.int(12), x = R.int(10); r(b, x, y, 5, 1, 0xa8e8f8); }
         break;
       case T.PRETIL: // pretil de piedra del puente viejo: losa de remate y sillares
         r(b, 0, 0, 16, 16, 0xb8a47e);
@@ -304,7 +309,8 @@ const Art = { tiles: [], tileColor: [], P: {}, people: {} };
       if (L.beard) { r(b, 7, 7, 4, 3, L.hair); r(b, 8, 9, 3, 1, L.hair); p(b, 10, 7, shade(L.skin, 0.75)); }
       if (L.helmet) { r(b, 4, 1, 8, 3, 0x7a7c80); p(b, 6, 1, 0xa0a4a8); }
     }
-    outline(b, 0x1a1410);
+    Px.autoShade(b);
+    Px.outlineTint(b);
     return b;
   }
 
@@ -768,8 +774,10 @@ const Art = { tiles: [], tileColor: [], P: {}, people: {} };
     }
     makeCharacters();
     makeProps();
+    Art.H = { shadowed, canopy, put, vehicle };
   };
   Art.tile = function (id, x, y, frame) {
+    if (Art.atlasIds && Art.atlasIds.has(id)) { const f = Art.tiles[id][(x & 3) + ((y & 3) << 2)]; return f[frame % f.length]; }
     const v = ((Math.imul(x, 73856093) ^ Math.imul(y, 19349663)) >>> 0) % VAR;
     const f = Art.tiles[id][v];
     return f[frame % f.length];

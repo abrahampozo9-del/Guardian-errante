@@ -28,6 +28,7 @@ G.boot = function () {
   Art.initBuildings();
   Art.initProps2();
   Art.initCharacters2();
+  Art.initPlaces();
   Art.initEnemies();
   this.buildWorlds();
   this.hasSave = !!this.readSave();
@@ -37,7 +38,7 @@ G.buildWorlds = function () {
   const ow = WG.overworld(); this.worlds[ow.id] = ow;
   const gb = WG.houseGround(); this.worlds[gb.id] = gb;
   const up = WG.houseUpper(); this.worlds[up.id] = up;
-  this.mapCanvas = this.buildMap(ow);
+  this.mapCanvas = this.buildMap(ow); this.mapCanvases = {};
 };
 
 // --------------------------------------------------------------------- actualización
@@ -47,12 +48,14 @@ G.update = function (dt) {
   if (this.bannerT > 0) this.bannerT -= dt;
   if (this.shakeT > 0) this.shakeT -= dt;
   this.titleT += dt;
-  if (this.world) for (const p of this.world.props) if (p.anim === 1) p.img = Art.campfire[Math.floor(this.clock * 8 + p.x) % 3];
+  if (this.world) for (const p of this.world.props) { if (p.anim === 1) p.img = Art.campfire[Math.floor(this.clock * 8 + p.x) % 3]; else if (p.anim === 2) p.img = Art.cascada[Math.floor(this.clock * 8) % 3]; }
   switch (this.st) {
     case ST.TITLE: this.updateTitle(); break;
     case ST.HELP: if (this.confirm() || this.pressed('Escape')) this.st = this.helpBack || ST.TITLE; break;
     case ST.INTRO: this.updateIntro(dt); break;
     case ST.CINE: this.updateCine(dt); break;
+    case ST.LOAD: this.updateLoad(dt); break;
+    case ST.CHOICE: this.updateChoice(); this.clock += dt; break;
     case ST.PLAY:
       if (this.hitStop > 0) this.hitStop -= dt;
       else this.updatePlay(this.slowT > 0 ? dt * 0.35 : dt);
@@ -220,7 +223,7 @@ G.updatePlay = function (dt) {
   this.updateCombat(dt);
   const ptx = Math.floor(p.x / TS), pty = Math.floor(p.y / TS);
   for (const wp of w.warps) {
-    if (ptx >= wp.x && ptx < wp.x + wp.w && pty >= wp.y && pty < wp.y + wp.h) { Sound.play('door'); this.enter(wp.to, wp.tx, wp.ty, wp.dir); return; }
+    if (ptx >= wp.x && ptx < wp.x + wp.w && pty >= wp.y && pty < wp.y + wp.h) { if (wp.load) { this.travel(wp); return; } Sound.play('door'); this.enter(wp.to, wp.tx, wp.ty, wp.dir); return; }
   }
   w.pickups = w.pickups.filter(k => { k.t += dt; if (Math.hypot(k.x - p.x, k.y - p.y) < 11) { this.collect(k); return false; } return true; });
   for (const m of w.monsters) {
@@ -372,7 +375,7 @@ G.spawnLogic = function (dt) {
   this.spawnT -= dt;
   if (this.spawnT > 0) return;
   this.spawnT = 0.8;
-  for (const L of WG.lairs) {
+  for (const L of (w.lairs || [])) {
     const d = Math.hypot(L.x * TS - p.x, L.y * TS - p.y) / TS;
     if (!L.active && !L.cleared && d < 19) this.spawnLair(L);
     else if (L.active && d > 30) { w.monsters = w.monsters.filter(m => m.lair !== L); L.active = false; }
@@ -476,7 +479,7 @@ G.openBrambles = function () {
   const ow = this.worlds.exterior;
   for (const b of WG.brambles) if (ow.get(b[0], b[1]) === T.BRAMBLE) ow.set(b[0], b[1], b[2]);
   for (const p of ow.props) if (p.id === 'cruz') p.img = Art.P.cruzluz;
-  this.mapCanvas = this.buildMap(ow);
+  this.mapCanvas = this.buildMap(ow); this.mapCanvases = {};
 };
 
 // --------------------------------------------------------------------- interacción
@@ -593,8 +596,7 @@ G.rest = function (msg) {
   const p = this.player;
   for (const m of this.world.monsters) if (!m.dead && m.dist(p) < 10 * TS && m.aggro) { this.toast('No puedes descansar con engendros cerca.'); return; }
   p.hp = p.maxHp; p.fe = p.maxFe; p.poison = 0; p.alientoUsed = false;
-  for (const L of WG.lairs) { L.cleared = false; L.active = false; }
-  this.worlds.exterior.monsters = this.worlds.exterior.monsters.filter(m => !m.lair || m.kind === MK.BESTIA);
+  for (const id in this.worlds) { const ww = this.worlds[id]; for (const L of (ww.lairs || [])) { L.cleared = false; L.active = false; } if (ww.outdoor) ww.monsters = ww.monsters.filter(m => !m.lair || m.kind === MK.BESTIA); }
   if (this.world.id === 'casa_alta') { this.restWorld = 'casa_alta'; this.restX = WG.upStart[0]; this.restY = WG.upStart[1]; }
   if (this.isNight()) this.day = 0.02;
   this.save();
@@ -653,13 +655,10 @@ G.enter = function (id, x, y, dir) {
 G.respawn = function () {
   const p = this.player;
   p.dead = false; p.hp = p.maxHp; p.fe = p.maxFe; p.invul = 2; p.flash = 0;
-  const ow = this.worlds.exterior;
-  ow.monsters = ow.monsters.filter(m => m.quest);
-  for (const L of WG.lairs) L.active = false;
+  for (const id in this.worlds) { const ww = this.worlds[id]; if (!ww.outdoor) continue; ww.monsters = ww.monsters.filter(m => m.quest || m.obs || (m.kind === MK.DEMONIO && m === this.miguelDemon)); for (const L of (ww.lairs || [])) L.active = false; }
   this.orbs = [];
   this.enter(this.restWorld, this.restX, this.restY, 0);
   this.boss = null;
-  if (this.stage === 7) { this.stage = 6; Sound.music('calma'); }
   this.st = ST.PLAY;
   this.toast('Te levantas de nuevo. La luz no te ha abandonado.');
 };
@@ -685,6 +684,7 @@ G.save = function () {
   const p = this.player;
   const d = {
     stage: this.stage, flags: [...this.flags], picked: [...this.picked], hp: p.hp, maxHp: p.maxHp, fe: p.fe, maxFe: p.maxFe, lvl: p.lvl, xp: p.xp, atk: p.atk,
+    v: SAVE_VERSION, balance: this.balance || 0,
     herbs: p.herbs, relics: p.relics, sword: p.hasSword, world: this.world.id, x: p.x, y: p.y, restWorld: this.restWorld, restX: this.restX, restY: this.restY, day: this.day, kills: this.questKills,
     pts: p.pts, skills: [...p.skills]
   };
@@ -696,14 +696,19 @@ G.load = function () {
   try {
     this.buildWorlds();
     const p = this.player = new Player();
-    this.stage = d.stage; this.flags = new Set(d.flags); this.picked = new Set(d.picked);
+    this.stage = d.stage; this.flags = new Set(d.flags); this.picked = new Set(d.picked); this.balance = d.balance || 0;
+    if ((d.v || 1) < 2) this.stage = d.stage >= 6 ? ETAPA.HOTEL : d.stage; // partidas de la historia antigua
     Object.assign(p, { hp: d.hp, maxHp: d.maxHp, fe: d.fe, maxFe: d.maxFe, lvl: d.lvl, xp: d.xp, atk: d.atk, herbs: d.herbs, relics: d.relics, hasSword: d.sword });
     p.skills = new Set(d.skills || []); p.pts = d.pts !== undefined ? d.pts : Math.max(0, d.lvl - 1);
     this.restWorld = d.restWorld; this.restX = d.restX; this.restY = d.restY; this.day = d.day; this.questKills = d.kills;
     for (const id in this.worlds) { const w = this.worlds[id]; w.pickups = w.pickups.filter(k => !(k.id && this.picked.has(k.id))); }
     if (p.hasSword) for (const pp of this.worlds.casa_alta.props) if (pp.id === 'baul') pp.img = Art.P.baul_abierto;
-    if (this.stage >= 6) this.openBrambles();
-    if (this.stage === 7) this.stage = 6;
+    if (this.stage >= ETAPA.HOTEL) this.openBrambles();
+    if (this.stage >= ETAPA.MIGUEL) for (const pp of this.worlds.exterior.props) if (pp.id === 'cruz') pp.img = Art.P.cruzluz;
+    if (this.stage === ETAPA.MIGUEL) { this.stage = ETAPA.CRUZ; }
+    if (this.stage >= ETAPA.HOTEL) { const mx = WG.crossX - 4, my = WG.crossY + 3; const mg = new Npc('Miguel', 'miguel', null, Art.P.miguel_caido, null, mx * 16 + 8, my * 16 + 13, 0); this.worlds.exterior.npcs.push(mg); this.worlds.exterior.block(mx, my, 1, 1); }
+    if (this.stage > ETAPA.CASETA) for (const pp of this.worlds.exterior.props) if (pp.id === 'caseta') pp.img = Art.P.caseta_abierta;
+    this.miguelDemon = null;
     if (this.stage === 2) { this.stage = 1; this.questKills = 0; }
     this.boss = null; this.orbs = []; this.fx = []; this.dlg = []; this.page = null;
     this.enter(d.world, d.x, d.y, 0);

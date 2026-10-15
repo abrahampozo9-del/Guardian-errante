@@ -22,7 +22,7 @@ G.buildMap = function (ow) {
 G.render = function (ctx, cw, ch, dpr) {
   vctx.imageSmoothingEnabled = false;
   if (this.st === ST.TITLE || (this.st === ST.HELP && this.helpBack !== ST.PAUSE)) this.renderTitleBg(vctx);
-  else if (this.st === ST.INTRO || this.st === ST.END || this.st === ST.CINE) { vctx.fillStyle = '#08060a'; vctx.fillRect(0, 0, WW, WH); this.embers(vctx); }
+  else if (this.st === ST.INTRO || this.st === ST.END || this.st === ST.CINE || this.st === ST.LOAD) { vctx.fillStyle = '#08060a'; vctx.fillRect(0, 0, WW, WH); this.embers(vctx); }
   else this.renderWorld(vctx);
 
   ctx.setTransform(1, 0, 0, 1, 0, 0);
@@ -44,6 +44,7 @@ G.render = function (ctx, cw, ch, dpr) {
     case ST.TITLE: this.uiTitle(ctx); break;
     case ST.HELP: this.uiHelp(ctx); break;
     case ST.CINE: this.renderCine(ctx); break;
+    case ST.LOAD: this.renderLoad(ctx); break;
     case ST.INTRO: this.uiStory(ctx, this.introPages[this.introIdx], this.introChars); break;
     case ST.END: this.uiStory(ctx, this.endPages[this.endIdx], this.introChars); break;
     default:
@@ -53,6 +54,7 @@ G.render = function (ctx, cw, ch, dpr) {
       if (this.st === ST.PAUSE) this.uiPause(ctx);
       if (this.st === ST.DEAD) this.uiDead(ctx);
       if (this.st === ST.SKILLS) this.uiSkills(ctx);
+      if (this.st === ST.CHOICE) this.uiChoice(ctx);
   }
   if (this.toastT > 0 && this.st !== ST.TITLE) this.uiToast(ctx);
   ctx.restore();
@@ -102,7 +104,7 @@ G.renderWorld = function (g) {
   for (const [, kind, e] of list) {
     if (kind === 0) g.drawImage(cv(e.img), e.left() - cx, e.top() - cy);
     else if (kind === 1) this.drawMonster(g, e, cx, cy);
-    else if (kind === 2 && e.key === 'angel') { const s = e.sprite(this.clock), hov = Math.sin(this.clock * 2) * 2 - 6; this.glow(g, e.x - cx, e.y - 20 - cy, 34, 'rgba(255,245,200,0.35)'); this.shadow(g, e.x - cx, e.y - cy, 7); g.drawImage(cv(s), Math.round(e.x - s.w / 2) - cx, Math.round(e.y - s.h + hov) - cy); }
+    else if (kind === 2 && (e.key === 'angel' || e.key === 'miguel')) { const s = e.sprite(this.clock), hov = Math.sin(this.clock * 2) * 2 - 6; this.glow(g, e.x - cx, e.y - 20 - cy, 34, 'rgba(255,245,200,0.35)'); this.shadow(g, e.x - cx, e.y - cy, 7); g.drawImage(cv(s), Math.round(e.x - s.w / 2) - cx, Math.round(e.y - s.h + hov) - cy); }
     else if (kind === 2) { const s = e.sprite(this.clock); this.shadow(g, e.x - cx, e.y - cy, s.w / 2.5); g.drawImage(cv(s), Math.round(e.x - s.w / 2) - cx, Math.round(e.y - s.h) - cy); }
     else if (kind === 3) {
       const s = e.type === Pickup.RELIC ? Art.relic : Art.herb, bob = Math.sin(e.t * 3 + e.x) * 2;
@@ -112,6 +114,7 @@ G.renderWorld = function (g) {
     } else this.drawPlayer(g, cx, cy);
   }
   this.drawCombatFx(g, cx, cy);
+  this.drawBirds(g, cx, cy);
   for (const o of this.orbs) { const im = o.fire ? Art.E.fire : o.mud ? Art.E.mud : Art.orb; g.drawImage(cv(im), Math.floor(o.x) - (im.w >> 1) - cx, Math.floor(o.y) - (im.h >> 1) - cy); }
   for (const f of this.fx) {
     const a = Math.max(0, Math.min(1, f.life / f.max));
@@ -133,13 +136,13 @@ G.renderWorld = function (g) {
   this.ambient(g, cx, cy, dk);
   this.drawWeather(g);
   this.vignette(g);
-  if (w.outdoor && this.stage >= 6) {
+  if (w.id === 'exterior' && this.stage >= ETAPA.MIGUEL) {
     const gx = WG.crossX * TS + 8 - cx, gy = WG.crossY * TS - 8 - cy;
     if (gx > -60 && gx < WW + 60 && gy > -60 && gy < WH + 60) this.glow(g, gx, gy, 26 + Math.sin(this.clock * 2) * 3, 'rgba(255,230,150,0.24)');
   }
   if (p.invul > 0.6) { g.fillStyle = `rgba(160,20,10,${0.35 * (p.invul - 0.6) / 0.3})`; g.fillRect(0, 0, WW, WH); }
   // flecha hacia el objetivo
-  const tgt = this.objectiveTarget();
+  const tgt = this.arrowTarget();
   if (tgt && w.outdoor && this.st === ST.PLAY) {
     const ox2 = tgt[0] * TS + 8 - cx, oy2 = tgt[1] * TS + 8 - cy;
     if (ox2 < 8 || ox2 > WW - 8 || oy2 < 8 || oy2 > WH - 8) {
@@ -471,20 +474,23 @@ G.uiDialog = function (g) {
 };
 G.uiMap = function (g) {
   g.fillStyle = 'rgba(0,0,0,0.8)'; g.fillRect(0, 0, VW, VH);
-  const mw = this.mapCanvas.width, mh = this.mapCanvas.height, s = Math.min((VW - 30) / mw, (VH - 26) / mh), ox = (VW - mw * s) / 2, oy = 16;
-  g.font = FT(8); this.center(g, 'Pozo Alcón y el valle del Guadalentín', 11, GOLD);
+  const mwld = this.world.outdoor ? this.world : this.worlds.exterior;
+  this.mapCanvases = this.mapCanvases || {};
+  const mc = this.mapCanvases[mwld.id] || (this.mapCanvases[mwld.id] = this.buildMap(mwld));
+  const mw = mc.width, mh = mc.height, s = Math.min((VW - 30) / mw, (VH - 26) / mh), ox = (VW - mw * s) / 2, oy = 16;
+  g.font = FT(8); this.center(g, mwld.mapTitle || 'Pozo Alcón', 11, GOLD);
   g.fillStyle = '#8a6a3a'; g.fillRect(ox - 2, oy - 2, mw * s + 4, mh * s + 4);
   g.imageSmoothingEnabled = false;
-  g.drawImage(this.mapCanvas, ox, oy, mw * s, mh * s);
+  g.drawImage(mc, ox, oy, mw * s, mh * s);
   g.font = FBB(5);
-  const labels = [['Pozo Alcón', 38, 112], ['Cortijo', WG.rx + 6, 103], ['Embalse de La Bolera', 160, 14], ['Presa', 160, 36], ['Cruz de S. Gregorio', WG.crossX, 80], ['Las Higueras', 158, 56], ['Sierra del Pozo', 30, 50], ['Los Llanos', 196, 120], ['Cárcavas', 180, 160], ['A-326', 92, 92]];
+  const labels = mwld.labels || [];
   for (const [n, lx, ly] of labels) { const w = g.measureText(n).width; this.text(g, n, ox + lx * s - w / 2, oy + ly * s, PAPER); }
   let px, py;
   if (this.world.outdoor) { px = ox + this.player.x / TS * s; py = oy + this.player.y / TS * s; } else { px = ox + (WG.doorX + 0.5) * s; py = oy + WG.doorY * s; }
   if (Math.floor(this.titleT * 4) % 2 === 0 || !this.world.outdoor) { g.fillStyle = '#ff4030'; g.beginPath(); g.arc(px, py, 2.5, 0, Math.PI * 2); g.fill(); }
   g.strokeStyle = '#fff'; g.lineWidth = 0.6; g.beginPath(); g.arc(px, py, 2.5, 0, Math.PI * 2); g.stroke();
   const t = this.objectiveTarget();
-  if (t) this.star(g, ox + t[0] * s, oy + t[1] * s, 4.5);
+  if (t && (t[2] || 'exterior') === mwld.id) this.star(g, ox + t[0] * s, oy + t[1] * s, 4.5);
   g.font = FB(5.6);
   g.fillStyle = '#ff4030'; g.beginPath(); g.arc(ox + 2, VH - 5, 2, 0, Math.PI * 2); g.fill();
   this.text(g, 'tú', ox + 6, VH - 3, SOFT);

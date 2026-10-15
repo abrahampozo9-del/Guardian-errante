@@ -121,5 +121,12 @@ Art.initCharacters2 = function () {
   Art.people.guardia = personSet(Look(0xb88058, 0x3a2a1e, 0x5a6a3e, 0x3a3e30, 0x2a2420, { helmet: true, beard: true }));
   Art.people.mecanica = personSet(Look(0xc89470, 0x8a3a1a, 0x3a5a7a, 0x3a3a48, 0x2a2a2a, { longHair: true, scarf: 0xb03a2a, blush: true, eyes: 0x3a6a4a }));
   Art.people.chaval = personSet(Look(0xc8946c, 0x2a1a10, 0xb0563a, 0x3a4a6a, 0x2a2a2a, { blush: true }));
+  Art.people.santiago = personSet(Look(0xd0a07a, 0x2a2420, 0xf0ece0, 0x1e1e22, 0x141414, { bald: true, vest: 0x1a1a1e, beard: false, eyes: 0x3a2a1a }));
+  Art.people.gerente = personSet(Look(0xd8aa86, 0x1a1210, 0x5a2a3a, 0x2a2a30, 0x1a1414, { longHair: true, vest: 0x2a1a22, eyes: 0x2a2a2a }));
+  Art.people.manuel = personSet(Look(0xc8946c, 0x3a2a1e, 0xe8e4da, 0x1e1e24, 0x141414, { vest: 0x22222a, eyes: 0x3a4a2a }));
+  Art.people.monitora = personSet(Look(0xc89470, 0x6a4a2a, 0x3a5a3a, 0x4a4a3a, 0x3a2a1a, { longHair: true, blush: true, eyes: 0x3a6a4a }));
+  Art.people.relojero = personSet(Look(0xc09070, 0xd0ccc4, 0x4a3a2a, 0x3a3026, 0x221c16, { bald: true, beard: true, glasses: true }));
+  // el Anticristo: traje blanco, pelo dorado peinado, sonrisa amable; ojos dorados
+  Art.people.anticristo = personSet(Look(0xe0bc9c, 0xd8b050, 0xf2efe8, 0xe8e4dc, 0xf0ece4, { eyes: 0xc89a20, scarf: 0x8a1a14 }));
   Art.people.abuelo = personSet(Look(0xc09070, 0xe0e0dc, 0x5a4a3a, 0x3a3630, 0x262220, { bald: true, vest: 0x3a3226 }));
 };

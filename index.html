@@ -2009,7 +2009,115 @@ Art.initCharacters2 = function () {
   Art.people.guardia = personSet(Look(0xb88058, 0x3a2a1e, 0x5a6a3e, 0x3a3e30, 0x2a2420, { helmet: true, beard: true }));
   Art.people.mecanica = personSet(Look(0xc89470, 0x8a3a1a, 0x3a5a7a, 0x3a3a48, 0x2a2a2a, { longHair: true, scarf: 0xb03a2a, blush: true, eyes: 0x3a6a4a }));
   Art.people.chaval = personSet(Look(0xc8946c, 0x2a1a10, 0xb0563a, 0x3a4a6a, 0x2a2a2a, { blush: true }));
+  Art.people.santiago = personSet(Look(0xd0a07a, 0x2a2420, 0xf0ece0, 0x1e1e22, 0x141414, { bald: true, vest: 0x1a1a1e, beard: false, eyes: 0x3a2a1a }));
+  Art.people.gerente = personSet(Look(0xd8aa86, 0x1a1210, 0x5a2a3a, 0x2a2a30, 0x1a1414, { longHair: true, vest: 0x2a1a22, eyes: 0x2a2a2a }));
+  Art.people.manuel = personSet(Look(0xc8946c, 0x3a2a1e, 0xe8e4da, 0x1e1e24, 0x141414, { vest: 0x22222a, eyes: 0x3a4a2a }));
+  Art.people.monitora = personSet(Look(0xc89470, 0x6a4a2a, 0x3a5a3a, 0x4a4a3a, 0x3a2a1a, { longHair: true, blush: true, eyes: 0x3a6a4a }));
+  Art.people.relojero = personSet(Look(0xc09070, 0xd0ccc4, 0x4a3a2a, 0x3a3026, 0x221c16, { bald: true, beard: true, glasses: true }));
+  // el Anticristo: traje blanco, pelo dorado peinado, sonrisa amable; ojos dorados
+  Art.people.anticristo = personSet(Look(0xe0bc9c, 0xd8b050, 0xf2efe8, 0xe8e4dc, 0xf0ece4, { eyes: 0xc89a20, scarf: 0x8a1a14 }));
   Art.people.abuelo = personSet(Look(0xc09070, 0xe0e0dc, 0x5a4a3a, 0x3a3630, 0x262220, { bald: true, vest: 0x3a3226 }));
+};
+// ====================================================================== dibujos de los lugares de la historia
+Art.initPlaces = function () {
+  const { img, p, r, ov, ova, line, shade } = Px;
+  const put = (k, b) => { Art.P[k] = b; };
+  const sh = (b, cx, cy, rx, ry) => ova(b, cx, cy, rx, ry, 0x46000000);
+  const fin = b => { Px.outlineTint(b, 0.3); return b; };
+  // ---------------------------------------------------------------- fuente del Músico: pilón octogonal y el músico de bronce con su guitarra
+  {
+    const b = img(34, 34);
+    sh(b, 17, 31, 15, 3);
+    ov(b, 17, 26, 15, 6, 0x8a8478); ov(b, 17, 25, 14, 5, 0xb0a898); ov(b, 17, 25, 11, 3.6, 0x24606a); ov(b, 15, 24, 4, 1.2, 0x5aa0a8);
+    r(b, 15, 12, 4, 14, 0x9a9488); r(b, 15, 12, 1, 14, 0xc4bcae);
+    // el músico
+    r(b, 15, 4, 4, 9, 0x4a6a5a); ov(b, 17, 3, 2.2, 2.2, 0x5a7a68); r(b, 13, 8, 8, 2, 0x3e5a4c); ov(b, 20, 9, 2.5, 2, 0x6a5030); line(b, 19, 8, 23, 4, 0x6a5030);
+    for (let i = 0; i < 4; i++) p(b, 12 + i * 3, 22 - (i % 2), 0xa8e0e8);
+    put('fuente_musico', fin(b));
+  }
+  // ---------------------------------------------------------------- caseta de turismo: casita con ventanilla y poyete
+  for (let v = 0; v < 2; v++) {
+    const b = img(34, 36);
+    sh(b, 17, 33, 15, 3);
+    r(b, 3, 12, 28, 21, 0xece6d8); r(b, 3, 12, 28, 1, 0xfaf6ee); r(b, 3, 30, 28, 3, 0xb89a6a);
+    for (let x = 1; x < 33; x += 4) { r(b, x, 4, 4, 9, 0xb4583a); r(b, x, 4, 1, 9, 0x8a3a22); p(b, x + 2, 5, 0xd87a52); }
+    r(b, 1, 12, 32, 1, 0x6a2a1a);
+    // ventanilla con poyete (a la izquierda)
+    r(b, 6, 16, 9, 7, 0x2a2420); r(b, 6, 16, 9, 1, 0x4a3a2a); r(b, 5, 23, 11, 2, 0xd8ccb4);
+    // puerta: cerrada o abierta de par en par con luz roja de dentro
+    if (!v) { r(b, 20, 16, 8, 14, 0x5a3a20); for (let x = 21; x < 28; x += 2) r(b, x, 16, 1, 14, 0x4a2a14); p(b, 26, 23, 0xd0b060); }
+    else { r(b, 20, 16, 8, 14, 0x1a0404); for (let y = 18; y < 30; y += 3) r(b, 21, y, 6, 1, 0x5a1408); r(b, 22, 27, 4, 3, 0xa02a10); r(b, 28, 16, 2, 14, 0x5a3a20); }
+    r(b, 8, 26, 1, 4, 0x8a8a8a); // cartel "i"
+    put(v ? 'caseta_abierta' : 'caseta_turismo', fin(b));
+  }
+  // ---------------------------------------------------------------- observatorio de aves: caseta de madera sobre pilotes
+  {
+    const b = img(34, 38);
+    sh(b, 17, 35, 14, 3);
+    for (const x of [6, 26]) { r(b, x, 22, 2, 14, 0x4a3420); line(b, x, 35, x + (x < 15 ? 6 : -6), 24, 0x3a2818); }
+    r(b, 3, 10, 28, 14, 0x6a4a2a); for (let y = 11; y < 24; y += 3) r(b, 3, y, 28, 1, 0x4a3220);
+    r(b, 7, 15, 20, 2, 0x0e0a08);
+    for (let x = 1; x < 33; x += 3) { line(b, 17, 2, x, 10, 0x3a3a3a); } r(b, 1, 9, 32, 2, 0x2a2a2a);
+    r(b, 12, 24, 10, 2, 0x5a4026); r(b, 14, 26, 6, 10, 0x4a3420); for (let y = 27; y < 36; y += 2) r(b, 14, y, 6, 1, 0x6a4a2e);
+    put('observatorio', fin(b));
+  }
+  // ---------------------------------------------------------------- pedestal del jardín con las agujas (negras o limpias)
+  for (let v = 0; v < 2; v++) {
+    const b = img(18, 24);
+    sh(b, 9, 22, 7, 2);
+    r(b, 4, 12, 10, 10, 0x8a8478); r(b, 3, 11, 12, 2, 0xb0a898); r(b, 3, 21, 12, 2, 0x6e6a60);
+    for (let i = 0; i < 5; i++) p(b, 5 + i * 2, 15 + (i % 2) * 3, 0x5a7a3a);
+    if (!v) { line(b, 7, 10, 9, 2, 0x1a1410); line(b, 10, 10, 13, 4, 0x1a1410); r(b, 8, 9, 3, 2, 0x2a1a14); for (let i = 0; i < 6; i++) p(b, 6 + i, 3 + (i * 7) % 6, 0x3a1a3a); }
+    else { line(b, 7, 10, 9, 2, 0xf0d080); line(b, 10, 10, 13, 4, 0xf0d080); r(b, 8, 9, 3, 2, 0xc8a040); p(b, 9, 2, 0xffffff); }
+    put(v ? 'pedestal_limpio' : 'pedestal_negro', fin(b));
+  }
+  // ---------------------------------------------------------------- cascada de Guazalamanco (3 fotogramas)
+  Art.cascada = [];
+  for (let f = 0; f < 3; f++) {
+    const b = img(32, 44);
+    for (let y = 0; y < 34; y++) for (let x = 8; x < 24; x++) { const c = (y + f * 3 + x * 2) % 7 < 2 ? 0xd8f4f0 : (x % 3 === 0 ? 0x7ac8c8 : 0x4aa8b0); p(b, x, y, c); }
+    ov(b, 16, 37, 15, 6, 0x2a8a92); for (let i = 0; i < 14; i++) { const a = i / 14 * Math.PI * 2; p(b, 16 + Math.cos(a) * (8 + f), 36 + Math.sin(a) * 3, 0xf0fffc); }
+    for (let i = 0; i < 6; i++) p(b, 10 + ((i * 5 + f * 3) % 14), 33 - (i % 3), 0xffffff);
+    Art.cascada.push(b);
+  }
+  put('cascada', Art.cascada[0]);
+  // ---------------------------------------------------------------- boca de la cueva PB4
+  {
+    const b = img(40, 30);
+    ov(b, 20, 20, 19, 12, 0x5a564e); ov(b, 20, 18, 17, 10, 0x6e6a60);
+    ov(b, 20, 22, 10, 8, 0x060606); r(b, 10, 22, 20, 8, 0x060606);
+    for (let i = 0; i < 8; i++) p(b, 12 + i * 2, 14 + (i % 3), 0x8a8478);
+    line(b, 8, 12, 4, 6, 0x4a5a3a); line(b, 32, 12, 36, 7, 0x4a5a3a);
+    r(b, 15, 26, 2, 4, 0xc8b070); r(b, 14, 25, 4, 1, 0xc8b070); // cartel del espeleo
+    put('cueva_pb4', fin(b));
+  }
+  // ---------------------------------------------------------------- tienda de campaña y mesa de pícnic
+  { const b = img(24, 18); sh(b, 12, 16, 11, 2); for (let y = 2; y < 16; y++) { const w = (y - 2) * 0.8; r(b, 12 - w, y, w * 2, 1, y % 4 ? 0x3a6a4a : 0x2e5a3e); } r(b, 11, 8, 2, 8, 0x14201a); put('tienda', fin(b)); }
+  { const b = img(24, 16); sh(b, 12, 14, 11, 2); r(b, 2, 4, 20, 4, 0x8a6a42); r(b, 2, 4, 20, 1, 0xa8885a); r(b, 0, 10, 24, 2, 0x7a5a36); for (const x of [4, 18]) r(b, x, 8, 2, 6, 0x5a4026); put('picnic', fin(b)); }
+  // ---------------------------------------------------------------- pista de pádel (suelo, se dibuja bajo todo)
+  {
+    const W = 8 * 16, H = 11 * 16, b = img(W, H);
+    r(b, 0, 0, W, H, 0x2a4a7a);
+    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) if ((x * 7 + y * 13) % 11 === 0) p(b, x, y, 0x26446e);
+    const L = 0xe8eef4;
+    r(b, 6, 6, W - 12, 1, L); r(b, 6, H - 7, W - 12, 1, L); r(b, 6, 6, 1, H - 12, L); r(b, W - 7, 6, 1, H - 12, L);
+    r(b, 6, 40, W - 12, 1, L); r(b, 6, H - 41, W - 12, 1, L); r(b, W / 2, 40, 1, H - 80, L);
+    r(b, 4, H / 2 - 1, W - 8, 3, 0x1a1a1a); for (let x = 4; x < W - 4; x += 2) p(b, x, H / 2, 0xd8d8d8); r(b, 4, H / 2 - 1, W - 8, 1, 0xf0f0f0);
+    // cristales y verja en los fondos
+    for (const yy of [0, H - 5]) { r(b, 0, yy, W, 5, 0x6a8aa8); for (let x = 0; x < W; x += 12) r(b, x, yy, 1, 5, 0x2a2a30); r(b, 0, yy, W, 1, 0xb8d8f0); }
+    for (const xx of [0, W - 3]) { r(b, xx, 0, 3, H, 0x2a2a30); for (let y = 0; y < H; y += 3) p(b, xx + 1, y, 0x6a6a78); }
+    Art.padel = b;
+  }
+  // ---------------------------------------------------------------- Miguel caído (tumbado, alas abiertas, herido)
+  {
+    const b = img(44, 20), wing = 0xf4f2ea, w2 = 0xc8ccd4;
+    sh(b, 22, 16, 20, 3);
+    for (let k = 0; k < 7; k++) { line(b, 20, 10, 2 + k, 2 + k * 2, k % 2 ? w2 : wing); line(b, 24, 10, 42 - k, 3 + k * 2, k % 2 ? w2 : wing); }
+    r(b, 14, 9, 16, 6, 0xf0ece0); r(b, 26, 8, 6, 6, 0xf0d8c0); r(b, 31, 8, 3, 6, 0xe8d090);
+    r(b, 18, 11, 6, 2, 0xa02a20); p(b, 20, 14, 0x8a1a10); p(b, 23, 15, 0x8a1a10);
+    r(b, 8, 12, 10, 1, 0xfff0b0);
+    put('miguel_caido', fin(b));
+  }
 };
 // ====================================================================== mapas
 class Prop {
@@ -2100,9 +2208,8 @@ const WG = (function () {
     R_LLAN = A('Los Llanos', 0, 0, 0, 0), R_SIER = A('Sierra del Pozo', 0, 0, 0, 0), R_NORTE = A('Tierras del norte', 0, 0, 0, 0), R_EMB = A('Embalse de La Bolera', 0, 0, 0, 0);
   R_CARC.tier = 1.2; R_LLAN.tier = 1.25; R_SIER.tier = 1.5; R_NORTE.tier = 1.5; R_EMB.tier = 1.6;
   function region(x, y) {
-    if (y < 30 && x >= 100) return R_EMB;
     if ((x < 62 && y < 84) || (x < 112 && y < 28)) return R_SIER;
-    if (y >= 43) {
+    if (y >= 0 && !((x < 62 && y < 84) || (x < 112 && y < 28))) {
       const cx = riverX(y), fw = floorW(y), d = x - cx;
       const g = gentleK(y) > 0.5;
       if (Math.abs(d) <= fw + (g ? SLOPE + 1 : 3)) return y < 64 ? R_NORTE : R_BARR;
@@ -2145,7 +2252,7 @@ const WG = (function () {
     for (let y = 0; y < OW_H; y++) for (let x = 0; x < OW_W; x++) {
       const n = fbm(x, y, 1);
       let t = n > 0.62 ? T.DIRT : T.GRASS;
-      if (y >= 43) {
+      if (y >= 1) {
         const cx = riverX(y), fw = floorW(y), d = x - cx, g = gentleK(y) > 0.5, wall = g ? SLOPE : 3 + fbm(x, y, 9) * 1.6;
         if (Math.abs(d) <= fw) {
           t = Math.abs(d) < 3.5 || g ? (n > 0.66 ? T.GRASS : T.GRASS_GREEN) : (n > 0.55 ? T.DIRT : T.GRASS_GREEN);
@@ -2175,33 +2282,15 @@ const WG = (function () {
       if (n > 0.47 - Math.min(edge, 10) * 0.012 || (x <= 60 && y >= 56 && y <= 72)) w.set(x, y, T.MOUNTAIN);
       else w.set(x, y, n > 0.4 ? T.DIRT : T.GRASS);
     }
-    // Embalse
-    for (let y = 0; y < 30; y++) for (let x = 100; x < OW_W; x++) {
-      let e = Math.pow((x - 170) / 62, 2) + Math.pow((y - 10) / 14, 2);
-      e -= (fbm(x, y, 33) - 0.5) * 0.5;
-      if (y >= 27 && x >= 140 && x <= 180) e = 0.5;
-      if (e < 1) w.set(x, y, e < 0.75 ? T.DEEP : T.WATER); else if (e < 1.12) w.set(x, y, T.SAND);
-    }
-    // Explanada de la presa
-    for (let y = 30; y < 44; y++) for (let x = 140; x < 182; x++) {
-      const edge = x < 143 || x > 178 || y >= 43;
-      if (y <= 32) w.set(x, y, T.DAM);
-      else if (edge && !(x < 143 && y >= 35 && y <= 39)) w.set(x, y, T.CLIFF);
-      else w.set(x, y, fbm(x, y, 5) > 0.68 ? T.SAND : T.CONCRETE);
-      reserved[y * OW_W + x] = 1;
-    }
-    G.bossX = 160; G.bossY = 37;
-    for (let y = 42; y < 44; y++) for (let x = 158; x <= 161; x++) w.set(x, y, T.WATER);
-    for (let x = 146; x <= 176; x += 6) w.prop('compuerta', x, 32);
     // río
-    for (let y = 43; y < OW_H; y++) {
+    for (let y = 1; y < OW_H; y++) {
       const cx = riverX(y), x0 = Math.round(cx) - 1, ww = 2 + (fbm(0, y, 13) > 0.6 ? 1 : 0);
       for (let x = x0; x < x0 + ww; x++) w.set(x, y, T.WATER);
       if (w.get(x0 - 1, y) === T.GRASS_GREEN && R.next() < 0.4) w.set(x0 - 1, y, T.SAND);
       if (w.get(x0 + ww, y) === T.GRASS_GREEN && R.next() < 0.4) w.set(x0 + ww, y, T.SAND);
     }
     // carreteras
-    road(w, [[60, 112], [66, 110], [80, 108], [95, 104], [100, 96], [101, 84], [101, 72], [104, 64], [110, 54], [118, 46], [130, 41], [141, 37]], 3, T.ASPHALT);
+    road(w, [[60, 112], [66, 110], [80, 108], [95, 104], [100, 96], [101, 84], [101, 72], [104, 64], [110, 54], [118, 46], [130, 41], [141, 37], [150, 24], [156, 10], [158, 0]], 3, T.ASPHALT);
     road(w, [[60, 135], [64, 150], [70, 170], [74, 199]], 3, T.ASPHALT);
     road(w, [[16, 130], [8, 146], [0, 166]], 3, T.ASPHALT);
     const rx = G.rx = Math.round(riverX(109));
@@ -2265,7 +2354,7 @@ const WG = (function () {
     sign(w, 98, 102, 'Camino del Guadalentín. A tu casa, al este, cruzando el puente viejo.');
     sign(w, 70, 106, 'POZO ALCÓN. La pintura del cartel está casi borrada.');
     sign(w, 99, 70, 'A-326  ·  Presa de La Bolera 4 km  ·  Castril');
-    sign(w, 139, 41, 'Presa de La Bolera. Alguien ha escrito encima con pintura roja: NO BAJÉIS AL AGUA.');
+    sign(w, 139, 40, 'Carretera del pantano · Hotel Los Nogales 6 km · La Bolera 10 km. Alguien ha escrito con pintura roja: NO SUBÁIS.');
     w.pickups.push(new Pickup(Pickup.RELIC, 109 * 16 + 8, 106 * 16 + 4, 'reliquia_balsa'));
     w.pickups.push(new Pickup(Pickup.RELIC, 182 * 16 + 8, 152 * 16 + 8, 'reliquia_carcavas'));
     w.pickups.push(new Pickup(Pickup.RELIC, 74 * 16 + 8, 44 * 16 + 8, 'reliquia_sierra'));
@@ -2292,11 +2381,15 @@ const WG = (function () {
     w.areas.push(A('Pozo Alcón', 12, 85, 57, 52));
     w.areas.push(A('Cruz de San Gregorio', 97, 70, 12, 11));
     w.areas.push(A('Balsa de riego', 102, 101, 10, 8));
-    const presa = A('Presa de La Bolera', 140, 30, 42, 14); presa.noSpawn = true; presa.tier = 1.6; w.areas.push(presa);
+    w.areas.push(A('Carretera del pantano', 140, 0, 40, 10));
     const hig = A('Bosque Encantado de Las Higueras', 135, 50, 40, 14); hig.tier = 1.4; w.areas.push(hig);
     const linde = A('La Linde Negra', 56, 63, 164, 4); linde.noSpawn = true; w.areas.push(linde);
     w.regionFn = region;
     placeLairs(w);
+    w.lairs = G.lairs;
+    { const ex = new Warp(140, 1, 40, 1, 'pantano', 50 * 16 + 8, 176 * 16, 1); ex.load = true; w.warps.push(ex); G.exitN = [158, 2]; }
+    w.mapTitle = 'Pozo Alcón y el valle del Guadalentín';
+    w.labels = [['Pozo Alcón', 38, 112], ['Cortijo', G.rx + 6, 103], ['Cruz de S. Gregorio', G.crossX, 80], ['Las Higueras', 158, 56], ['Sierra del Pozo', 30, 50], ['Los Llanos', 196, 120], ['Cárcavas', 180, 160], ['A-326', 92, 92], ['El Greco', 37, 108], ['↑ Al pantano', 158, 6]];
     return w;
   };
 
@@ -2329,6 +2422,22 @@ const WG = (function () {
     add('Llanos de los almendros', rx + 45, 125, [MK.JABALI, MK.ALACRAN], 1.25);
   }
 
+  // El Greco (bar, restaurante y salón de celebraciones) y, delante, la plaza con la fuente del Músico y la caseta de turismo
+  function grecoBlock(w, x0, y0, x1, y1) {
+    for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) { w.set(x, y, T.PAVING); reserved[y * OW_W + x] = 1; }
+    for (let x = x0; x <= x1; x++) { w.set(x, y0, T.ROOF_DARK); w.set(x, y0 + 1, T.WALL_WHITE); w.set(x, y0 + 2, T.WALL_WHITE); }
+    w.set(x0 + 1, y0 + 1, T.WINDOW); w.set(x1 - 1, y0 + 1, T.WINDOW); w.set(x0 + 1, y0 + 2, T.WINDOW); w.set(x1 - 1, y0 + 2, T.WINDOW);
+    G.grecoX = x0 + 3; G.grecoY = y0 + 2;
+    w.set(G.grecoX, G.grecoY, T.DOOR);
+    const d = w.prop('compuerta', G.grecoX, G.grecoY); d.hidden = true; d.id = 'greco_puerta';
+    sign(w, x0 + 5, y0 + 3, 'EL GRECO · Bar - Restaurante - Salón de celebraciones. Bodas, bautizos y comuniones.');
+    G.fuenteX = x0 + 1; G.fuenteY = y1 - 1;
+    w.prop('fuente_musico', G.fuenteX + 0.5, G.fuenteY, G.fuenteX, G.fuenteY, 2, 1).id = 'fuente_musico';
+    G.casetaX = x1 - 1; G.casetaY = y1 - 1;
+    const c = w.prop('caseta_turismo', G.casetaX + 0.5, G.casetaY, G.casetaX, G.casetaY, 2, 1); c.id = 'caseta';
+    w.prop('farola', x0 + 4, y1).light = 1;
+    npc(w, 'Santiago', 'santiago', G.grecoX + 1, G.grecoY + 1, 0);
+  }
   function buildTown(w) {
     const hs = [86, 95, 103, 111, 119, 127, 134], vs = [13, 23, 32, 41, 50, 59, 66];
     for (let y = 85; y <= 136; y++) for (let x = 12; x <= 68; x++) { w.set(x, y, T.DIRT); reserved[y * OW_W + x] = 1; }
@@ -2341,6 +2450,7 @@ const WG = (function () {
       if (cxm >= 33 && cxm <= 49 && cym < 95) { church(w, x0, y0, x1, y1); continue; }
       if (cxm >= 42 && cxm <= 50 && cym > 111 && cym < 119) { plazaAyto(w, x0, y0, x1, y1); continue; }
       if (cxm < 23 && cym > 127) { ermita(w, x0, y0, x1, y1); continue; }
+      if (cxm >= 34 && cxm <= 40 && cym > 103 && cym < 111) { grecoBlock(w, x0, y0, x1, y1); continue; }
       houses(w, x0, y0, x1, y1);
     }
     hs.forEach((h, i) => vs.forEach((v, j) => { if ((i + j) % 2 === 0 && h > 86 && h < 134) { const f = w.prop('farola', v + 0.5, h); f.light = 1; } }));
@@ -2698,6 +2808,257 @@ const WG = (function () {
     return w;
   };
   return G;
+})();
+// ====================================================================== secciones del mundo (se generan al entrar por primera vez)
+// 2 · La carretera del pantano: cañón del Guadalentín, Hotel Los Nogales (km 6, sobre el cortado de los buitres)
+// 3 · La Bolera: el embalse, la presa, El Hornico y la cascada de Guazalamanco
+const WS = (function () {
+  const S = {};
+  const A = (n, x, y, w, h) => new Area(n, x, y, w, h);
+  const hash = (x, y, s) => { let h = (Math.imul(x, 374761393) + Math.imul(y, 668265263) + Math.imul(s, 982451653)) | 0; h = Math.imul(h ^ (h >>> 13), 1274126177); return ((h ^ (h >>> 16)) & 0xffffff) / 0x1000000; };
+  function vnoise(x, y, s) { const xi = Math.floor(x), yi = Math.floor(y); let fx = x - xi, fy = y - yi; fx = fx * fx * (3 - 2 * fx); fy = fy * fy * (3 - 2 * fy); const a = hash(xi, yi, s), b = hash(xi + 1, yi, s), c = hash(xi, yi + 1, s), d = hash(xi + 1, yi + 1, s); return a + (b - a) * fx + (c - a) * fy + (a - b - c + d) * fx * fy; }
+  const fbm = (x, y, s) => 0.5 * vnoise(x / 18, y / 18, s) + 0.3 * vnoise(x / 8, y / 8, s + 1) + 0.2 * vnoise(x / 3.5, y / 3.5, s + 2);
+  const plateau = (y, c, half, taper) => { const d = Math.abs(y - c); if (d <= half) return 1; if (d >= half + taper) return 0; const t = 1 - (d - half) / taper; return t * t * (3 - 2 * t); };
+  function road(w, res, pts, width, tile) {
+    for (let i = 0; i < pts.length - 1; i++) {
+      const [x0, y0] = pts[i], [x1, y1] = pts[i + 1], steps = Math.ceil(Math.hypot(x1 - x0, y1 - y0) * 2);
+      for (let s = 0; s <= steps; s++) {
+        const t = s / steps, x = x0 + (x1 - x0) * t, y = y0 + (y1 - y0) * t;
+        for (let dy = 0; dy < width; dy++) for (let dx = 0; dx < width; dx++) {
+          const tx = Math.round(x - width / 2 + dx), ty = Math.round(y - width / 2 + dy);
+          if (tx < 0 || ty < 0 || tx >= w.w || ty >= w.h) continue;
+          const cur = w.get(tx, ty);
+          if (T.isWater(cur)) w.set(tx, ty, T.BRIDGE); else if (cur !== T.DAM) w.set(tx, ty, tile);
+          res[ty * w.w + tx] = 1;
+        }
+      }
+    }
+  }
+  const npc = (w, name, key, tx, ty, dir) => { w.npcs.push(new Npc(name, key, Art.people[key], null, null, tx * 16 + 8, ty * 16 + 13, dir)); w.block(tx, ty, 1, 1); };
+  const sign = (w, res, x, y, text) => { const p = w.prop('senal', x, y, x, y, 1, 1); p.id = 'cartel:' + text; res[y * w.w + x] = 1; };
+  function scatter(w, res, seed, fn) {
+    const r = RNG(seed);
+    for (let y = 1; y < w.h - 1; y++) for (let x = 1; x < w.w - 1; x++) {
+      if (res[y * w.w + x] || w.blk[y * w.w + x] || T.SOLID[w.get(x, y)]) continue;
+      fn(x, y, r, w.get(x, y));
+    }
+  }
+  function border(w) { for (let x = 0; x < w.w; x++) { w.set(x, 0, T.MOUNTAIN); w.set(x, w.h - 1, T.MOUNTAIN); } for (let y = 0; y < w.h; y++) { w.set(0, y, T.MOUNTAIN); w.set(w.w - 1, y, T.MOUNTAIN); } }
+  function lair(w, name, x, y, kinds, tier) {
+    const water = kinds.includes(MK.AHOGADO);
+    for (let rr = 0; rr < 8; rr++) for (let dy = -rr; dy <= rr; dy++) for (let dx = -rr; dx <= rr; dx++) {
+      const tx = Math.round(x) + dx, ty = Math.round(y) + dy;
+      if (water ? T.isWater(w.get(tx, ty)) && w.get(tx, ty) !== T.DEEP : !w.solid(tx, ty)) { w.lairs.push({ name, x: tx, y: ty, kinds, tier, active: false, cleared: false }); return; }
+    }
+  }
+  function keepPath(w, xFn, y0, y1) { // senda siempre libre de árboles
+    for (let y = y0; y < y1; y++) { const x = Math.round(xFn(y)); for (const xx of [x, x + 1]) { const before = w.props.length; w.props = w.props.filter(pp => pp.id || !(Math.floor(pp.x / 16) === xx && Math.floor((pp.y - 1) / 16) === y)); if (before !== w.props.length) w.unblock(xx, y, 1, 1); } }
+  }
+  function campfire(w, x, y, id) { const f = new Prop(Art.campfire[0], x * 16 + 8, y * 16 + 15); f.anim = 1; f.id = id; w.props.push(f); w.block(x, y, 1, 1); }
+
+  // ================================================================== 2 · LA CARRETERA DEL PANTANO
+  S.pantano = function () {
+    const W = 120, H = 180, w = new World('pantano', W, H, T.GRASS), res = new Uint8Array(W * H);
+    w.outdoor = true; w.defaultArea = 'Carretera del pantano'; w.lairs = []; w.birds = [];
+    const rvx = y => 80 + 8 * Math.sin(y * 0.03) + 3 * Math.sin(y * 0.1 + 1);
+    S.prvx = rvx;
+    const gorge = y => plateau(y, 70, 52, 18);
+    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+      const n = fbm(x, y, 3), d = x - rvx(y), g = gorge(y), floor = 2.6 + (1 - g) * 8, wall = g > 0.35 ? 3 + fbm(x, y, 9) * 4 : 0;
+      let t = n > 0.6 ? T.DIRT : T.GRASS;
+      if (Math.abs(d) <= floor) t = n > 0.55 ? T.SAND : T.GRASS_GREEN;
+      else if (Math.abs(d) <= floor + wall) t = T.CLIFF;
+      else if (d > 0 && fbm(x * 1.2, y * 1.2, 7) > 0.66) t = T.CLIFF; // cárcavas al otro lado
+      else if (d < 0 && fbm(x * 1.4, y * 1.4, 17) > 0.74 && x < 40) t = T.MOUNTAIN; // peñas en el pinar
+      w.set(x, y, t);
+    }
+    for (let y = 1; y < H - 1; y++) { const x0 = Math.round(rvx(y)) - 1, ww = 2 + (fbm(0, y, 13) > 0.62 ? 1 : 0); for (let x = x0; x < x0 + ww; x++) w.set(x, y, fbm(x, y, 31) > 0.7 ? T.DEEP : T.WATER); }
+    // la carretera, con sus curvas, por el lado oeste
+    const rpts = [[50, 179], [48, 160], [54, 142], [46, 124], [44, 104], [48, 86], [46, 66], [52, 46], [48, 26], [54, 8], [56, 0]];
+    road(w, res, rpts, 3, T.ASPHALT);
+    [[47, 150, 'km 2'], [43, 112, 'km 4'], [45, 74, 'km 6 · Hotel Los Nogales'], [51, 34, 'km 8 · La Bolera']].forEach(([x, y, t]) => sign(w, res, x, y, 'A-326 · ' + t));
+    // ---------------- Hotel Los Nogales
+    const hx0 = 56, hy0 = 60;
+    for (let y = hy0 - 2; y <= hy0 + 34; y++) for (let x = 51; x <= 76; x++) { if (!T.isWater(w.get(x, y)) && w.get(x, y) !== T.ASPHALT) w.set(x, y, T.GRASS_GREEN); res[y * W + x] = 1; }
+    w.fill(51, hy0 + 4, 6, 12, T.ASPHALT); // aparcamiento
+    w.prop('furgo', 53, hy0 + 6, 52, hy0 + 6, 2, 1); w.prop('todoterreno', 53, hy0 + 10, 52, hy0 + 10, 2, 1); w.prop('furgo', 55, hy0 + 14, 54, hy0 + 14, 2, 1);
+    for (let y = hy0; y <= hy0 + 2; y++) for (let x = hx0 + 2; x <= hx0 + 16; x++) w.set(x, y, T.ROOF);
+    for (let x = hx0 + 2; x <= hx0 + 16; x++) { w.set(x, hy0 + 3, T.WALL_WHITE); w.set(x, hy0 + 4, T.WALL_STONE); }
+    for (const x of [hx0 + 3, hx0 + 6, hx0 + 12, hx0 + 15]) { w.set(x, hy0 + 3, T.WINDOW); }
+    for (const x of [hx0 + 4, hx0 + 13]) w.set(x, hy0 + 4, T.WINDOW);
+    S.hotelDoor = [hx0 + 9, hy0 + 4]; w.set(hx0 + 9, hy0 + 4, T.DOOR);
+    const hd = w.prop('compuerta', hx0 + 9, hy0 + 4); hd.hidden = true; hd.id = 'hotel_puerta';
+    w.fill(hx0 + 2, hy0 + 5, 15, 2, T.PORCH);
+    for (const x of [hx0 + 2, hx0 + 8, hx0 + 16]) w.prop('pilar', x, hy0 + 5, x, hy0 + 5, 1, 1);
+    w.prop('mesaporche', hx0 + 5, hy0 + 6, hx0 + 4, hy0 + 6, 2, 1); w.prop('mesaporche', hx0 + 12, hy0 + 6, hx0 + 11, hy0 + 6, 2, 1);
+    campfire(w, hx0 + 14, hy0 + 7, 'hoguera_hotel'); S.hotelFire = [hx0 + 14, hy0 + 8];
+    w.prop('farola', hx0 + 1, hy0 + 7).light = 1; w.prop('farola', hx0 + 17, hy0 + 7).light = 1;
+    sign(w, res, 50, hy0 + 2, 'HOTEL LOS NOGALES ★★★ · Restaurante · Piscina · Pista de pádel · Observatorio de aves');
+    // piscina
+    w.fill(hx0 + 10, hy0 + 9, 8, 6, T.CONCRETE); w.fill(hx0 + 11, hy0 + 10, 6, 4, T.POOL);
+    // pista de pádel (dibujo bajo todo) y la red para jugar
+    S.padel = [hx0, hy0 + 16];
+    w.fill(hx0, hy0 + 16, 8, 11, T.CONCRETE);
+    w.decor.push({ img: Art.padel, x: hx0 * 16, y: (hy0 + 16) * 16 });
+    const red = w.prop('compuerta', hx0 + 4, hy0 + 21); red.hidden = true; red.id = 'padel';
+    // los nogales
+    for (const [x, y] of [[hx0 + 11, hy0 + 18], [hx0 + 16, hy0 + 17], [hx0 + 12, hy0 + 24], [hx0 + 17, hy0 + 23], [hx0 + 14, hy0 + 30], [hx0 + 3, hy0 + 31], [hx0 + 9, hy0 + 32]]) w.prop('nogal' + ((x + y) & 1), x, y, x, y, 1, 1);
+    // observatorio de aves sobre el cortado
+    S.observatorio = [Math.round(rvx(hy0 + 12)) - 9, hy0 + 12];
+    for (let y = S.observatorio[1] - 2; y <= S.observatorio[1] + 2; y++) for (let x = S.observatorio[0] - 3; x <= S.observatorio[0] + 2; x++) { if (w.get(x, y) === T.CLIFF) w.set(x, y, T.DIRT); res[y * W + x] = 1; }
+    w.prop('observatorio', S.observatorio[0], S.observatorio[1], S.observatorio[0] - 1, S.observatorio[1], 2, 1).id = 'observatorio';
+    w.birds.push({ cx: (rvx(hy0 + 12) + 2) * 16, cy: (hy0 + 10) * 16, r: 70, n: 6 });
+    w.birds.push({ cx: (rvx(hy0 + 40) + 2) * 16, cy: (hy0 + 40) * 16, r: 50, n: 3 });
+    npc(w, 'Doña Pura', 'gerente', hx0 + 10, hy0 + 6, 0);
+    npc(w, 'Manuel', 'manuel', hx0 + 4, hy0 + 15, 0);
+    // ---------------- Venta del Pantano, en ruinas
+    for (let y = 138; y <= 143; y++) for (let x = 56; x <= 63; x++) { w.set(x, y, T.DIRT); res[y * W + x] = 1; }
+    for (let x = 57; x <= 62; x++) { w.set(x, 138, x % 3 ? T.ROOF_DARK : T.DIRT); w.set(x, 139, T.WALL_WHITE); }
+    w.set(59, 139, T.WINDOW); w.set(61, 139, T.DOOR);
+    w.prop('chatarra1', 57.5, 141, 57, 141, 2, 1); w.prop('chatarra3', 61.5, 142, 61, 142, 2, 1);
+    sign(w, res, 55, 141, 'VENTA DEL PANTANO · Comidas caseras. (Debajo, a rotulador: "no entréis, están dentro")');
+    // ---------------- vegetación
+    scatter(w, res, 7, (x, y, r, t) => {
+      const d = x - rvx(y), g = gorge(y);
+      if (Math.abs(d) < 5 && !T.isWater(t)) { if (r.next() < 0.08) w.prop('canas', x, y); else if (r.next() < 0.05) w.prop('chopo' + r.int(2), x, y, x, y, 1, 1); return; }
+      if (d < 0 && x < 44) { if (r.next() < 0.2) w.prop('pino' + r.int(3), x, y, x, y, 1, 1); else if (r.next() < 0.02) w.prop('roca_musgo' + r.int(2), x, y, x, y, 1, 1); return; }
+      if (d > 0) { if (r.next() < 0.03) w.prop('arbol_muerto' + r.int(2), x, y, x, y, 1, 1); else if (r.next() < 0.04) w.prop('retama' + r.int(3), x, y, x, y, 1, 1); else if (r.next() < 0.005) w.prop('huesos', x, y); return; }
+      if (y > 140 && x % 3 === 0 && y % 3 === 1 && r.next() < 0.85) w.prop('olivo' + r.int(3), x, y, x, y, 1, 1);
+      else if (r.next() < 0.04) w.prop('retama' + r.int(3), x, y, x, y, 1, 1);
+      else if (r.next() < 0.03) w.prop('pino' + r.int(3), x, y, x, y, 1, 1);
+    });
+    keepPath(w, y => rvx(y) + 2, 2, H - 2); keepPath(w, y => rvx(y) - 2.5, 2, H - 2);
+    for (let y = 2; y < H - 2; y++) for (const xx of [Math.round(rvx(y)) - 2, Math.round(rvx(y)) + 2]) if (w.get(xx, y) === T.CLIFF) w.set(xx, y, T.SAND); // orillas siempre andables
+    for (const by of [60, 100, 128]) { const x0 = Math.round(rvx(by)) - 2; for (let x = x0; x <= x0 + 4; x++) { if (T.isWater(w.get(x, by))) w.set(x, by, T.BRIDGE); } } // pasarelas de madera
+    w.pickups.push(new Pickup(Pickup.RELIC, (Math.round(rvx(95)) + 2) * 16 + 8, 95 * 16 + 8, 'reliquia_cortado'));
+    border(w);
+    // ---------------- salidas
+    const south = new Warp(36, H - 2, 60, 1, 'exterior', 158 * 16 + 8, 3 * 16, 0); south.load = true; w.warps.push(south);
+    const north = new Warp(44, 1, 20, 1, 'bolera', 54 * 16 + 8, 126 * 16, 1); north.load = true; w.warps.push(north);
+    w.set(56, 0, T.ASPHALT);
+    // ---------------- zonas y guaridas
+    const hotel = A('Hotel Los Nogales', 50, hy0 - 2, 27, 37); hotel.safe = true; w.areas.push(hotel);
+    w.areas.push(A('Observatorio de aves', S.observatorio[0] - 3, S.observatorio[1] - 3, 6, 6));
+    w.areas.push(A('Venta del Pantano', 54, 136, 12, 9));
+    const cort = A('El cortado de los buitres', 70, 40, 30, 60); cort.tier = 1.45; w.areas.push(cort);
+    w.regionFn = (x, y) => { const a = A(y > 130 ? 'Olivares del pantano' : 'Cañón del Guadalentín', 0, 0, 0, 0); a.tier = y > 130 ? 1.3 : 1.45; return a; };
+    lair(w, 'Olivar de la curva', 64, 165, [MK.JABALI, MK.JABALI, MK.HUECO], 1.3);
+    lair(w, 'Los de la Venta', 60, 146, [MK.HUECO, MK.HUECO, MK.HUECO], 1.35);
+    lair(w, 'Peñas del pinar', 30, 120, [MK.ALACRAN, MK.ALACRAN], 1.4);
+    lair(w, 'Poza del cañón', rvx(150), 150, [MK.AHOGADO, MK.AHOGADO], 1.4);
+    lair(w, 'Sombras del cortado', 66, 108, [MK.SOMBRA, MK.SOMBRA], 1.5);
+    lair(w, 'Nido del pinar', 30, 60, [MK.NIDO, MK.HUECO], 1.5);
+    lair(w, 'Cárcavas de enfrente', 100, 120, [MK.ALACRAN, MK.JABALI, MK.ALACRAN], 1.5);
+    lair(w, 'Curva del km 8', 40, 30, [MK.JABALI, MK.SOMBRA], 1.55);
+    w.mapTitle = 'La carretera del pantano';
+    w.labels = [['Hotel Los Nogales', 64, 58], ['Observatorio', S.observatorio[0], S.observatorio[1] - 3], ['Venta del Pantano', 60, 136], ['Cañón del Guadalentín', 92, 100], ['↑ La Bolera', 54, 5], ['↓ Pozo Alcón', 50, 174]];
+    return w;
+  };
+
+  // ================================================================== 3 · LA BOLERA
+  S.bolera = function () {
+    const W = 160, H = 130, w = new World('bolera', W, H, T.GRASS), res = new Uint8Array(W * H);
+    w.outdoor = true; w.defaultArea = 'La Bolera'; w.lairs = []; w.birds = [];
+    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+      const n = fbm(x, y, 41);
+      let t = n > 0.58 ? T.DIRT : T.GRASS;
+      let e = Math.pow((x - 100) / 58, 2) + Math.pow((y - 38) / 31, 2) - (fbm(x, y, 43) - 0.5) * 0.55;
+      if (x >= 106 && x <= 134 && y >= 60 && y <= 75) e = Math.min(e, 0.6);
+      if (e < 1) t = e < 0.62 ? T.DEEP : T.WATER; else if (e < 1.1) t = n > 0.5 ? T.SAND : T.DIRT;
+      else if (fbm(x * 1.3, y * 1.3, 47) > 0.72) t = T.MOUNTAIN;
+      w.set(x, y, t);
+    }
+    // la presa y la explanada de abajo (el sitio de la Bestia)
+    for (let x = 102; x <= 138; x++) { w.set(x, 76, T.DAM); w.set(x, 77, T.DAM); w.set(x, 78, T.DAM); }
+    for (let y = 79; y <= 92; y++) for (let x = 100; x <= 140; x++) {
+      const edge = x < 103 || x > 137 || y >= 92;
+      if (edge && !(x < 103 && y >= 83 && y <= 88)) w.set(x, y, T.CLIFF); else w.set(x, y, fbm(x, y, 5) > 0.68 ? T.SAND : T.CONCRETE);
+      res[y * W + x] = 1;
+    }
+    for (let x = 106; x <= 134; x += 7) w.prop('compuerta', x, 78);
+    S.bossX = 120; S.bossY = 86;
+    for (let y = 93; y < H - 1; y++) { const x = 120 + Math.round(Math.sin(y * 0.15) * 3); w.set(x, y, T.WATER); w.set(x + 1, y, T.WATER); for (const dx of [-3, -2, 3, 4]) if (w.get(x + dx, y) !== T.WATER) w.set(x + dx, y, T.CLIFF); }
+    // la cueva PB4, en la orilla de enfrente (Sierra de Castril)
+    S.pb4 = [144, 70];
+    for (let y = 66; y <= 74; y++) for (let x = 139; x <= 150; x++) { if (!T.isWater(w.get(x, y))) { w.set(x, y, x > 146 ? T.MOUNTAIN : T.DIRT); } res[y * W + x] = 1; }
+    w.prop('cueva_pb4', S.pb4[0], S.pb4[1], S.pb4[0] - 1, S.pb4[1], 3, 1).id = 'cueva_pb4';
+    // carreteras
+    road(w, res, [[54, 129], [56, 112], [66, 100], [82, 95], [99, 86]], 3, T.ASPHALT);
+    road(w, res, [[56, 112], [46, 102], [38, 92], [32, 80]], 2, T.TRACK);
+    road(w, res, [[99, 86], [101, 80], [104, 77], [139, 77], [142, 72]], 2, T.TRACK);
+    for (let x = 101; x <= 139; x++) { w.set(x, 77, T.ASPHALT); res[77 * W + x] = 1; } // coronación de la presa, transitable
+    // ---------------- El Hornico
+    for (let y = 58; y <= 92; y++) for (let x = 6; x <= 40; x++) { if (!T.isWater(w.get(x, y))) w.set(x, y, T.GRASS_GREEN); res[y * W + x] = 1; }
+    // casa forestal de piedra
+    for (let y = 60; y <= 62; y++) for (let x = 9; x <= 18; x++) w.set(x, y, T.ROOF);
+    for (let x = 9; x <= 18; x++) { w.set(x, 63, T.WALL_STONE); w.set(x, 64, T.WALL_STONE); }
+    w.set(11, 63, T.WINDOW); w.set(16, 63, T.WINDOW); w.set(13, 64, T.DOOR);
+    const cf = w.prop('compuerta', 13, 64); cf.hidden = true; cf.id = 'hornico_casa';
+    // aula de la naturaleza y casa de campamentos
+    for (let y = 64; y <= 65; y++) for (let x = 23; x <= 34; x++) w.set(x, y, T.ROOF_DARK);
+    for (let x = 23; x <= 34; x++) { w.set(x, 66, T.WALL_WHITE); w.set(x, 67, T.WALL_WHITE); }
+    for (const x of [24, 27, 31, 33]) w.set(x, 66, T.WINDOW); w.set(29, 67, T.DOOR);
+    const au = w.prop('compuerta', 29, 67); au.hidden = true; au.id = 'hornico_aula';
+    sign(w, res, 21, 68, 'AULA DE LA NATURALEZA EL HORNICO · Jardín botánico · Campamentos');
+    campfire(w, 30, 71, 'hoguera_hornico'); S.hornicoFire = [30, 72];
+    w.prop('picnic', 34, 72, 33, 72, 2, 1); w.prop('picnic', 25, 72, 24, 72, 2, 1);
+    w.prop('tienda', 37, 76, 36, 76, 2, 1); w.prop('tienda', 37, 80, 36, 80, 2, 1);
+    w.prop('estatua', 20, 70, 20, 70, 1, 1);
+    // jardín botánico
+    for (let y = 75; y <= 89; y++) for (let x = 8; x <= 32; x++) w.set(x, y, (x % 5 === 0 || y % 5 === 0) ? T.TRACK : T.GRASS_GREEN);
+    const plants = [['retama0', 'Retama (Spartium junceum)'], ['retama1', 'Centaurea mariana'], ['retama2', 'Phlomis lychnitis'], ['setas0', 'Hongos del pinar'], ['almendro0', 'Almendro'], ['cipres', 'Ciprés']];
+    let pi = 0;
+    for (let by = 76; by < 89; by += 5) for (let bx = 9; bx < 32; bx += 5) {
+      if (bx === 19 && by === 81) continue;
+      const [k, name] = plants[pi++ % plants.length];
+      w.prop(k, bx + 2, by + 2, bx + 2, by + 2, 1, 1);
+      if (pi % 2) sign(w, res, bx + 1, by + 3, 'Jardín botánico · ' + name);
+    }
+    S.agujas = [21, 83];
+    w.prop('pedestal_negro', S.agujas[0] + 0.5, S.agujas[1], S.agujas[0], S.agujas[1], 1, 1).id = 'agujas';
+    npc(w, 'Elena', 'monitora', 27, 70, 0);
+    w.pickups.push(new Pickup(Pickup.RELIC, 10 * 16 + 8, 88 * 16 + 8, 'reliquia_hornico'));
+    // ---------------- arroyo y cascada de Guazalamanco (al norte de El Hornico)
+    const ay = x => 46 + Math.round(Math.sin(x * 0.2) * 2);
+    for (let x = 4; x < 44; x++) { const y = ay(x); if (!T.isWater(w.get(x, y))) { w.set(x, y, T.WATER); w.set(x, y + 1, x % 4 ? T.WATER : T.SAND); } }
+    for (let y = 36; y <= 44; y++) for (let x = 2; x <= 9; x++) w.set(x, y, T.CLIFF);
+    for (let y = 44; y <= 49; y++) for (let x = 3; x <= 9; x++) { if (w.get(x, y) === T.CLIFF) w.set(x, y, T.GRASS_GREEN); res[y * W + x] = 1; }
+    S.cascada = [6, 44];
+    const cas = new Prop(Art.cascada[0], 6 * 16 + 8, 46 * 16 + 4); cas.id = 'cascada'; cas.anim = 2; w.props.push(cas); w.block(5, 45, 3, 1);
+    road(w, res, [[28, 58], [22, 52], [14, 50], [9, 49]], 2, T.TRACK);
+    sign(w, res, 26, 56, 'Sendero de la cascada de Guazalamanco · 1,7 km · Mirador sobre el embalse');
+    // ---------------- vegetación: pinar alrededor
+    scatter(w, res, 9, (x, y, r, t) => {
+      if (T.isWater(t) || t === T.SAND) return;
+      const lakeD = Math.pow((x - 100) / 58, 2) + Math.pow((y - 38) / 31, 2);
+      if (lakeD < 1.25 && r.next() < 0.05) { w.prop('canas', x, y); return; }
+      if (r.next() < (x < 60 || y < 10 ? 0.22 : 0.08)) w.prop('pino' + r.int(3), x, y, x, y, 1, 1);
+      else if (r.next() < 0.015) w.prop('roca_musgo' + r.int(2), x, y, x, y, 1, 1);
+      else if (r.next() < 0.01) w.prop('arbol_muerto' + r.int(2), x, y, x, y, 1, 1);
+      else if (r.next() < 0.01) w.prop('setas' + r.int(2), x, y);
+    });
+    keepPath(w, y => 55 + (y > 112 ? (y - 112) * 0.1 : 0), 100, H - 2);
+    border(w);
+    const south = new Warp(46, H - 2, 18, 1, 'pantano', 56 * 16 + 8, 3 * 16, 0); south.load = true; w.warps.push(south);
+    w.set(54, H - 1, T.ASPHALT);
+    // ---------------- zonas y guaridas
+    const presa = A('Presa de La Bolera', 100, 76, 41, 17); presa.noSpawn = true; presa.tier = 1.8; w.areas.push(presa);
+    const hor = A('El Hornico', 6, 58, 35, 35); hor.safe = true; w.areas.push(hor);
+    const cas2 = A('Cascada de Guazalamanco', 2, 40, 14, 12); cas2.tier = 1.7; w.areas.push(cas2);
+    w.areas.push(A('Cueva PB4', 138, 64, 14, 12));
+    w.regionFn = (x, y) => { const a = A(y < 60 && x > 40 ? 'Embalse de La Bolera' : 'Pinar de La Bolera', 0, 0, 0, 0); a.tier = 1.7; return a; };
+    lair(w, 'Orilla de los ahogados', 60, 52, [MK.AHOGADO, MK.AHOGADO, MK.AHOGADO], 1.7);
+    lair(w, 'Pinar del arroyo', 30, 30, [MK.SOMBRA, MK.JABALI], 1.7);
+    lair(w, 'Nido del pinar alto', 20, 14, [MK.NIDO, MK.HUECO], 1.75);
+    lair(w, 'Curva de la presa', 80, 100, [MK.HUECO, MK.HUECO, MK.JABALI], 1.7);
+    lair(w, 'Los del arroyo', 36, 46, [MK.AHOGADO, MK.ALACRAN], 1.75);
+    lair(w, 'Pinar de la entrada', 30, 112, [MK.JABALI, MK.JABALI], 1.65);
+    lair(w, 'Ahogados de la presa', 120, 66, [MK.AHOGADO, MK.AHOGADO], 1.85);
+    w.mapTitle = 'La Bolera';
+    w.labels = [['Embalse de La Bolera', 100, 36], ['Presa', 120, 74], ['El Hornico', 22, 58], ['Cascada de Guazalamanco', 14, 38], ['Cueva PB4', 144, 64], ['↓ Al pantano', 54, 124]];
+    return w;
+  };
+  return S;
 })();
 // ====================================================================== personajes
 class Entity {
@@ -3297,6 +3658,7 @@ G.boot = function () {
   Art.initBuildings();
   Art.initProps2();
   Art.initCharacters2();
+  Art.initPlaces();
   Art.initEnemies();
   this.buildWorlds();
   this.hasSave = !!this.readSave();
@@ -3306,7 +3668,7 @@ G.buildWorlds = function () {
   const ow = WG.overworld(); this.worlds[ow.id] = ow;
   const gb = WG.houseGround(); this.worlds[gb.id] = gb;
   const up = WG.houseUpper(); this.worlds[up.id] = up;
-  this.mapCanvas = this.buildMap(ow);
+  this.mapCanvas = this.buildMap(ow); this.mapCanvases = {};
 };
 
 // --------------------------------------------------------------------- actualización
@@ -3316,12 +3678,14 @@ G.update = function (dt) {
   if (this.bannerT > 0) this.bannerT -= dt;
   if (this.shakeT > 0) this.shakeT -= dt;
   this.titleT += dt;
-  if (this.world) for (const p of this.world.props) if (p.anim === 1) p.img = Art.campfire[Math.floor(this.clock * 8 + p.x) % 3];
+  if (this.world) for (const p of this.world.props) { if (p.anim === 1) p.img = Art.campfire[Math.floor(this.clock * 8 + p.x) % 3]; else if (p.anim === 2) p.img = Art.cascada[Math.floor(this.clock * 8) % 3]; }
   switch (this.st) {
     case ST.TITLE: this.updateTitle(); break;
     case ST.HELP: if (this.confirm() || this.pressed('Escape')) this.st = this.helpBack || ST.TITLE; break;
     case ST.INTRO: this.updateIntro(dt); break;
     case ST.CINE: this.updateCine(dt); break;
+    case ST.LOAD: this.updateLoad(dt); break;
+    case ST.CHOICE: this.updateChoice(); this.clock += dt; break;
     case ST.PLAY:
       if (this.hitStop > 0) this.hitStop -= dt;
       else this.updatePlay(this.slowT > 0 ? dt * 0.35 : dt);
@@ -3489,7 +3853,7 @@ G.updatePlay = function (dt) {
   this.updateCombat(dt);
   const ptx = Math.floor(p.x / TS), pty = Math.floor(p.y / TS);
   for (const wp of w.warps) {
-    if (ptx >= wp.x && ptx < wp.x + wp.w && pty >= wp.y && pty < wp.y + wp.h) { Sound.play('door'); this.enter(wp.to, wp.tx, wp.ty, wp.dir); return; }
+    if (ptx >= wp.x && ptx < wp.x + wp.w && pty >= wp.y && pty < wp.y + wp.h) { if (wp.load) { this.travel(wp); return; } Sound.play('door'); this.enter(wp.to, wp.tx, wp.ty, wp.dir); return; }
   }
   w.pickups = w.pickups.filter(k => { k.t += dt; if (Math.hypot(k.x - p.x, k.y - p.y) < 11) { this.collect(k); return false; } return true; });
   for (const m of w.monsters) {
@@ -3641,7 +4005,7 @@ G.spawnLogic = function (dt) {
   this.spawnT -= dt;
   if (this.spawnT > 0) return;
   this.spawnT = 0.8;
-  for (const L of WG.lairs) {
+  for (const L of (w.lairs || [])) {
     const d = Math.hypot(L.x * TS - p.x, L.y * TS - p.y) / TS;
     if (!L.active && !L.cleared && d < 19) this.spawnLair(L);
     else if (L.active && d > 30) { w.monsters = w.monsters.filter(m => m.lair !== L); L.active = false; }
@@ -3745,7 +4109,7 @@ G.openBrambles = function () {
   const ow = this.worlds.exterior;
   for (const b of WG.brambles) if (ow.get(b[0], b[1]) === T.BRAMBLE) ow.set(b[0], b[1], b[2]);
   for (const p of ow.props) if (p.id === 'cruz') p.img = Art.P.cruzluz;
-  this.mapCanvas = this.buildMap(ow);
+  this.mapCanvas = this.buildMap(ow); this.mapCanvases = {};
 };
 
 // --------------------------------------------------------------------- interacción
@@ -3862,8 +4226,7 @@ G.rest = function (msg) {
   const p = this.player;
   for (const m of this.world.monsters) if (!m.dead && m.dist(p) < 10 * TS && m.aggro) { this.toast('No puedes descansar con engendros cerca.'); return; }
   p.hp = p.maxHp; p.fe = p.maxFe; p.poison = 0; p.alientoUsed = false;
-  for (const L of WG.lairs) { L.cleared = false; L.active = false; }
-  this.worlds.exterior.monsters = this.worlds.exterior.monsters.filter(m => !m.lair || m.kind === MK.BESTIA);
+  for (const id in this.worlds) { const ww = this.worlds[id]; for (const L of (ww.lairs || [])) { L.cleared = false; L.active = false; } if (ww.outdoor) ww.monsters = ww.monsters.filter(m => !m.lair || m.kind === MK.BESTIA); }
   if (this.world.id === 'casa_alta') { this.restWorld = 'casa_alta'; this.restX = WG.upStart[0]; this.restY = WG.upStart[1]; }
   if (this.isNight()) this.day = 0.02;
   this.save();
@@ -3922,13 +4285,10 @@ G.enter = function (id, x, y, dir) {
 G.respawn = function () {
   const p = this.player;
   p.dead = false; p.hp = p.maxHp; p.fe = p.maxFe; p.invul = 2; p.flash = 0;
-  const ow = this.worlds.exterior;
-  ow.monsters = ow.monsters.filter(m => m.quest);
-  for (const L of WG.lairs) L.active = false;
+  for (const id in this.worlds) { const ww = this.worlds[id]; if (!ww.outdoor) continue; ww.monsters = ww.monsters.filter(m => m.quest || m.obs || (m.kind === MK.DEMONIO && m === this.miguelDemon)); for (const L of (ww.lairs || [])) L.active = false; }
   this.orbs = [];
   this.enter(this.restWorld, this.restX, this.restY, 0);
   this.boss = null;
-  if (this.stage === 7) { this.stage = 6; Sound.music('calma'); }
   this.st = ST.PLAY;
   this.toast('Te levantas de nuevo. La luz no te ha abandonado.');
 };
@@ -3954,6 +4314,7 @@ G.save = function () {
   const p = this.player;
   const d = {
     stage: this.stage, flags: [...this.flags], picked: [...this.picked], hp: p.hp, maxHp: p.maxHp, fe: p.fe, maxFe: p.maxFe, lvl: p.lvl, xp: p.xp, atk: p.atk,
+    v: SAVE_VERSION, balance: this.balance || 0,
     herbs: p.herbs, relics: p.relics, sword: p.hasSword, world: this.world.id, x: p.x, y: p.y, restWorld: this.restWorld, restX: this.restX, restY: this.restY, day: this.day, kills: this.questKills,
     pts: p.pts, skills: [...p.skills]
   };
@@ -3965,14 +4326,19 @@ G.load = function () {
   try {
     this.buildWorlds();
     const p = this.player = new Player();
-    this.stage = d.stage; this.flags = new Set(d.flags); this.picked = new Set(d.picked);
+    this.stage = d.stage; this.flags = new Set(d.flags); this.picked = new Set(d.picked); this.balance = d.balance || 0;
+    if ((d.v || 1) < 2) this.stage = d.stage >= 6 ? ETAPA.HOTEL : d.stage; // partidas de la historia antigua
     Object.assign(p, { hp: d.hp, maxHp: d.maxHp, fe: d.fe, maxFe: d.maxFe, lvl: d.lvl, xp: d.xp, atk: d.atk, herbs: d.herbs, relics: d.relics, hasSword: d.sword });
     p.skills = new Set(d.skills || []); p.pts = d.pts !== undefined ? d.pts : Math.max(0, d.lvl - 1);
     this.restWorld = d.restWorld; this.restX = d.restX; this.restY = d.restY; this.day = d.day; this.questKills = d.kills;
     for (const id in this.worlds) { const w = this.worlds[id]; w.pickups = w.pickups.filter(k => !(k.id && this.picked.has(k.id))); }
     if (p.hasSword) for (const pp of this.worlds.casa_alta.props) if (pp.id === 'baul') pp.img = Art.P.baul_abierto;
-    if (this.stage >= 6) this.openBrambles();
-    if (this.stage === 7) this.stage = 6;
+    if (this.stage >= ETAPA.HOTEL) this.openBrambles();
+    if (this.stage >= ETAPA.MIGUEL) for (const pp of this.worlds.exterior.props) if (pp.id === 'cruz') pp.img = Art.P.cruzluz;
+    if (this.stage === ETAPA.MIGUEL) { this.stage = ETAPA.CRUZ; }
+    if (this.stage >= ETAPA.HOTEL) { const mx = WG.crossX - 4, my = WG.crossY + 3; const mg = new Npc('Miguel', 'miguel', null, Art.P.miguel_caido, null, mx * 16 + 8, my * 16 + 13, 0); this.worlds.exterior.npcs.push(mg); this.worlds.exterior.block(mx, my, 1, 1); }
+    if (this.stage > ETAPA.CASETA) for (const pp of this.worlds.exterior.props) if (pp.id === 'caseta') pp.img = Art.P.caseta_abierta;
+    this.miguelDemon = null;
     if (this.stage === 2) { this.stage = 1; this.questKills = 0; }
     this.boss = null; this.orbs = []; this.fx = []; this.dlg = []; this.page = null;
     this.enter(d.world, d.x, d.y, 0);
@@ -4872,6 +5238,512 @@ G.spawnAngel = function (x, y, lines) {
   for (let i = 0; i < 30; i++) this.fx.push(Fx.spark(x, y - 20, this.rnd.gauss() * 40, -20 - this.rnd.next() * 60, 0xfff4c0, 1.2));
   return n;
 };
+// ====================================================================== LOS TIBIOS · historia principal (capítulos I a III)
+// Las etapas siguen el documento de la historia. Los textos están aquí juntos para poder retocarlos.
+const ETAPA = { ESPADA: 0, SALIR: 1, RIBERA: 2, RADIO: 3, IGLESIA: 4, GRECO: 5, CASETA: 6, CRUZ: 7, MIGUEL: 8, HOTEL: 9, OBSERVATORIO: 10, HORNICO: 11, CASCADA: 12, AGUJAS: 13, BESTIA: 14, TENTACION: 15, SIERRA: 16 };
+const SAVE_VERSION = 2;
+
+CINE.caseta = { title: 'La caseta', pages: [
+  ['caseta', 'La puerta de la caseta de turismo, la que nunca se abría, está abierta de par en par.'],
+  ['caseta', 'Dentro, unas escaleras bajan en tramos de tres. Huele a algo que no es de este mundo.'],
+] };
+CINE.caida = { title: 'Miguel', pages: [
+  ['caida', 'La cruz se enciende... y el cielo se rasga.'],
+  ['caida', 'Algo cae ardiendo sobre los olivares. Algo con alas.'],
+] };
+CINE.nogales = { title: 'Los Nogales', pages: [
+  ['carretera', 'La carretera del pantano sube por el cañón del Guadalentín. Siete años sin que pase un coche.'],
+  ['carretera', 'En el kilómetro 6, sobre el cortado de los buitres, hay luz en el Hotel Los Nogales.'],
+] };
+CINE.hornico = { title: 'La Bolera', pages: [
+  ['bolera', 'El embalse de La Bolera. Aquí empezó todo, dicen. Aquí el agua trae la muerte.'],
+  ['bolera', 'En la orilla, la vieja casa forestal de El Hornico. Alguien ha encendido una hoguera.'],
+] };
+CINE.tentacion = { title: 'El señor del mundo', pages: [
+  ['tentacion', 'Cuando la Bestia se hunde, el agua se queda quieta como un espejo. Y en la presa hay un hombre.'],
+  ['tentacion', 'Traje blanco. Sonrisa amable. No lleva cuernos ni fuego. No le hace falta.'],
+] };
+CINE.continuara = { pages: [
+  ['guardian', 'La cueva PB4 se abre bajo la Sierra de Castril. Al otro lado, dicen, hay una casa llena de relojes parados.'],
+  ['alba', 'CONTINUARÁ\n\nCapítulo IV · La Sierra (en preparación)'],
+] };
+SCENES.caseta = function (t) {
+  C.sky(['#06040a', '#120a14', '#1e1018', '#2a1418']);
+  C.stars(20, 401, t, 0.5);
+  C.r(0, 84, CW, 29, '#1a1614'); for (let x = 0; x < CW; x += 7) C.r(x, 84 + (x % 3), 6, 1, '#24201c');
+  // la caseta, grande y en el centro
+  C.r(70, 40, 60, 44, '#b8b0a2'); C.r(70, 40, 60, 2, '#d8d0c2'); for (let x = 66; x < 134; x += 6) C.r(x, 30, 6, 11, '#6a2a1a');
+  C.r(76, 52, 18, 14, '#1a1614'); C.r(74, 66, 22, 3, '#a89a84');
+  const pulse = 0.5 + 0.5 * Math.sin(t * 2);
+  C.r(104, 48, 18, 36, '#100204'); C.glow(113, 70, 28 + pulse * 6, `rgba(220,40,20,${0.35 + 0.25 * pulse})`);
+  for (let i = 0; i < 5; i++) C.r(106 + i, 56 + i * 6, 14 - i * 2, 2, `rgba(${120 - i * 15},20,10,0.9)`);
+  // fuente del Músico al lado
+  cg.fillStyle = '#5a564e'; cg.beginPath(); cg.ellipse(42, 84, 18, 5, 0, 0, Math.PI * 2); cg.fill(); C.r(40, 60, 4, 24, '#6a665e'); C.r(39, 52, 6, 9, '#3a4a40'); C.r(40, 48, 4, 4, '#3a4a40');
+  C.r(166, 40, 3, 44, '#141414'); C.r(163, 34, 9, 7, '#141414'); C.r(164, 35, 7, 5, '#f0c050'); C.glow(167, 38, 14, 'rgba(255,200,90,0.45)');
+};
+SCENES.caida = function (t) {
+  C.sky(['#0a0814', '#1a1020', '#3a1a20', '#6a2a1a']);
+  C.ridge(80, 6, 0.04, 411, '#140c10');
+  for (let x = 6; x < CW; x += 9) { const y = 92 + (x % 3); C.r(x, y - 6, 1, 6, '#1a1210'); C.r(x - 3, y - 9, 7, 4, '#2a2a1e'); }
+  C.r(0, 96, CW, 17, '#0e0a0a');
+  // la cruz encendida a la izquierda
+  C.glow(30, 70, 30, 'rgba(255,220,140,0.45)'); C.r(28, 58, 4, 24, '#d8ccb8'); C.r(22, 64, 16, 4, '#d8ccb8');
+  // el ángel cayendo en llamas
+  const k = Math.min(1, t / 3), x = 170 - k * 60, y = 6 + k * 84;
+  for (let i = 0; i < 18; i++) { const tt = i / 18; C.r(x + tt * 40, y - tt * 50, 3 - tt * 2, 3 - tt * 2, `rgba(255,${180 - i * 6},60,${1 - tt})`); }
+  C.glow(x, y, 22, 'rgba(255,240,200,0.7)');
+  cg.fillStyle = '#fff8e8'; cg.beginPath(); cg.moveTo(x, y); cg.lineTo(x - 12, y - 6); cg.lineTo(x - 4, y + 3); cg.fill(); cg.beginPath(); cg.moveTo(x, y); cg.lineTo(x + 10, y - 9); cg.lineTo(x + 5, y + 3); cg.fill();
+  if (t > 3) { C.glow(110, 92, 40 + Math.sin(t * 10) * 3, 'rgba(255,160,60,0.5)'); }
+};
+SCENES.tentacion = function (t) {
+  C.sky(['#0a0a10', '#14141c', '#1e1e26', '#2a2a30']);
+  C.reflect ? 0 : 0;
+  C.r(0, 52, CW, 30, '#1c2024'); for (let i = 0; i < 30; i++) C.r((i * 37 + t * 4) % CW, 54 + (i * 7) % 26, 8, 1, 'rgba(160,170,180,0.15)');
+  C.r(0, 82, CW, 8, '#5a5a54'); C.r(0, 82, CW, 1, '#7a7a72'); for (let x = 4; x < CW; x += 14) C.r(x, 84, 1, 6, '#3a3a36');
+  C.r(0, 90, CW, 23, '#121416');
+  // el hombre de blanco en la presa
+  const x = 120;
+  C.glow(x, 66, 26, 'rgba(255,230,180,0.25)');
+  C.r(x - 4, 64, 8, 18, '#eeeae2'); C.r(x - 4, 64, 2, 18, '#ffffff'); C.r(x - 3, 56, 6, 8, '#e0bc9c'); C.r(x - 3, 54, 6, 3, '#d8b050'); C.r(x - 1, 66, 2, 6, '#8a1a14');
+  C.r(x - 1, 59, 1, 1, '#c89a20'); C.r(x + 1, 59, 1, 1, '#c89a20');
+  C.knight(60, 108, t);
+};
+
+// ---------------------------------------------------------------- elecciones en los diálogos
+ST.CHOICE = 'CHOICE';
+G.ask = function (who, text, options, cb) {
+  this.choice = { who, text, options, cb, sel: 0 };
+  this.st = ST.CHOICE;
+};
+G.updateChoice = function () {
+  const c = this.choice; if (!c) { this.st = ST.PLAY; return; }
+  if (this.pressed('ArrowUp', 'KeyW')) c.sel = (c.sel + c.options.length - 1) % c.options.length;
+  if (this.pressed('ArrowDown', 'KeyS')) c.sel = (c.sel + 1) % c.options.length;
+  let pick = -1;
+  for (let i = 0; i < c.options.length; i++) if (this.just.has('Pick' + i)) { this.just.delete('Pick' + i); if (c.sel === i) pick = i; c.sel = i; }
+  if (this.pressed('Enter', 'KeyE', 'Space', 'KeyZ')) pick = c.sel;
+  if (pick >= 0) { this.choice = null; this.st = ST.PLAY; c.cb(pick); }
+};
+G.uiChoice = function (g) {
+  const c = this.choice; if (!c) return;
+  const x = 8, y = VH - 62, w = VW - 16;
+  this.panel(g, x, y - c.options.length * 13, w, 56 + c.options.length * 13);
+  g.font = FT(7.6); this.text(g, c.who, x + 10, y - c.options.length * 13 + 13, GOLD);
+  g.font = FB(7); this.wrap(g, c.text, w - 24).slice(0, 3).forEach((l, i) => this.text(g, l, x + 10, y - c.options.length * 13 + 25 + i * 9, PAPER));
+  c.options.forEach((o, i) => {
+    const yy = y + 14 + i * 13, sel = i === c.sel;
+    if (sel) { g.fillStyle = 'rgba(160,30,24,0.35)'; g.fillRect(x + 8, yy - 9, w - 16, 12); }
+    g.font = FB(7); this.text(g, (sel ? '› ' : '  ') + o, x + 12, yy, sel ? PAPER : '#9a8a72');
+    this.menuRects.push({ i, x: x + 8, y: yy - 10, w: w - 16, h: 13 });
+  });
+};
+
+// ---------------------------------------------------------------- objetivos
+G.objective = function () {
+  const E = ETAPA;
+  switch (this.stage) {
+    case E.ESPADA: return 'Coge tu espada del baúl del rellano.';
+    case E.SALIR: return 'Sal del cortijo.';
+    case E.RIBERA: return 'Limpia la ribera de engendros (' + this.questKills + '/6).';
+    case E.RADIO: return 'Escucha la radio del porche.';
+    case E.IGLESIA: return 'Ve a la Iglesia de la Encarnación, en Pozo Alcón.';
+    case E.GRECO: return 'Busca a Santiago, el de El Greco, junto a la fuente del Músico.';
+    case E.CASETA: return 'La caseta de turismo está abierta. Mira dentro.';
+    case E.CRUZ: return 'Reza en la Cruz de San Gregorio (A-326).';
+    case E.MIGUEL: return this.miguelDemon ? 'Protege al ángel caído.' : 'Habla con el ángel caído.';
+    case E.HOTEL: return 'Sube por la carretera del pantano hasta el Hotel Los Nogales.';
+    case E.OBSERVATORIO: return 'Echa al demonio del observatorio de aves y recupera la esfera.';
+    case E.HORNICO: return 'Sigue hasta La Bolera: busca a la gente de El Hornico.';
+    case E.CASCADA: return 'Trae agua limpia de la cascada de Guazalamanco.';
+    case E.AGUJAS: return 'Limpia las agujas en el jardín botánico de El Hornico.';
+    case E.BESTIA: return 'El pantano se agita. Ve a la presa de La Bolera.';
+    case E.TENTACION: return 'Hay un hombre de blanco en la presa.';
+    default: return 'La cueva PB4 lleva a la sierra (próximamente). Busca reliquias (' + this.player.relics + '/' + RELIQUIAS + ').';
+  }
+};
+const RELIQUIAS = 7;
+G.objectiveTarget = function () {
+  const E = ETAPA;
+  switch (this.stage) {
+    case E.RIBERA: case E.RADIO: return [WG.doorX, WG.doorY + 2, 'exterior'];
+    case E.IGLESIA: return [WG.priestX, WG.priestY, 'exterior'];
+    case E.GRECO: return [WG.grecoX + 1, WG.grecoY + 1, 'exterior'];
+    case E.CASETA: return [WG.casetaX, WG.casetaY + 1, 'exterior'];
+    case E.CRUZ: return [WG.crossX, WG.crossY, 'exterior'];
+    case E.MIGUEL: return [WG.crossX - 4, WG.crossY + 3, 'exterior'];
+    case E.HOTEL: return [WS.hotelDoor ? WS.hotelDoor[0] + 1 : 66, WS.hotelDoor ? WS.hotelDoor[1] + 2 : 66, 'pantano'];
+    case E.OBSERVATORIO: return [WS.observatorio ? WS.observatorio[0] : 70, WS.observatorio ? WS.observatorio[1] + 1 : 72, 'pantano'];
+    case E.HORNICO: return [27, 71, 'bolera'];
+    case E.CASCADA: return [6, 48, 'bolera'];
+    case E.AGUJAS: return [21, 84, 'bolera'];
+    case E.BESTIA: case E.TENTACION: return [120, 86, 'bolera'];
+    case E.SIERRA: return [144, 71, 'bolera'];
+    default: return null;
+  }
+};
+
+// ---------------------------------------------------------------- lo que pasa solo
+G.stageLogic = function () {
+  const w = this.world, p = this.player, E = ETAPA;
+  if (this.stage === E.SALIR && w.outdoor) {
+    this.stage = E.RIBERA;
+    for (const q of WG.questSpawns) {
+      const k = this.rnd.bool() ? MK.JABALI : MK.HUECO;
+      let x = q[0] * TS + 8; const y = q[1] * TS + 8;
+      if (w.blocked(x, y, 7, 4)) x += 16;
+      const m = new Monster(k, x, y, 0.85); m.quest = true; w.monsters.push(m);
+    }
+    this.playCine('ribera', () => this.say('Guardián', 'Ahí están otra vez, rondando la poza. Eran vecinos, algunos. Ahora son... esto.', 'Mientras yo siga aquí, nadie toca esta casa. Ataca con Espacio o con el botón de la espada.'));
+  }
+  // el demonio que baja a por Miguel: cuando está a media vida, la luz del ángel lo espanta
+  if (this.stage === E.MIGUEL && this.miguelDemon && w.id === 'exterior') {
+    const d = this.miguelDemon;
+    this.miguelT = (this.miguelT || 0) - 1 / 60;
+    if (!d.dead && this.miguelT <= 0) {
+      this.miguelT = 5;
+      const mg = w.npcs.find(n => n.key === 'miguel');
+      if (mg && Math.hypot(d.x - mg.x, d.y - mg.y) < 260) { this.damageMonster(d, 18, false, d.x - mg.x, d.y - mg.y, true); for (let i = 0; i < 16; i++) this.fx.push(Fx.spark(mg.x, mg.y - 10, (d.x - mg.x) * 0.6 + this.rnd.gauss() * 20, (d.y - mg.y) * 0.6 + this.rnd.gauss() * 20, 0xfff4c0, 0.6)); }
+    }
+    if (d.dead || d.hp < d.maxHp * 0.5) {
+      if (!d.dead) { d.dead = true; for (let i = 0; i < 30; i++) this.fx.push(Fx.spark(d.x, d.y - 20, this.rnd.gauss() * 80, -this.rnd.next() * 90, i % 2 ? 0xff6a20 : 0x1a0404, 1)); }
+      this.miguelDemon = null; Sound.play('roar'); this.shake(0.5);
+      this.say('Guardián', 'El demonio chilla, se cubre la cara con las alas y huye hacia el norte, echando humo.', 'El ángel ha levantado una mano. Solo eso. Y ha bastado.');
+      this.save();
+    }
+  }
+  if (this.stage === E.BESTIA && w.id === 'bolera' && !this.boss && this.lastArea === 'Presa de La Bolera') {
+    this.boss = new Monster(MK.BESTIA, WS.bossX * TS + 8, (WS.bossY - 1) * TS, 1.15);
+    w.monsters.push(this.boss);
+    Sound.play('roar'); this.shake(0.8);
+    this.say('Guardián', 'El agua del pantano hierve... Algo enorme sube desde la cueva del nacimiento.', 'Lo que bajó a la cueva aquella noche no era un hombre. Ya no.');
+  }
+};
+G.onArrive = function (id) {
+  const E = ETAPA;
+  if (id === 'pantano' && !this.flags.has('cine_nogales')) { this.flags.add('cine_nogales'); this.playCine('nogales'); }
+  if (id === 'bolera' && !this.flags.has('cine_hornico')) { this.flags.add('cine_hornico'); this.playCine('hornico'); }
+  if (id === 'pantano' && this.stage === E.OBSERVATORIO) this.ensureObsDemon();
+};
+G.ensureObsDemon = function () {
+  const w = this.worlds.pantano; if (!w || w.monsters.some(m => m.kind === MK.DEMONIO && !m.dead)) return;
+  const [ox, oy] = WS.observatorio;
+  const m = new Monster(MK.DEMONIO, ox * TS, (oy - 1) * TS, 0.75); m.homeX = m.x; m.homeY = m.y; m.spawnFade = 0.5; m.obs = true;
+  w.monsters.push(m);
+};
+G.bossDefeated = function () {
+  const E = ETAPA;
+  this.boss = null; this.orbs = [];
+  for (const m of this.world.monsters) if (m.kind !== MK.BESTIA) m.dead = true;
+  Sound.play('purify'); this.shake(1);
+  this.stage = E.TENTACION; this.save();
+  this.say('Guardián', 'La Bestia se hunde en el agua oscura... y no vuelve a salir.', 'Y entonces todo se queda en silencio. Hasta la ceniza deja de caer.');
+  this.dlgEnd = () => this.playCine('tentacion', () => {
+    const w = this.world, x = WS.bossX + 2, y = WS.bossY - 3;
+    w.npcs.push(new Npc('El hombre de blanco', 'anticristo', Art.people.anticristo, null, null, x * 16 + 8, y * 16 + 13, 0));
+  });
+};
+const _kill = G.killMonster;
+G.killMonster = function (m) {
+  _kill.call(this, m);
+  if (m.obs && this.stage === ETAPA.OBSERVATORIO) {
+    this.stage = ETAPA.HORNICO; this.flags.add('esfera'); this.save();
+    Sound.play('level');
+    this.say('Guardián', 'Entre las tablas del observatorio, donde anidaba el demonio, algo brilla: una esfera de cristal y oro, tibia como una mano.', 'La ESFERA del Reloj del Cielo. Al cogerla, la noche se me aclara un poco: ya veo lo que viene antes de que llegue.', 'Doña Pura dijo que la siguiente pieza estaría «donde el agua todavía está limpia». Río arriba: La Bolera.');
+  }
+};
+
+// ---------------------------------------------------------------- conversaciones
+const _talk = G.talk;
+G.talk = function (n) {
+  const E = ETAPA, p = this.player, st = this.stage;
+  Sound.play('talk');
+  switch (n.key) {
+    case 'cura':
+      if (st <= E.IGLESIA) {
+        this.sayAs(n, '¡Dios bendito! ¡Un hombre del valle, vivo! Te oímos por la radio... bueno, oímos que alguien nos oía.',
+          'Soy Tomás. Somos once, tras estas barricadas desde el Colapso. Once que no subieron... y que tampoco bajaron.',
+          '¿Sabes lo que creo, hijo? Que somos tibios. Ni fríos ni calientes. Apocalipsis 3:16. Por eso seguimos aquí.',
+          'Si quieres entender aquella noche, habla con Santiago, el de El Greco, junto a la fuente del Músico. Él abrió la puerta del salón.',
+          'Y puedes descansar junto a nuestra hoguera cuando quieras.');
+        this.stage = E.GRECO; this.restWorld = 'exterior'; this.restX = WG.fireX * TS + 8; this.restY = (WG.fireY + 1) * TS + 8;
+        this.dlgEnd = () => this.save();
+      } else if (st === E.GRECO) this.sayAs(n, 'Santiago no sale de El Greco. Está junto a la fuente del Músico. No le hagas mucho caso cuando bebe... o sí.');
+      else if (st === E.CASETA) this.sayAs(n, '¿La caseta? ¿Abierta? Que el Señor nos coja confesados.');
+      else if (st === E.CRUZ) this.sayAs(n, '¿Te echó la escalera? Entonces no era tu hora. Ve a la Cruz de San Gregorio, junto a la A-326. Reza. A veces el cielo contesta.');
+      else if (st <= E.HOTEL) this.sayAs(n, '¿Un ángel? ¿Miguel? ¿El que venció al Dragón? ... Hijo, me tiemblan las piernas. Haz lo que te diga.');
+      else this.sayAs(n, 'Cada noche rezo por ti. No sé si sirve. Pero rezo.');
+      return;
+    case 'santiago':
+      if (st < E.GRECO) this.sayAs(n, 'Cerrado. Hace siete años que está cerrado. Vuelve cuando el cura te mande, que a mí no me gusta hablar con forasteros.');
+      else if (st === E.GRECO) {
+        this.sayAs(n, '¿Te manda Tomás? ... Siéntate. No, mejor de pie. Esto se cuenta de pie.',
+          'Aquella noche había una boda, o un bautizo, nunca lo supe. El salón estaba lleno de gente muy bajita. Todos iguales. Todos raros.',
+          'Uno te preguntaba si querías ver el cielo. Así, sin más. Y luego había una salida en la pared que nunca había estado ahí.',
+          'Muchos se fueron por ella. Otros no quisieron. Y el más raro de todos dijo: «Las puertas del infierno están abiertas».',
+          '¿Y sabes qué puerta era? La de la caseta de turismo. Ahí, al lado de la fuente. La que nunca se abría.',
+          'Tú estuviste aquí esa noche, ¿sabes? Con una chica de la mano. Te vi. ... ¿No te acuerdas? Ya. Nadie se acuerda.');
+        this.stage = E.CASETA; this.dlgEnd = () => this.save();
+      } else if (st === E.CASETA) this.sayAs(n, 'La caseta está ahí. Si te atreves, mira. Yo no he vuelto a acercarme.');
+      else this.sayAs(n, 'Ultrasantiago, me llamaba un chaval. Nunca supe por qué. Quizá porque sé más de lo que digo.');
+      return;
+    case 'miguel':
+      if (this.miguelDemon) { this.say('Guardián', 'Primero el demonio. ¡Tiene que alejarse de él!'); return; }
+      if (st === E.MIGUEL) {
+        this.sayAs(n, '...Un tibio. Claro. Solo un tibio podía oír la cruz.',
+          'Soy Miguel. Luché contra el Dragón y lo arrojé a la tierra. Ahora la tierra es suya, y yo estoy en el suelo de un olivar.',
+          'Escucha. Bajo la caseta del pueblo está el atril, y sobre el atril, lo que mantiene la puerta abierta. Para cerrarla hace falta el Reloj del Cielo.',
+          'Se rompió la noche del Arrebato en tres piezas: la esfera, las agujas y la cuerda. Cayeron donde el mundo es más fino.',
+          'La esfera está río arriba, en un sitio con nogales, donde los buitres vigilan. Las agujas, donde el agua aún está limpia. La cuerda... en lo alto, entre relojes.',
+          'He quemado las zarzas de La Linde. El camino del norte está abierto. Yo no puedo andar todavía. Tú sí.',
+          'Y otra cosa, tibio: cuando llegue el momento, tendrás que dejar de serlo.');
+        this.dlgEnd = () => { this.openBrambles(); this.stage = E.HOTEL; Sound.play('purify'); this.shake(0.4); this.toast('Las zarzas negras de La Linde arden y se deshacen.'); this.save(); };
+      } else this.sayAs(n, 'Sigue la luz, tibio. Aunque a veces la encuentres en la oscuridad.');
+      return;
+    case 'gerente':
+      if (st < E.HOTEL) this.sayAs(n, 'Aquí no se entra sin pagar. Y no aceptamos euros.');
+      else if (st === E.HOTEL) {
+        this.sayAs(n, 'Un forastero con espada. Qué antiguo. Soy Pura, la gerente. Bueno, lo era. Ahora mando yo.',
+          'Aquí somos catorce. Comemos, dormimos y jugamos al pádel. Sí, al pádel. Hay que mantener las costumbres o te vuelves loco.',
+          '¿Una esfera brillante? ... Cayó en el observatorio de aves, encima del cortado, la noche que se apagó todo. Desde entonces algo anida ahí.',
+          'Los buitres no comen. Vigilan. Y por las noches esa cosa nos mira desde el observatorio.',
+          'Quítanosla de encima y la esfera es tuya. Y mientras tanto, la hoguera de la terraza es tuya también.');
+        this.stage = E.OBSERVATORIO; this.restWorld = 'pantano'; this.restX = WS.hotelFire[0] * TS + 8; this.restY = WS.hotelFire[1] * TS + 8;
+        this.dlgEnd = () => { this.ensureObsDemon(); this.save(); };
+      } else if (st === E.OBSERVATORIO) this.sayAs(n, 'El observatorio está al borde del cortado, pasada la piscina. Ten cuidado: esa cosa no es un engendro cualquiera.');
+      else this.sayAs(n, 'Desde que te lo cargaste, los buitres se han ido. No sé si eso es bueno.');
+      return;
+    case 'manuel':
+      if (!this.flags.has('manuel1')) {
+        this.flags.add('manuel1');
+        this.sayAs(n, 'Manuel, camarero. Bueno, camarero era. Ahora soy el que lleva la cuenta de los partidos de pádel.',
+          'Antes del Colapso volví al cortijo de mis padres a por unos papeles. Había una puerta que nunca se abría... La abrí.',
+          'No me preguntes qué había detrás. Desde entonces me paso las noches mirando una puerta del hotel que tampoco abre.',
+          'Si algún día te apetece un partido, aquí estoy. La pista sigue entera. La red, también.');
+      } else this.sayAs(n, '¿Un partido? Toca la red de la pista cuando quieras. Los de aquí apuestan raciones de comida.');
+      return;
+    case 'monitora':
+      if (st < E.HORNICO) this.sayAs(n, 'Aquí venían los colegios de campamento. Ahora venimos los que no tenemos adónde ir.');
+      else if (st === E.HORNICO) {
+        this.sayAs(n, 'Soy Elena. Era monitora del aula de la naturaleza. Esto era un sitio de risas y mochilas, ¿sabes?',
+          '¿Unas agujas de oro? Están en el jardín botánico, clavadas en el pedestal del centro. Pero están negras, podridas.',
+          'Todo lo que crece alrededor ha cambiado. Hay plantas que no son de este mundo.',
+          'Solo hay un agua que sigue limpia: la de la cascada de Guazalamanco, siguiendo el arroyo hacia el oeste. Tráela y a lo mejor las salvas.',
+          'La hoguera es tuya. Y si ves a los del arroyo, corre.');
+        this.stage = E.CASCADA; this.restWorld = 'bolera'; this.restX = WS.hornicoFire[0] * TS + 8; this.restY = WS.hornicoFire[1] * TS + 8;
+        this.dlgEnd = () => this.save();
+      } else if (st <= E.AGUJAS) this.sayAs(n, st === E.CASCADA ? 'La cascada está al oeste, sigue el sendero junto al arroyo.' : 'El pedestal está en el centro del jardín. Echa el agua despacio.');
+      else this.sayAs(n, 'Cuando sonó lo de la presa pensé que se acababa el mundo. Otra vez.');
+      return;
+    case 'anticristo':
+      this.sayAs(n, 'Por fin. El guardián del valle. El que dijo que no al cielo... y luego tampoco quiso el infierno.',
+        'No me mires así. No vengo a pelear. Si quisiera tu muerte, estarías muerto desde hace siete años.',
+        'Vengo a ofrecerte algo. Tú no eres de nadie, Guardián. Eso te hace valioso. Para mí, por ejemplo.',
+        'Trabaja para mí y te devuelvo lo que perdiste. La memoria. A Cándida. Una casa con luz y sin monstruos en la puerta.');
+      this.dlgEnd = () => this.ask('El hombre de blanco', '¿Qué me dices, tibio?', ['«No soy tuyo. Ni ahora ni nunca.»', '«...Déjame pensarlo.»', '«Acepto.»'], k => {
+        const w = this.world; w.npcs = w.npcs.filter(x => x.key !== 'anticristo');
+        this.balance = (this.balance || 0) + [2, 0, -3][k];
+        this.flags.add(['trato_rechazado', 'trato_dudado', 'trato_aceptado'][k]);
+        for (let i = 0; i < 40; i++) this.fx.push(Fx.spark(n.x, n.y - 14, this.rnd.gauss() * 60, -this.rnd.next() * 80, k === 0 ? 0xfff0c0 : 0x8a1a14, 1));
+        Sound.play(k === 2 ? 'roar' : 'purify');
+        const lines = [
+          ['Sonríe como si le hubiera hecho gracia. «Ya volverás.» Y ya no está.', 'Siento algo caliente en el pecho. Por primera vez en siete años, no me siento tibio.'],
+          ['«Piénsalo. Tengo todo el tiempo del mundo. Literalmente.» Y se deshace como humo.', 'Me tiemblan las manos. No sé si he hecho bien.'],
+          ['«Sabía que eras listo.» Me estrecha la mano. Está fría como el agua del pantano.', 'Algo se me ha quedado dentro. Algo que no es mío.'],
+        ][k];
+        this.stage = ETAPA.SIERRA; this.save();
+        this.say('Guardián', ...lines, 'Al otro lado del embalse, la boca de la cueva PB4. Por ahí se sube a la sierra.');
+      });
+      return;
+  }
+  _talk.call(this, n);
+};
+
+// ---------------------------------------------------------------- objetos
+const _use = G.use;
+G.use = function (pr) {
+  const E = ETAPA, st = this.stage, p = this.player;
+  switch (pr.id) {
+    case 'caseta':
+      if (st < E.CASETA) this.say('Guardián', 'La caseta de turismo. La puerta siempre ha estado cerrada. La ventanilla del poyete, también.');
+      else if (st === E.CASETA) {
+        pr.img = Art.P.caseta_abierta;
+        this.playCine('caseta', () => {
+          this.shake(1); Sound.play('roar');
+          this.say('Guardián', 'Bajo un tramo. Tres escalones. Otro tramo. Tres más. Las piernas se me mueven solas...',
+            'Y de pronto algo me empuja hacia arriba, como si la escalera me escupiera. Caigo de culo junto a la fuente.',
+            'Una voz desde abajo, tranquila, horrible: «Todavía no. Ni frío ni caliente. Vuelve cuando seas algo».',
+            'Padre Tomás dijo que en la Cruz de San Gregorio el cielo a veces contesta. Habrá que preguntarle.');
+          this.stage = E.CRUZ; this.dlgEnd = () => this.save();
+        });
+      } else this.say('Guardián', 'La puerta sigue abierta. Abajo se oye, muy lejos, una música de celebración.');
+      return;
+    case 'fuente_musico': p.hp = Math.min(p.maxHp, p.hp + 20); this.say('Guardián', 'La fuente del Músico. El agua está fría y sabe a hierro. (+20 vida)'); return;
+    case 'greco_puerta': this.say('Guardián', 'El Greco: bar, restaurante y salón de celebraciones. La puerta del salón tiene un candado oxidado. Y arañazos por dentro.'); return;
+    case 'cruz':
+      if (st === E.CRUZ) this.fallMiguel();
+      else if (st < E.CRUZ) this.say('Guardián', 'Una vieja cruz de piedra en el camino del pantano. Al tocarla siento algo cálido.');
+      else this.say('Guardián', 'La Cruz de San Gregorio brilla con una luz tibia.');
+      return;
+    case 'hotel_puerta': this.say('Guardián', 'La recepción del hotel. Huele a lejía y a guiso. Dentro duermen los que hacen guardia por la noche.'); return;
+    case 'observatorio': this.say('Guardián', st <= E.OBSERVATORIO ? 'El observatorio de aves. Las tablas están arañadas y huele a azufre.' : 'Desde aquí se ve todo el cortado. Los buitres ya no vuelven.'); return;
+    case 'padel': this.say('Manuel', 'El pádel, de momento, solo en la pista de Manuel... y aún está tensando la red. (Minijuego en preparación.)'); return;
+    case 'hoguera_hotel':
+      this.restWorld = 'pantano'; this.restX = WS.hotelFire[0] * TS + 8; this.restY = WS.hotelFire[1] * TS + 8;
+      this.rest('Descansas junto a la hoguera de la terraza de Los Nogales.'); return;
+    case 'hoguera_hornico':
+      this.restWorld = 'bolera'; this.restX = WS.hornicoFire[0] * TS + 8; this.restY = WS.hornicoFire[1] * TS + 8;
+      this.rest('Descansas junto a la hoguera de El Hornico.'); return;
+    case 'hornico_casa': this.say('Guardián', 'La vieja casa forestal, restaurada. Dentro, mapas del parque natural clavados con chinchetas y un fusil sin balas.'); return;
+    case 'hornico_aula': this.say('Guardián', 'El aula de la naturaleza. Literas, dibujos de pájaros en las paredes y una mochila pequeña que nadie ha venido a recoger.'); return;
+    case 'cascada':
+      if (st === E.CASCADA) {
+        this.flags.add('agua_limpia'); this.stage = E.AGUJAS; Sound.play('heal'); this.save();
+        p.hp = p.maxHp; p.fe = p.maxFe;
+        this.say('Guardián', 'La cascada de Guazalamanco. El agua cae entre la arboleda, limpia, como si aquí no hubiera pasado nada.', 'Lleno la cantimplora. AGUA LIMPIA. Vida y Fe al máximo.');
+      } else { p.hp = p.maxHp; this.say('Guardián', 'El agua de Guazalamanco. Beber aquí es como volver a ser niño. (Vida al máximo)'); }
+      return;
+    case 'agujas':
+      if (st === E.AGUJAS) {
+        pr.img = Art.P.pedestal_limpio; this.flags.add('agujas'); this.stage = E.BESTIA; Sound.play('purify'); this.shake(0.8); this.save();
+        this.say('Guardián', 'Echo el agua de Guazalamanco sobre las agujas. El negro se deshace como hollín mojado.', 'Las AGUJAS del Reloj del Cielo. Doradas. Y, en cuanto las arranco del pedestal, el suelo tiembla.', 'Del embalse llega un rugido que no es de este mundo. Viene de la presa.');
+      } else if (st < E.AGUJAS) this.say('Guardián', 'Unas agujas de reloj enormes, clavadas en el pedestal. Negras, podridas. Al tocarlas me arde la mano.');
+      else this.say('Guardián', 'El pedestal vacío. Alrededor, las plantas raras se están secando.');
+      return;
+    case 'cueva_pb4':
+      if (st >= E.SIERRA) this.playCine('continuara');
+      else this.say('Guardián', 'La boca de la cueva PB4. Estrecha, oscura, horizontal. Un cartel de espeleología medio borrado. Aún no es el momento.');
+      return;
+  }
+  _use.call(this, pr);
+};
+G.fallMiguel = function () {
+  const E = ETAPA, w = this.world;
+  for (const pr of w.props) if (pr.id === 'cruz') pr.img = Art.P.cruzluz;
+  Sound.play('purify'); this.shake(0.6);
+  this.playCine('caida', () => {
+    const mx = WG.crossX - 4, my = WG.crossY + 3;
+    const mg = new Npc('Miguel', 'miguel', null, Art.P.miguel_caido, null, mx * 16 + 8, my * 16 + 13, 0);
+    w.npcs.push(mg); w.block(mx, my, 1, 1);
+    this.stage = E.MIGUEL;
+    const d = new Monster(MK.DEMONIO, (mx + 6) * TS, (my - 5) * TS, 0.5); d.aggro = true; d.spawnFade = 1;
+    w.monsters.push(d); this.miguelDemon = d; this.miguelT = 3;
+    Sound.play('roar'); this.shake(0.8);
+    this.say('Guardián', 'Entre los olivos, un hombre con alas, herido, con la túnica manchada de sangre. Brilla.', 'Y detrás de él, bajando del cielo a por él, un demonio.', '¡Tengo que alejarlo del ángel! (La espada apenas le hace daño. Aguanta: el ángel te ayudará.)');
+  });
+};
+// ====================================================================== secciones y pantallas de carga
+ST.LOAD = 'LOAD';
+const SECCIONES = {
+  exterior: { name: 'El Valle y Pozo Alcón', scene: 'valle', orden: 0 },
+  pantano: { name: 'La carretera del pantano', scene: 'carretera', orden: 1 },
+  bolera: { name: 'La Bolera', scene: 'bolera', orden: 2 },
+};
+const CONSEJOS = [
+  'Los demonios apenas sienten el acero. La Luz los quema de verdad.',
+  'Rueda a través de un ataque en el momento justo y el tiempo se detendrá un instante.',
+  'Las hogueras de los refugios te curan y guardan la partida.',
+  'De noche, las Sombras rondan lejos de las farolas.',
+  'Cada nivel te da un punto de habilidad. Ábrelo con H o con el botón Hab.',
+  'Los Ahogados solo pueden herirte cuando salen del agua.',
+  '«Por cuanto eres tibio, y no frío ni caliente, te vomitaré de mi boca.» (Apocalipsis 3:16)',
+  'Mantén pulsada la espada y suéltala: Torbellino.',
+  'Las hierbas curan el veneno de los alacranes.',
+  'Hay reliquias escondidas en cada sección. Te hacen más fuerte.',
+  'Algunas decisiones inclinan la balanza. Los ángeles y los demonios se dan cuenta.',
+];
+
+G.getWorld = function (id) {
+  if (this.worlds[id]) return this.worlds[id];
+  let w = null;
+  if (id === 'pantano') w = WS.pantano(); else if (id === 'bolera') w = WS.bolera();
+  if (!w) return null;
+  w.pickups = w.pickups.filter(k => !(k.id && this.picked.has(k.id)));
+  this.worlds[id] = w;
+  if (id === 'bolera' && this.stage > ETAPA.AGUJAS) for (const pp of w.props) if (pp.id === 'agujas') pp.img = Art.P.pedestal_limpio;
+  if (this.onWorldBuilt) this.onWorldBuilt(w);
+  return w;
+};
+const _enter = G.enter;
+G.enter = function (id, x, y, dir) { this.getWorld(id); _enter.call(this, id, x, y, dir); };
+
+G.travel = function (wp) {
+  const info = SECCIONES[wp.to] || { name: wp.to, scene: 'valle' };
+  this.loading = { wp, t: 0, built: !!this.worlds[wp.to], info, tip: CONSEJOS[Math.floor(Math.random() * CONSEJOS.length)] };
+  this.st = ST.LOAD; Sound.play('door');
+};
+G.updateLoad = function (dt) {
+  const L = this.loading; if (!L) { this.st = ST.PLAY; return; }
+  L.t += dt; this.clock += dt;
+  if (!L.built && L.t > 0.25) { this.getWorld(L.wp.to); L.built = true; }
+  if (L.built && L.t > 1.8) {
+    const wp = L.wp; this.loading = null; this.st = ST.PLAY;
+    this.enter(wp.to, wp.tx, wp.ty, wp.dir);
+    if (this.onArrive) this.onArrive(wp.to);
+  }
+};
+G.renderLoad = function (g) {
+  const L = this.loading; if (!L) return;
+  g.fillStyle = '#000'; g.fillRect(0, 0, VW, VH);
+  cg.save(); (SCENES[L.info.scene] || SCENES.valle)(L.t + 3); cg.restore(); cinePost();
+  const a = Math.min(1, L.t / 0.4);
+  g.globalAlpha = a; g.imageSmoothingEnabled = false; g.drawImage(cineC, 0, 0, CW * 2, CH * 2); g.globalAlpha = 1;
+  g.fillStyle = 'rgba(0,0,0,0.55)'; g.fillRect(0, 0, VW, VH);
+  g.font = FB(6.5); this.center(g, 'SECCIÓN ' + ((L.info.orden || 0) + 1), 70, UI.bronzeHi);
+  g.font = FT(18); this.center(g, L.info.name, 92, '#efe2c8');
+  g.fillStyle = UI.bronze; g.fillRect(VW / 2 - 60, 99, 120, 1);
+  this.panel(g, 40, VH - 62, VW - 80, 34);
+  g.font = FB(6.6); this.wrap(g, L.tip, VW - 110).forEach((l, i) => this.center(g, l, VH - 47 + i * 9, PAPER));
+  this.bar(g, VW / 2 - 70, VH - 18, 140, 3, Math.min(1, L.t / 1.8), '#a83a2a', '#1a1210');
+};
+
+// ---------------------------------------------------------------- objetivo entre secciones
+// Si el objetivo está en otra sección, la flecha apunta a la salida que lleva hacia allí.
+G.arrowTarget = function () {
+  const t = this.objectiveTarget(); if (!t) return null;
+  const w = this.world, tw = t[2] || 'exterior';
+  if (!w.outdoor) return null;
+  if (tw === w.id) return t;
+  const here = (SECCIONES[w.id] || {}).orden || 0, there = (SECCIONES[tw] || {}).orden || 0;
+  const want = Object.keys(SECCIONES).find(k => SECCIONES[k].orden === here + (there > here ? 1 : -1));
+  const ex = w.warps.find(wp => wp.load && wp.to === want);
+  return ex ? [ex.x + ex.w / 2, ex.y] : null;
+};
+
+// ---------------------------------------------------------------- buitres sobre el cortado
+G.drawBirds = function (g, cx, cy) {
+  const w = this.world; if (!w.birds) return;
+  for (const B of w.birds) for (let i = 0; i < B.n; i++) {
+    const a = this.clock * (0.25 + i * 0.03) + i * (Math.PI * 2 / B.n), rr = B.r * (0.6 + 0.4 * ((i * 37) % 10) / 10);
+    const x = B.cx + Math.cos(a) * rr - cx, y = B.cy + Math.sin(a) * rr * 0.6 - cy, fl = Math.sin(this.clock * 3 + i) > 0.6 ? 1 : 0;
+    if (x < -20 || y < -20 || x > WW + 20 || y > WH + 20) continue;
+    g.fillStyle = 'rgba(0,0,0,0.18)'; g.fillRect(Math.round(x + 10), Math.round(y + 24), 6, 2);
+    g.fillStyle = '#1a1412';
+    g.fillRect(Math.round(x - 1), Math.round(y), 3, 2);
+    g.fillRect(Math.round(x - 6), Math.round(y - 1 + fl), 5, 1); g.fillRect(Math.round(x + 2), Math.round(y - 1 + fl), 5, 1);
+    g.fillRect(Math.round(x - 8), Math.round(y + fl * 2), 2, 1); g.fillRect(Math.round(x + 7), Math.round(y + fl * 2), 2, 1);
+    g.fillStyle = '#d8d0c0'; g.fillRect(Math.round(x), Math.round(y - 1), 1, 1);
+  }
+};
+
+// escena de carga de la carretera: el cañón con la carretera y los buitres
+SCENES.carretera = function (t) {
+  C.sky(['#1a1820', '#2a2630', '#3a3238', '#4a3a3a']);
+  C.ridge(46, 12, 0.03, 301, '#2a2428');
+  // paredes del cañón
+  cg.fillStyle = '#4a3a30'; cg.beginPath(); cg.moveTo(110, CH); cg.lineTo(118, 50); cg.lineTo(132, 40); cg.lineTo(150, 44); cg.lineTo(160, CH); cg.fill();
+  cg.fillStyle = '#5a4838'; cg.beginPath(); cg.moveTo(160, CH); cg.lineTo(170, 36); cg.lineTo(200, 30); cg.lineTo(200, CH); cg.fill();
+  for (let y = 50; y < CH; y += 6) { C.r(118 + (y - 50) * 0.1, y, 30, 1, 'rgba(30,20,16,0.5)'); C.r(172, y - 8, 28, 1, 'rgba(30,20,16,0.5)'); }
+  C.water(96, CH, '#1e3a3e', '#3a6066', t);
+  // carretera con curva y quitamiedos
+  cg.fillStyle = '#2a2a2e'; cg.beginPath(); cg.moveTo(0, 80); cg.quadraticCurveTo(60, 60, 104, 56); cg.lineTo(106, 62); cg.quadraticCurveTo(60, 70, 0, 96); cg.fill();
+  for (let i = 0; i < 9; i++) C.r(8 + i * 11, 82 - i * 2.6, 6, 1, '#c8c0a0');
+  C.ridge(100, 4, 0.08, 302, '#1a1614');
+  // hotel a lo lejos con una luz encendida
+  C.r(70, 44, 18, 8, '#6a5a4a'); C.r(68, 41, 22, 3, '#4a2a20'); C.r(76, 47, 2, 2, '#ffc060'); C.glow(77, 48, 6, 'rgba(255,180,80,0.5)');
+  // buitres
+  for (let i = 0; i < 5; i++) { const a = t * 0.4 + i * 1.3, x = 140 + Math.cos(a) * 26, y = 26 + Math.sin(a) * 8; C.r(x - 4, y, 9, 1, '#120e0c'); C.r(x - 1, y - 1, 3, 2, '#120e0c'); }
+  C.rain(t, 30, 0.12, 0.2);
+};
 // ====================================================================== dibujo
 const view = document.createElement('canvas'); view.width = WW; view.height = WH;
 const vctx = view.getContext('2d');
@@ -4896,7 +5768,7 @@ G.buildMap = function (ow) {
 G.render = function (ctx, cw, ch, dpr) {
   vctx.imageSmoothingEnabled = false;
   if (this.st === ST.TITLE || (this.st === ST.HELP && this.helpBack !== ST.PAUSE)) this.renderTitleBg(vctx);
-  else if (this.st === ST.INTRO || this.st === ST.END || this.st === ST.CINE) { vctx.fillStyle = '#08060a'; vctx.fillRect(0, 0, WW, WH); this.embers(vctx); }
+  else if (this.st === ST.INTRO || this.st === ST.END || this.st === ST.CINE || this.st === ST.LOAD) { vctx.fillStyle = '#08060a'; vctx.fillRect(0, 0, WW, WH); this.embers(vctx); }
   else this.renderWorld(vctx);
 
   ctx.setTransform(1, 0, 0, 1, 0, 0);
@@ -4918,6 +5790,7 @@ G.render = function (ctx, cw, ch, dpr) {
     case ST.TITLE: this.uiTitle(ctx); break;
     case ST.HELP: this.uiHelp(ctx); break;
     case ST.CINE: this.renderCine(ctx); break;
+    case ST.LOAD: this.renderLoad(ctx); break;
     case ST.INTRO: this.uiStory(ctx, this.introPages[this.introIdx], this.introChars); break;
     case ST.END: this.uiStory(ctx, this.endPages[this.endIdx], this.introChars); break;
     default:
@@ -4927,6 +5800,7 @@ G.render = function (ctx, cw, ch, dpr) {
       if (this.st === ST.PAUSE) this.uiPause(ctx);
       if (this.st === ST.DEAD) this.uiDead(ctx);
       if (this.st === ST.SKILLS) this.uiSkills(ctx);
+      if (this.st === ST.CHOICE) this.uiChoice(ctx);
   }
   if (this.toastT > 0 && this.st !== ST.TITLE) this.uiToast(ctx);
   ctx.restore();
@@ -4976,7 +5850,7 @@ G.renderWorld = function (g) {
   for (const [, kind, e] of list) {
     if (kind === 0) g.drawImage(cv(e.img), e.left() - cx, e.top() - cy);
     else if (kind === 1) this.drawMonster(g, e, cx, cy);
-    else if (kind === 2 && e.key === 'angel') { const s = e.sprite(this.clock), hov = Math.sin(this.clock * 2) * 2 - 6; this.glow(g, e.x - cx, e.y - 20 - cy, 34, 'rgba(255,245,200,0.35)'); this.shadow(g, e.x - cx, e.y - cy, 7); g.drawImage(cv(s), Math.round(e.x - s.w / 2) - cx, Math.round(e.y - s.h + hov) - cy); }
+    else if (kind === 2 && (e.key === 'angel' || e.key === 'miguel')) { const s = e.sprite(this.clock), hov = Math.sin(this.clock * 2) * 2 - 6; this.glow(g, e.x - cx, e.y - 20 - cy, 34, 'rgba(255,245,200,0.35)'); this.shadow(g, e.x - cx, e.y - cy, 7); g.drawImage(cv(s), Math.round(e.x - s.w / 2) - cx, Math.round(e.y - s.h + hov) - cy); }
     else if (kind === 2) { const s = e.sprite(this.clock); this.shadow(g, e.x - cx, e.y - cy, s.w / 2.5); g.drawImage(cv(s), Math.round(e.x - s.w / 2) - cx, Math.round(e.y - s.h) - cy); }
     else if (kind === 3) {
       const s = e.type === Pickup.RELIC ? Art.relic : Art.herb, bob = Math.sin(e.t * 3 + e.x) * 2;
@@ -4986,6 +5860,7 @@ G.renderWorld = function (g) {
     } else this.drawPlayer(g, cx, cy);
   }
   this.drawCombatFx(g, cx, cy);
+  this.drawBirds(g, cx, cy);
   for (const o of this.orbs) { const im = o.fire ? Art.E.fire : o.mud ? Art.E.mud : Art.orb; g.drawImage(cv(im), Math.floor(o.x) - (im.w >> 1) - cx, Math.floor(o.y) - (im.h >> 1) - cy); }
   for (const f of this.fx) {
     const a = Math.max(0, Math.min(1, f.life / f.max));
@@ -5007,13 +5882,13 @@ G.renderWorld = function (g) {
   this.ambient(g, cx, cy, dk);
   this.drawWeather(g);
   this.vignette(g);
-  if (w.outdoor && this.stage >= 6) {
+  if (w.id === 'exterior' && this.stage >= ETAPA.MIGUEL) {
     const gx = WG.crossX * TS + 8 - cx, gy = WG.crossY * TS - 8 - cy;
     if (gx > -60 && gx < WW + 60 && gy > -60 && gy < WH + 60) this.glow(g, gx, gy, 26 + Math.sin(this.clock * 2) * 3, 'rgba(255,230,150,0.24)');
   }
   if (p.invul > 0.6) { g.fillStyle = `rgba(160,20,10,${0.35 * (p.invul - 0.6) / 0.3})`; g.fillRect(0, 0, WW, WH); }
   // flecha hacia el objetivo
-  const tgt = this.objectiveTarget();
+  const tgt = this.arrowTarget();
   if (tgt && w.outdoor && this.st === ST.PLAY) {
     const ox2 = tgt[0] * TS + 8 - cx, oy2 = tgt[1] * TS + 8 - cy;
     if (ox2 < 8 || ox2 > WW - 8 || oy2 < 8 || oy2 > WH - 8) {
@@ -5345,20 +6220,23 @@ G.uiDialog = function (g) {
 };
 G.uiMap = function (g) {
   g.fillStyle = 'rgba(0,0,0,0.8)'; g.fillRect(0, 0, VW, VH);
-  const mw = this.mapCanvas.width, mh = this.mapCanvas.height, s = Math.min((VW - 30) / mw, (VH - 26) / mh), ox = (VW - mw * s) / 2, oy = 16;
-  g.font = FT(8); this.center(g, 'Pozo Alcón y el valle del Guadalentín', 11, GOLD);
+  const mwld = this.world.outdoor ? this.world : this.worlds.exterior;
+  this.mapCanvases = this.mapCanvases || {};
+  const mc = this.mapCanvases[mwld.id] || (this.mapCanvases[mwld.id] = this.buildMap(mwld));
+  const mw = mc.width, mh = mc.height, s = Math.min((VW - 30) / mw, (VH - 26) / mh), ox = (VW - mw * s) / 2, oy = 16;
+  g.font = FT(8); this.center(g, mwld.mapTitle || 'Pozo Alcón', 11, GOLD);
   g.fillStyle = '#8a6a3a'; g.fillRect(ox - 2, oy - 2, mw * s + 4, mh * s + 4);
   g.imageSmoothingEnabled = false;
-  g.drawImage(this.mapCanvas, ox, oy, mw * s, mh * s);
+  g.drawImage(mc, ox, oy, mw * s, mh * s);
   g.font = FBB(5);
-  const labels = [['Pozo Alcón', 38, 112], ['Cortijo', WG.rx + 6, 103], ['Embalse de La Bolera', 160, 14], ['Presa', 160, 36], ['Cruz de S. Gregorio', WG.crossX, 80], ['Las Higueras', 158, 56], ['Sierra del Pozo', 30, 50], ['Los Llanos', 196, 120], ['Cárcavas', 180, 160], ['A-326', 92, 92]];
+  const labels = mwld.labels || [];
   for (const [n, lx, ly] of labels) { const w = g.measureText(n).width; this.text(g, n, ox + lx * s - w / 2, oy + ly * s, PAPER); }
   let px, py;
   if (this.world.outdoor) { px = ox + this.player.x / TS * s; py = oy + this.player.y / TS * s; } else { px = ox + (WG.doorX + 0.5) * s; py = oy + WG.doorY * s; }
   if (Math.floor(this.titleT * 4) % 2 === 0 || !this.world.outdoor) { g.fillStyle = '#ff4030'; g.beginPath(); g.arc(px, py, 2.5, 0, Math.PI * 2); g.fill(); }
   g.strokeStyle = '#fff'; g.lineWidth = 0.6; g.beginPath(); g.arc(px, py, 2.5, 0, Math.PI * 2); g.stroke();
   const t = this.objectiveTarget();
-  if (t) this.star(g, ox + t[0] * s, oy + t[1] * s, 4.5);
+  if (t && (t[2] || 'exterior') === mwld.id) this.star(g, ox + t[0] * s, oy + t[1] * s, 4.5);
   g.font = FB(5.6);
   g.fillStyle = '#ff4030'; g.beginPath(); g.arc(ox + 2, VH - 5, 2, 0, Math.PI * 2); g.fill();
   this.text(g, 'tú', ox + 6, VH - 3, SOFT);
@@ -5748,7 +6626,7 @@ const Touch = {
 
   function toView(x, y) { const L = G.layout; return [(x - L.ox) / L.sc, (y - L.oy) / L.sc]; }
   function tapAt(x, y) {
-    if (G.st === ST.TITLE || G.st === ST.PAUSE || G.st === ST.SKILLS) {
+    if (G.st === ST.TITLE || G.st === ST.PAUSE || G.st === ST.SKILLS || G.st === ST.CHOICE) {
       const [vx, vy] = toView(x, y);
       for (const r of G.menuRects) if (vx >= r.x && vx <= r.x + r.w && vy >= r.y && vy <= r.y + r.h) { G.queue.add('Pick' + r.i); return; }
       return;

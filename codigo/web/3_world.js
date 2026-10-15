@@ -87,9 +87,8 @@ const WG = (function () {
     R_LLAN = A('Los Llanos', 0, 0, 0, 0), R_SIER = A('Sierra del Pozo', 0, 0, 0, 0), R_NORTE = A('Tierras del norte', 0, 0, 0, 0), R_EMB = A('Embalse de La Bolera', 0, 0, 0, 0);
   R_CARC.tier = 1.2; R_LLAN.tier = 1.25; R_SIER.tier = 1.5; R_NORTE.tier = 1.5; R_EMB.tier = 1.6;
   function region(x, y) {
-    if (y < 30 && x >= 100) return R_EMB;
     if ((x < 62 && y < 84) || (x < 112 && y < 28)) return R_SIER;
-    if (y >= 43) {
+    if (y >= 0 && !((x < 62 && y < 84) || (x < 112 && y < 28))) {
       const cx = riverX(y), fw = floorW(y), d = x - cx;
       const g = gentleK(y) > 0.5;
       if (Math.abs(d) <= fw + (g ? SLOPE + 1 : 3)) return y < 64 ? R_NORTE : R_BARR;
@@ -132,7 +131,7 @@ const WG = (function () {
     for (let y = 0; y < OW_H; y++) for (let x = 0; x < OW_W; x++) {
       const n = fbm(x, y, 1);
       let t = n > 0.62 ? T.DIRT : T.GRASS;
-      if (y >= 43) {
+      if (y >= 1) {
         const cx = riverX(y), fw = floorW(y), d = x - cx, g = gentleK(y) > 0.5, wall = g ? SLOPE : 3 + fbm(x, y, 9) * 1.6;
         if (Math.abs(d) <= fw) {
           t = Math.abs(d) < 3.5 || g ? (n > 0.66 ? T.GRASS : T.GRASS_GREEN) : (n > 0.55 ? T.DIRT : T.GRASS_GREEN);
@@ -162,33 +161,15 @@ const WG = (function () {
       if (n > 0.47 - Math.min(edge, 10) * 0.012 || (x <= 60 && y >= 56 && y <= 72)) w.set(x, y, T.MOUNTAIN);
       else w.set(x, y, n > 0.4 ? T.DIRT : T.GRASS);
     }
-    // Embalse
-    for (let y = 0; y < 30; y++) for (let x = 100; x < OW_W; x++) {
-      let e = Math.pow((x - 170) / 62, 2) + Math.pow((y - 10) / 14, 2);
-      e -= (fbm(x, y, 33) - 0.5) * 0.5;
-      if (y >= 27 && x >= 140 && x <= 180) e = 0.5;
-      if (e < 1) w.set(x, y, e < 0.75 ? T.DEEP : T.WATER); else if (e < 1.12) w.set(x, y, T.SAND);
-    }
-    // Explanada de la presa
-    for (let y = 30; y < 44; y++) for (let x = 140; x < 182; x++) {
-      const edge = x < 143 || x > 178 || y >= 43;
-      if (y <= 32) w.set(x, y, T.DAM);
-      else if (edge && !(x < 143 && y >= 35 && y <= 39)) w.set(x, y, T.CLIFF);
-      else w.set(x, y, fbm(x, y, 5) > 0.68 ? T.SAND : T.CONCRETE);
-      reserved[y * OW_W + x] = 1;
-    }
-    G.bossX = 160; G.bossY = 37;
-    for (let y = 42; y < 44; y++) for (let x = 158; x <= 161; x++) w.set(x, y, T.WATER);
-    for (let x = 146; x <= 176; x += 6) w.prop('compuerta', x, 32);
     // río
-    for (let y = 43; y < OW_H; y++) {
+    for (let y = 1; y < OW_H; y++) {
       const cx = riverX(y), x0 = Math.round(cx) - 1, ww = 2 + (fbm(0, y, 13) > 0.6 ? 1 : 0);
       for (let x = x0; x < x0 + ww; x++) w.set(x, y, T.WATER);
       if (w.get(x0 - 1, y) === T.GRASS_GREEN && R.next() < 0.4) w.set(x0 - 1, y, T.SAND);
       if (w.get(x0 + ww, y) === T.GRASS_GREEN && R.next() < 0.4) w.set(x0 + ww, y, T.SAND);
     }
     // carreteras
-    road(w, [[60, 112], [66, 110], [80, 108], [95, 104], [100, 96], [101, 84], [101, 72], [104, 64], [110, 54], [118, 46], [130, 41], [141, 37]], 3, T.ASPHALT);
+    road(w, [[60, 112], [66, 110], [80, 108], [95, 104], [100, 96], [101, 84], [101, 72], [104, 64], [110, 54], [118, 46], [130, 41], [141, 37], [150, 24], [156, 10], [158, 0]], 3, T.ASPHALT);
     road(w, [[60, 135], [64, 150], [70, 170], [74, 199]], 3, T.ASPHALT);
     road(w, [[16, 130], [8, 146], [0, 166]], 3, T.ASPHALT);
     const rx = G.rx = Math.round(riverX(109));
@@ -252,7 +233,7 @@ const WG = (function () {
     sign(w, 98, 102, 'Camino del Guadalentín. A tu casa, al este, cruzando el puente viejo.');
     sign(w, 70, 106, 'POZO ALCÓN. La pintura del cartel está casi borrada.');
     sign(w, 99, 70, 'A-326  ·  Presa de La Bolera 4 km  ·  Castril');
-    sign(w, 139, 41, 'Presa de La Bolera. Alguien ha escrito encima con pintura roja: NO BAJÉIS AL AGUA.');
+    sign(w, 139, 40, 'Carretera del pantano · Hotel Los Nogales 6 km · La Bolera 10 km. Alguien ha escrito con pintura roja: NO SUBÁIS.');
     w.pickups.push(new Pickup(Pickup.RELIC, 109 * 16 + 8, 106 * 16 + 4, 'reliquia_balsa'));
     w.pickups.push(new Pickup(Pickup.RELIC, 182 * 16 + 8, 152 * 16 + 8, 'reliquia_carcavas'));
     w.pickups.push(new Pickup(Pickup.RELIC, 74 * 16 + 8, 44 * 16 + 8, 'reliquia_sierra'));
@@ -279,11 +260,15 @@ const WG = (function () {
     w.areas.push(A('Pozo Alcón', 12, 85, 57, 52));
     w.areas.push(A('Cruz de San Gregorio', 97, 70, 12, 11));
     w.areas.push(A('Balsa de riego', 102, 101, 10, 8));
-    const presa = A('Presa de La Bolera', 140, 30, 42, 14); presa.noSpawn = true; presa.tier = 1.6; w.areas.push(presa);
+    w.areas.push(A('Carretera del pantano', 140, 0, 40, 10));
     const hig = A('Bosque Encantado de Las Higueras', 135, 50, 40, 14); hig.tier = 1.4; w.areas.push(hig);
     const linde = A('La Linde Negra', 56, 63, 164, 4); linde.noSpawn = true; w.areas.push(linde);
     w.regionFn = region;
     placeLairs(w);
+    w.lairs = G.lairs;
+    { const ex = new Warp(140, 1, 40, 1, 'pantano', 50 * 16 + 8, 176 * 16, 1); ex.load = true; w.warps.push(ex); G.exitN = [158, 2]; }
+    w.mapTitle = 'Pozo Alcón y el valle del Guadalentín';
+    w.labels = [['Pozo Alcón', 38, 112], ['Cortijo', G.rx + 6, 103], ['Cruz de S. Gregorio', G.crossX, 80], ['Las Higueras', 158, 56], ['Sierra del Pozo', 30, 50], ['Los Llanos', 196, 120], ['Cárcavas', 180, 160], ['A-326', 92, 92], ['El Greco', 37, 108], ['↑ Al pantano', 158, 6]];
     return w;
   };
 
@@ -316,6 +301,22 @@ const WG = (function () {
     add('Llanos de los almendros', rx + 45, 125, [MK.JABALI, MK.ALACRAN], 1.25);
   }
 
+  // El Greco (bar, restaurante y salón de celebraciones) y, delante, la plaza con la fuente del Músico y la caseta de turismo
+  function grecoBlock(w, x0, y0, x1, y1) {
+    for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) { w.set(x, y, T.PAVING); reserved[y * OW_W + x] = 1; }
+    for (let x = x0; x <= x1; x++) { w.set(x, y0, T.ROOF_DARK); w.set(x, y0 + 1, T.WALL_WHITE); w.set(x, y0 + 2, T.WALL_WHITE); }
+    w.set(x0 + 1, y0 + 1, T.WINDOW); w.set(x1 - 1, y0 + 1, T.WINDOW); w.set(x0 + 1, y0 + 2, T.WINDOW); w.set(x1 - 1, y0 + 2, T.WINDOW);
+    G.grecoX = x0 + 3; G.grecoY = y0 + 2;
+    w.set(G.grecoX, G.grecoY, T.DOOR);
+    const d = w.prop('compuerta', G.grecoX, G.grecoY); d.hidden = true; d.id = 'greco_puerta';
+    sign(w, x0 + 5, y0 + 3, 'EL GRECO · Bar - Restaurante - Salón de celebraciones. Bodas, bautizos y comuniones.');
+    G.fuenteX = x0 + 1; G.fuenteY = y1 - 1;
+    w.prop('fuente_musico', G.fuenteX + 0.5, G.fuenteY, G.fuenteX, G.fuenteY, 2, 1).id = 'fuente_musico';
+    G.casetaX = x1 - 1; G.casetaY = y1 - 1;
+    const c = w.prop('caseta_turismo', G.casetaX + 0.5, G.casetaY, G.casetaX, G.casetaY, 2, 1); c.id = 'caseta';
+    w.prop('farola', x0 + 4, y1).light = 1;
+    npc(w, 'Santiago', 'santiago', G.grecoX + 1, G.grecoY + 1, 0);
+  }
   function buildTown(w) {
     const hs = [86, 95, 103, 111, 119, 127, 134], vs = [13, 23, 32, 41, 50, 59, 66];
     for (let y = 85; y <= 136; y++) for (let x = 12; x <= 68; x++) { w.set(x, y, T.DIRT); reserved[y * OW_W + x] = 1; }
@@ -328,6 +329,7 @@ const WG = (function () {
       if (cxm >= 33 && cxm <= 49 && cym < 95) { church(w, x0, y0, x1, y1); continue; }
       if (cxm >= 42 && cxm <= 50 && cym > 111 && cym < 119) { plazaAyto(w, x0, y0, x1, y1); continue; }
       if (cxm < 23 && cym > 127) { ermita(w, x0, y0, x1, y1); continue; }
+      if (cxm >= 34 && cxm <= 40 && cym > 103 && cym < 111) { grecoBlock(w, x0, y0, x1, y1); continue; }
       houses(w, x0, y0, x1, y1);
     }
     hs.forEach((h, i) => vs.forEach((v, j) => { if ((i + j) % 2 === 0 && h > 86 && h < 134) { const f = w.prop('farola', v + 0.5, h); f.light = 1; } }));

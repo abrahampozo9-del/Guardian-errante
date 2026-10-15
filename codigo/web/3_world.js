@@ -358,8 +358,8 @@ const WG = (function () {
 
   function buildCortijo(w) {
     const rx = G.rx, hx0 = rx + 4, hx1 = rx + 12;
-    for (let y = 97; y <= 121; y++) for (let x = rx + 2; x <= rx + 18; x++) {
-      if (w.get(x, y) === T.CLIFF && x <= rx + 17 && y >= 101 && y <= 119) w.set(x, y, T.DIRT);
+    for (let y = 97; y <= 121; y++) for (let x = rx + 2; x <= rx + 20; x++) {
+      if (w.get(x, y) === T.CLIFF && x <= rx + 19 && y >= 100 && y <= 119) w.set(x, y, T.DIRT);
       reserved[y * OW_W + x] = 1;
     }
     for (let y = 97; y <= 121; y++) for (let x = rx - 6; x <= rx + 1; x++) reserved[y * OW_W + x] = 1;
@@ -376,9 +376,13 @@ const WG = (function () {
     w.set(hx0 + 2, 106, T.WINDOW); w.set(hx1 - 1, 106, T.WINDOW);
     G.doorX = hx0 + 4; G.doorY = 106;
     w.set(G.doorX, G.doorY, T.DOOR);
-    for (let y = 103; y <= 104; y++) for (let x = hx1 + 1; x <= hx1 + 4; x++) w.set(x, y, (y === 103 && (x === hx1 + 2 || x === hx1 + 3)) ? T.ROOF_SOLAR : T.ROOF);
-    for (let x = hx1 + 1; x <= hx1 + 4; x++) { w.set(x, 105, T.WALL_WHITE); w.set(x, 106, T.WALL_WHITE); }
-    w.set(hx1 + 2, 106, T.WINDOW);
+    // Cochera, separada de la casa (con más placas solares en el tejado)
+    w.fill(hx1 + 1, 101, 1, 7, T.CONCRETE);
+    for (let y = 102; y <= 104; y++) for (let x = hx1 + 2; x <= hx1 + 6; x++) w.set(x, y, (y === 103 && x >= hx1 + 3 && x <= hx1 + 5) ? T.ROOF_SOLAR : T.ROOF);
+    for (let x = hx1 + 2; x <= hx1 + 6; x++) { w.set(x, 105, T.WALL_WHITE); w.set(x, 106, T.WALL_WHITE); }
+    for (let x = hx1 + 3; x <= hx1 + 5; x++) { w.set(x, 105, T.GARAGE); w.set(x, 106, T.GARAGE); }
+    w.fill(hx1 + 2, 107, 5, 1, T.CONCRETE);
+    const coch = w.prop('compuerta', hx1 + 4, 106); coch.hidden = true; coch.id = 'cochera';
     w.fill(hx0, 107, hx1 - hx0 + 1, 2, T.PORCH);
     w.prop('chimenea', hx0 - 0.3, 106, hx0 - 1, 106, 1, 1);
     for (const x of [hx0, hx0 + 3, hx0 + 7]) w.prop('pilar', x, 108, x, 108, 1, 1);
@@ -409,7 +413,7 @@ const WG = (function () {
     w.npcs.push(new Npc('Gato', 'gato', null, Art.cat, null, (hx0 + 1) * 16 + 6, 107 * 16 + 6));
     w.npcs.push(new Npc('Perrillo', 'perro', null, Art.dog, Art.dogB, (hx0 + 5) * 16 + 8, 109 * 16 + 12));
     w.block(hx0 + 5, 109, 1, 1);
-    w.warps.push(new Warp(G.doorX, G.doorY, 1, 1, 'casa_baja', 17.5 * 16, 11 * 16 + 4, 1));
+    w.warps.push(new Warp(G.doorX, G.doorY, 1, 1, 'casa_baja', 9 * 16 + 8, 11 * 16 + 4, 1));
     G.questSpawns = [[rx - 3, 116], [rx + 1, 119], [rx + 7, 120], [rx - 4, 101], [rx + 12, 118], [rx - 6, 117]];
   }
 
@@ -451,76 +455,130 @@ const WG = (function () {
 
   function wallFace(w, x0, x1, y, hi, lo) { for (let x = x0; x <= x1; x++) { w.set(x, y, hi); w.set(x, y + 1, lo); } }
 
+  // Planta baja (según el plano): salón a la izquierda con chimenea, sofás y mesa;
+  // tabique de piedra con la nevera; cocina a la derecha con la mesa grande y la escalera arriba.
+  G.downStart = [18 * 16 + 8, 5 * 16 + 10];
+  G.upStart = [5 * 16 + 8, 14 * 16 + 8];
   G.houseGround = function () {
-    const w = new World('casa_baja', 22, 13, T.FLOOR);
+    const w = new World('casa_baja', 24, 13, T.FLOOR);
     w.defaultArea = 'Cortijo · planta baja';
-    const a = A('Cortijo · planta baja', 0, 0, 22, 13); a.safe = true; w.areas.push(a);
-    w.fill(0, 0, 22, 1, T.WALLTOP);
-    wallFace(w, 1, 20, 1, T.IWALL_HI, T.IWALL);
-    for (let y = 0; y < 13; y++) { w.set(0, y, T.WALLTOP); w.set(21, y, T.WALLTOP); }
-    w.fill(0, 12, 22, 1, T.WALLTOP);
-    w.set(17, 12, T.FLOOR);
-    w.fill(10, 1, 2, 3, T.IWALL_STONE);
-    w.fill(1, 8, 2, 3, T.STAIRS);
-    w.warps.push(new Warp(1, 8, 2, 1, 'casa_alta', 15 * 16, 11 * 16 + 8, 0));
-    w.warps.push(new Warp(17, 12, 1, 1, 'exterior', G.doorX * 16 + 8, (G.doorY + 1) * 16 + 8, 0));
+    const a = A('Cortijo · planta baja', 0, 0, 24, 13); a.safe = true; w.areas.push(a);
+    w.fill(0, 0, 24, 1, T.WALLTOP);
+    wallFace(w, 1, 22, 1, T.IWALL_HI, T.IWALL);
+    for (let y = 0; y < 13; y++) { w.set(0, y, T.WALLTOP); w.set(23, y, T.WALLTOP); }
+    w.fill(0, 12, 24, 1, T.WALLTOP);
+    w.set(9, 12, T.FLOOR); // puerta de la calle
+    // tabique de piedra entre salón y cocina (abierto por arriba)
+    for (let y = 6; y < 12; y++) w.set(12, y, T.IWALL_STONE);
+    // hueco de la escalera, arriba a la derecha
+    for (let y = 1; y <= 4; y++) w.set(17, y, T.WALLTOP);
+    w.fill(18, 1, 5, 3, T.STAIRS);
+    w.fill(17, 4, 6, 1, T.WALLTOP);
+    w.set(18, 4, T.FLOOR);
+    w.warps.push(new Warp(18, 1, 5, 3, 'casa_alta', 21 * 16 + 8, 3 * 16 + 10, 2));
+    w.warps.push(new Warp(9, 12, 1, 1, 'exterior', G.doorX * 16 + 8, (G.doorY + 1) * 16 + 8, 0));
+    // --- salón
     w.wall('ventana_int', 4 * 16, 2 * 16 - 2);
-    w.wall('aplique', 7 * 16 + 8, 16 + 4);
-    w.prop('encimera', 1, 3, 1, 3, 1, 1); w.prop('fregadero', 2, 3, 2, 3, 1, 1); w.prop('encimera', 3, 3, 3, 3, 1, 1); w.prop('encimera', 4, 3, 4, 3, 1, 1);
-    w.prop('frigo', 8.5, 3, 8, 3, 2, 1);
-    w.prop('maceta', 6, 3, 6, 3, 1, 1);
-    w.prop('mesa_larga', 5.5, 7, 3, 6, 6, 2).id = 'mesa_cocina';
-    w.prop('garrafa', 9, 9, 9, 9, 1, 1);
+    w.wall('aplique', 2 * 16, 16 + 4);
+    w.wall('aplique', 11 * 16, 16 + 4);
+    w.prop('chimenea_lat', 1, 9, 1, 6, 1, 4).id = 'chimenea';
+    w.prop('sofa', 5, 4, 4, 4, 3, 1);
+    w.prop('mesa_camilla', 5.5, 7.4, 5, 6, 2, 2);
+    w.prop('sofa_v', 8.5, 8.6, 8, 6, 2, 3);
+    w.prop('tele', 9.5, 1.95).id = 'tele';
+    w.prop('butaca', 3, 10.4, 3, 10, 1, 1);
+    w.prop('maceta', 11, 3, 11, 3, 1, 1);
+    // --- cocina
     w.wall('ventana_int', 14 * 16, 2 * 16 - 2);
-    w.wall('tele', 17 * 16 + 8, 2 * 16);
-    w.wall('aplique', 20 * 16, 16 + 4);
-    w.prop('estufa', 12.5, 3, 12, 3, 2, 1).id = 'estufa';
-    w.prop('mesa_camilla', 17.5, 7, 16, 6, 3, 1);
-    w.prop('sofa_n', 17.5, 9, 16, 9, 3, 1);
-    w.prop('butaca', 20, 6, 20, 6, 1, 1);
-    w.prop('silla', 15, 3, 15, 3, 1, 1); w.prop('silla', 19, 3, 19, 3, 1, 1);
-    w.prop('mesa_oscura', 13, 10, 12, 10, 2, 1);
-    w.prop('columna', 11, 7, 10, 7, 2, 1);
+    w.wall('aplique', 16 * 16, 16 + 4);
+    w.prop('frigo', 13, 11, 13, 10, 1, 2).id = 'nevera';
+    w.prop('mesa_larga_v', 18.5, 10, 18, 7, 2, 4).id = 'mesa_cocina';
+    w.prop('encimera_lat', 22, 5, 22, 5, 1, 1);
+    w.prop('fogones_lat', 22, 6, 22, 6, 1, 1).id = 'cocina';
+    w.prop('encimera_lat', 22, 7, 22, 7, 1, 1);
+    w.prop('fregadero_lat', 22, 8, 22, 8, 1, 1);
+    w.prop('encimera_lat', 22, 9, 22, 9, 1, 1);
+    w.prop('encimera_lat', 22, 10, 22, 10, 1, 1);
+    w.prop('garrafa', 22, 11, 22, 11, 1, 1);
+    w.prop('silla', 14, 4, 14, 4, 1, 1);
     return w;
   };
 
+  // Planta alta (según el plano): habitación 2 arriba a la izquierda, pasillo con el baúl,
+  // escalera arriba a la derecha y el baño debajo; abajo la habitación 1 (la tuya, llena de libros) y la 3.
   G.houseUpper = function () {
-    const w = new World('casa_alta', 30, 16, T.FLOOR);
+    const w = new World('casa_alta', 30, 18, T.FLOOR);
     w.defaultArea = 'Cortijo · planta alta';
-    const a = A('Cortijo · planta alta', 0, 0, 30, 16); a.safe = true; w.areas.push(a);
-    w.fill(0, 0, 30, 1, T.WALLTOP); w.fill(0, 15, 30, 1, T.WALLTOP);
-    for (let y = 0; y < 16; y++) { w.set(0, y, T.WALLTOP); w.set(29, y, T.WALLTOP); w.set(12, y, T.WALLTOP); w.set(18, y, T.WALLTOP); }
-    wallFace(w, 1, 11, 1, T.IWALL_HI, T.IWALL); wallFace(w, 13, 17, 1, T.IWALL_HI, T.IWALL); wallFace(w, 19, 28, 1, T.BATHWALL, T.BATHWALL);
-    w.fill(1, 8, 11, 1, T.WALLTOP); w.fill(19, 8, 10, 1, T.WALLTOP);
-    w.fill(1, 9, 11, 1, T.IWALL); w.fill(19, 9, 10, 1, T.IWALL);
-    w.fill(19, 3, 10, 5, T.BATHFLOOR);
-    w.set(12, 5, T.FLOOR); w.set(12, 12, T.FLOOR); w.set(18, 5, T.FLOOR); w.set(18, 12, T.FLOOR);
-    w.fill(14, 12, 2, 3, T.STAIRS);
-    w.warps.push(new Warp(14, 14, 2, 1, 'casa_baja', 2 * 16, 11 * 16 + 10, 0));
-    w.wall('ventana_int', 2 * 16 + 8, 2 * 16 - 2);
-    w.wall('aplique', 7 * 16, 16 + 4); w.wall('aplique', 10 * 16 + 8, 16 + 4);
-    w.prop('escritorio', 3, 3, 2, 3, 2, 1).id = 'pc';
-    w.prop('silla_oficina', 3, 4.6);
-    w.prop('ventilador', 1, 5, 1, 5, 1, 1);
-    w.prop('cama_gris', 5.5, 6, 5, 4, 2, 3).id = 'cama';
-    w.prop('mesita', 7, 3.6, 7, 3, 1, 1);
-    w.prop('cama_lila', 8.5, 6, 8, 4, 2, 3);
-    w.wall('ventana_int', 7 * 16 + 8, 9 * 16 + 8);
-    w.prop('cama_blanca', 3.5, 13, 3, 11, 2, 3);
-    w.prop('mesita', 1, 10.8, 1, 10, 1, 1); w.prop('flexo', 1, 10.2);
-    w.prop('comoda_clara', 8.5, 10.6, 8, 10, 2, 1);
-    w.prop('garrafa', 1, 14, 1, 14, 1, 1);
-    w.wall('aplique', 15 * 16, 16 + 4);
-    w.prop('baul', 15.5, 3.6, 14, 3, 3, 1).id = 'baul';
-    w.prop('toallas', 14.5, 3.0);
-    w.prop('cubo', 17, 7, 17, 7, 1, 1);
-    w.prop('comoda', 13.5, 9, 13, 9, 2, 1);
-    w.wall('aplique', 27 * 16, 16 + 4);
-    w.prop('lavabo', 20.5, 3.4, 20, 3, 2, 1); w.prop('vater', 23, 3, 23, 3, 1, 1); w.prop('bide', 24.5, 4.5, 24, 4, 1, 1);
-    w.prop('ducha', 27.5, 4, 27, 3, 2, 2); w.prop('mueble_bano', 28, 7, 28, 6, 1, 2);
-    w.wall('cuadro', 26 * 16, 9 * 16 + 14); w.wall('ventana_int', 22 * 16, 9 * 16 + 8);
-    w.prop('cama_rosa', 21.5, 13, 21, 11, 2, 3);
-    w.prop('mesita', 19.5, 10.8, 19, 10, 1, 1); w.prop('mesita', 23.5, 10.8, 23, 10, 1, 1);
+    const a = A('Cortijo · planta alta', 0, 0, 30, 18); a.safe = true; w.areas.push(a);
+    w.areas.push(A('Habitación 1', 1, 10, 15, 7));
+    w.areas.push(A('Habitación 2', 1, 1, 11, 8));
+    w.areas.push(A('Habitación 3', 17, 10, 12, 7));
+    w.areas.push(A('Baño', 23, 5, 6, 4));
+    for (const ar of w.areas) ar.safe = true;
+    w.fill(0, 0, 30, 1, T.WALLTOP); w.fill(0, 17, 30, 1, T.WALLTOP);
+    for (let y = 0; y < 18; y++) { w.set(0, y, T.WALLTOP); w.set(29, y, T.WALLTOP); }
+    // tabique habitación 2 | pasillo
+    for (let y = 0; y < 10; y++) w.set(12, y, T.WALLTOP);
+    wallFace(w, 1, 11, 1, T.IWALL_HI, T.IWALL);
+    wallFace(w, 13, 22, 1, T.IWALL_HI, T.IWALL);
+    w.set(12, 6, T.FLOOR); // puerta habitación 2
+    // escalera
+    w.fill(23, 1, 6, 3, T.STAIRS);
+    w.warps.push(new Warp(24, 1, 5, 3, 'casa_baja', G.downStart[0], G.downStart[1], 0));
+    // baño bajo la escalera
+    w.fill(22, 4, 7, 1, T.WALLTOP);
+    for (let y = 4; y <= 9; y++) w.set(22, y, T.WALLTOP);
+    w.fill(23, 5, 6, 1, T.BATHWALL);
+    w.fill(23, 6, 6, 3, T.BATHFLOOR);
+    w.set(22, 7, T.FLOOR); // puerta del baño
+    // muro que separa arriba y abajo
+    w.fill(1, 9, 28, 1, T.WALLTOP);
+    w.fill(1, 10, 28, 1, T.IWALL);
+    for (let y = 9; y < 18; y++) w.set(16, y, T.WALLTOP);
+    w.set(15, 9, T.FLOOR); w.set(15, 10, T.FLOOR); // puerta habitación 1
+    w.set(19, 9, T.FLOOR); w.set(19, 10, T.FLOOR); // puerta habitación 3
+
+    // --- Habitación 1: la tuya, con el PC, el ventilador, las dos camas y muchos libros
+    w.wall('ventana_int', 4 * 16, 10 * 16);
+    w.wall('aplique', 9 * 16, 10 * 16 + 1);
+    w.prop('escritorio', 2, 11, 1, 11, 3, 1).id = 'pc';
+    w.prop('silla_oficina', 2, 12.6);
+    w.prop('ventilador', 4.6, 11.4, 4, 11, 1, 1).id = 'ventilador';
+    w.prop('cama_gris', 7.5, 13.4, 7, 11, 2, 3).id = 'cama';
+    w.prop('mesita', 9.2, 11.6, 9, 11, 1, 1);
+    w.prop('cama_lila', 10.8, 13.4, 10, 11, 2, 3);
+    w.prop('estanteria0', 13.5, 11, 13, 11, 2, 1).id = 'libros';
+    w.prop('estanteria1', 13.5, 13.6, 13, 13, 2, 1).id = 'libros';
+    w.prop('estanteria0', 3.5, 16, 3, 16, 2, 1).id = 'libros';
+    w.prop('pila_libros0', 1, 16, 1, 16, 1, 1).id = 'libros';
+    w.prop('pila_libros1', 6, 16, 6, 16, 1, 1).id = 'libros';
+    w.prop('pila_libros0', 12, 16, 12, 16, 1, 1).id = 'libros';
+    w.prop('pila_libros1', 15, 16, 15, 16, 1, 1).id = 'libros';
+    // --- Habitación 2
+    w.wall('ventana_int', 6 * 16, 2 * 16 - 2);
+    w.wall('aplique', 2 * 16, 16 + 4);
+    w.prop('cama_blanca', 3.5, 6, 3, 4, 2, 3);
+    w.prop('mesita', 1, 3.6, 1, 3, 1, 1); w.prop('flexo', 1, 3);
+    w.prop('comoda_clara', 8.5, 3.6, 8, 3, 2, 1);
+    w.prop('garrafa', 10, 8, 10, 8, 1, 1);
+    // --- Pasillo
+    w.wall('aplique', 18 * 16, 16 + 4);
+    w.prop('baul', 16.5, 3.6, 15, 3, 3, 1).id = 'baul';
+    w.prop('toallas', 15.5, 3.0);
+    w.prop('cubo', 21, 8, 21, 8, 1, 1);
+    w.prop('comoda', 17, 8, 16, 8, 2, 1);
+    // --- Baño
+    w.prop('lavabo', 24, 6.4, 23, 6, 2, 1);
+    w.prop('vater', 26, 6, 26, 6, 1, 1);
+    w.prop('bide', 25, 8, 25, 8, 1, 1);
+    w.prop('ducha', 27.5, 8, 27, 7, 2, 2);
+    // --- Habitación 3
+    w.wall('cuadro', 25 * 16, 10 * 16 - 6);
+    w.wall('ventana_int', 27 * 16 + 4, 10 * 16);
+    w.prop('cama_rosa', 21.5, 13.4, 21, 11, 2, 3);
+    w.prop('mesita', 20, 11.6, 20, 11, 1, 1);
+    w.prop('mesita', 23.5, 11.6, 23, 11, 1, 1);
+    w.prop('maceta', 28, 16, 28, 16, 1, 1);
     return w;
   };
   return G;

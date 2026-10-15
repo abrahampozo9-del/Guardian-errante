@@ -101,11 +101,11 @@ G.newGame = function () {
   this.player = new Player();
   this.stage = 0; this.flags = new Set(); this.picked = new Set(); this.questKills = 0; this.clock = 0; this.day = 0.04;
   this.boss = null; this.orbs = []; this.fx = [];
-  this.enter('casa_alta', 4 * 16 + 8, 7 * 16 + 8, 3);
+  this.enter('casa_alta', WG.upStart[0], WG.upStart[1], 3);
   this.restWorld = 'casa_alta'; this.restX = this.player.x; this.restY = this.player.y;
   this.st = ST.PLAY;
   Sound.music('calma');
-  this.say('Guardián', 'Otra mañana en el cortijo. El ventilador no gira desde que cayó la red, pero las placas solares aún dan para la radio.',
+  this.say('Guardián', 'Otra mañana en el cortijo. La red eléctrica cayó hace siete años, pero las placas y las baterías dan luz de sobra: nevera, tele, ventilador... Lo que ya no hay es nadie al otro lado.',
     'Mi espada está en el baúl del rellano. Ya no salgo de casa sin ella.');
 };
 G.pauseMenu = function () { return ['Continuar', 'Guardar partida', 'Controles', Sound.musicOn ? 'Música: sí' : 'Música: no', 'Salir al título']; };
@@ -469,7 +469,14 @@ G.use = function (pr) {
         this.say('Guardián', 'Bajo las toallas, envuelta en un paño, mi espada.', 'Has cogido la ESPADA. Ataca con Espacio, J o el botón de la espada.');
       } else this.say('Guardián', 'Mantas, toallas y la caja vacía de la vieja escopeta del abuelo.');
       break;
-    case 'pc': this.say('Guardián', 'El ordenador. Siete años apagado.', 'Encima del escritorio siguen mis viejos apuntes de primeros auxilios. Me han servido más que el ordenador.'); break;
+    case 'pc': this.say('Guardián', 'El ordenador enciende sin problema: las placas dan de sobra. Lo que no hay es internet.', 'Encima del escritorio siguen mis apuntes de primeros auxilios. Me han servido más que nada en estos años.'); break;
+    case 'libros': this.say('Guardián', 'Libros por todas partes: filosofía, teología, historia, primeros auxilios, novelas que he leído tres veces...', 'Cuando cayó el mundo, los libros siguieron hablando. Por eso los guardo.'); break;
+    case 'ventilador': this.say('Guardián', 'El ventilador zumba a toda potencia. En agosto, en este barranco, es casi un lujo.'); break;
+    case 'tele': this.say('Guardián', 'La tele enciende, pero todos los canales son nieve.', 'Por lo menos el reproductor aún lee las películas viejas. Alguna noche me pongo una.'); break;
+    case 'nevera': this.say('Guardián', 'La nevera funciona gracias a las baterías. Agua fría, embutido de la matanza y poco más.'); break;
+    case 'cocina': this.say('Guardián', 'La placa de la cocina tira de las baterías sin rechistar. Aquí se come caliente.'); break;
+    case 'chimenea': this.say('Guardián', 'La chimenea de piedra del salón. Luz no falta, pero en invierno no hay nada como la leña.'); break;
+    case 'cochera': this.say('Guardián', 'La cochera. Dentro están las herramientas del campo, los bidones de gasoil y el armario de las baterías de las placas.', 'Mientras haya sol en Pozo Alcón, en esta casa habrá luz.'); break;
     case 'cama': this.rest(this.isNight() ? 'Duermes hasta el amanecer.' : 'Descansas un rato en tu cama.'); break;
     case 'mesa_cocina':
       if (this.tableCool <= 0 && p.hp < p.maxHp) { this.tableCool = 90; p.hp = Math.min(p.maxHp, p.hp + 25); this.say('Guardián', 'Tomates, membrillos y pimientos del huerto. Como algo. (+25 vida)'); }
@@ -509,7 +516,7 @@ G.rest = function (msg) {
   const p = this.player;
   for (const m of this.world.monsters) if (!m.dead && m.dist(p) < 10 * TS && m.aggro) { this.toast('No puedes descansar con engendros cerca.'); return; }
   p.hp = p.maxHp; p.fe = p.maxFe;
-  if (this.world.id === 'casa_alta') { this.restWorld = 'casa_alta'; this.restX = 4 * 16 + 8; this.restY = 7 * 16 + 8; }
+  if (this.world.id === 'casa_alta') { this.restWorld = 'casa_alta'; this.restX = WG.upStart[0]; this.restY = WG.upStart[1]; }
   if (this.isNight()) this.day = 0.02;
   this.save();
   this.say('Guardián', msg, 'Vida y Fe recuperadas. Partida guardada.');
@@ -518,7 +525,7 @@ G.startEnding = function () {
   this.endPages = [
     'Las semanas siguientes, el agua de La Bolera volvió a bajar limpia por el Guadalentín.',
     'Los once supervivientes de la Encarnación salieron de detrás de las barricadas.\nDespués llegaron otros, desde Hinojares, desde Huesa, desde Fontanar.',
-    'En el cortijo del río, el ventilador sigue sin girar.\nPero el gato duerme al sol, y el perrillo ya no ladra de noche.',
+    'En el cortijo del río, las placas siguen dando luz.\nEl gato duerme al sol, y el perrillo ya no ladra de noche.',
     '«La calma también es una forma de lucha.\nPozo Alcón... siempre será mi lugar.»',
     'EL GUARDIÁN ERRANTE\n\nGracias por jugar.'];
   this.endIdx = 0; this.introChars = 0; this.stage = 9; this.st = ST.END;
@@ -614,6 +621,8 @@ G.load = function () {
     if (this.stage === 2) { this.stage = 1; this.questKills = 0; }
     this.boss = null; this.orbs = []; this.fx = []; this.dlg = []; this.page = null;
     this.enter(d.world, d.x, d.y, 0);
+    if (this.world.blocked(this.player.x, this.player.y, this.player.hw, this.player.hh) && !this.world.outdoor) { this.player.x = WG.upStart[0]; this.player.y = WG.upStart[1]; this.world = this.worlds.casa_alta; this.snapCamera(); }
+    if (this.restWorld === 'casa_alta') { this.restX = WG.upStart[0]; this.restY = WG.upStart[1]; }
     if (this.stage === 1 && this.world.outdoor) this.stageLogic();
     return true;
   } catch (e) { console.error(e); return false; }

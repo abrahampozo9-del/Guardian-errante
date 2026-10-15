@@ -135,7 +135,7 @@ G.renderWorld = function (g) {
 };
 
 const ROOFS = new Set([T.ROOF, T.ROOF_DARK, T.ROOF_SOLAR, T.CHURCH_ROOF]);
-const FACES = new Set([T.WALL_WHITE, T.WINDOW, T.DOOR, T.CHURCH_WALL, T.CHURCH_DOOR, T.SHED, T.WALL_STONE, T.DAM, T.IWALL, T.IWALL_STONE, T.BATHWALL, T.WALLTOP]);
+const FACES = new Set([T.WALL_WHITE, T.WINDOW, T.DOOR, T.CHURCH_WALL, T.CHURCH_DOOR, T.SHED, T.WALL_STONE, T.DAM, T.IWALL, T.IWALL_STONE, T.BATHWALL, T.WALLTOP, T.GARAGE]);
 G.edgeDetail = function (g, t, x, y, sx, sy) {
   const w = this.world;
   if (T.isWater(t)) {

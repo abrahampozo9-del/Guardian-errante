@@ -3,11 +3,11 @@ const T = {
   VOID: 0, GRASS: 1, DIRT: 2, TRACK: 3, FIELD: 4, SAND: 5, ASPHALT: 6, PAVING: 7, CONCRETE: 8, TERRACE: 9, WATER: 10, DEEP: 11,
   CLIFF: 12, MOUNTAIN: 13, WALL_WHITE: 14, WALL_STONE: 15, WINDOW: 16, DOOR: 17, ROOF: 18, ROOF_SOLAR: 19, SHED: 20, DRYWALL: 21,
   BRAMBLE: 22, DAM: 23, BRIDGE: 24, FLOOR: 25, IWALL: 26, IWALL_STONE: 27, BATHWALL: 28, WALLTOP: 29, STAIRS: 30, CHURCH_WALL: 31,
-  CHURCH_DOOR: 32, BARRICADE: 33, GRASS_GREEN: 34, ROOF_DARK: 35, PORCH: 36, CHURCH_ROOF: 37, BATHFLOOR: 38, IWALL_HI: 39, COUNT: 40
+  CHURCH_DOOR: 32, BARRICADE: 33, GRASS_GREEN: 34, ROOF_DARK: 35, PORCH: 36, CHURCH_ROOF: 37, BATHFLOOR: 38, IWALL_HI: 39, GARAGE: 40, COUNT: 41
 };
 T.SOLID = new Array(T.COUNT).fill(false);
 for (const s of [T.VOID, T.WATER, T.DEEP, T.CLIFF, T.MOUNTAIN, T.WALL_WHITE, T.WALL_STONE, T.WINDOW, T.ROOF, T.ROOF_SOLAR, T.SHED, T.DRYWALL,
-  T.BRAMBLE, T.DAM, T.IWALL, T.IWALL_STONE, T.BATHWALL, T.WALLTOP, T.CHURCH_WALL, T.BARRICADE, T.ROOF_DARK, T.CHURCH_ROOF, T.IWALL_HI]) T.SOLID[s] = true;
+  T.BRAMBLE, T.DAM, T.IWALL, T.IWALL_STONE, T.BATHWALL, T.WALLTOP, T.CHURCH_WALL, T.BARRICADE, T.ROOF_DARK, T.CHURCH_ROOF, T.IWALL_HI, T.GARAGE]) T.SOLID[s] = true;
 T.isWater = t => t === T.WATER || t === T.DEEP;
 
 // ====================================================================== dibujos (generados por código)
@@ -189,6 +189,11 @@ const Art = { tiles: [], tileColor: [], P: {}, people: {} };
         r(b, 3, 4, 10, 12, 0x6a3e1e); ov(b, 8, 5, 5, 2.8, 0x6a3e1e);
         r(b, 8, 3, 1, 13, 0x4a2a14);
         for (let y = 6; y < 16; y += 3) { p(b, 5, y, 0xc8b070); p(b, 11, y, 0xc8b070); }
+        break;
+      case T.GARAGE:
+        r(b, 0, 0, 16, 16, 0x8a8d92);
+        for (let y = 1; y < 16; y += 3) { r(b, 0, y, 16, 1, 0x6a6d72); r(b, 0, y + 1, 16, 1, 0xa2a5aa); }
+        speck(b, 0, 0, 16, 16, 0x7a7d82, 0.08, R);
         break;
       case T.BARRICADE:
         r(b, 0, 0, 16, 16, 0x8f897c);
@@ -588,6 +593,47 @@ const Art = { tiles: [], tileColor: [], P: {}, people: {} };
   }
 
   function makeInterior(rr) {
+
+    {
+      // Estanterías llenas de libros (habitación 1)
+      const lomos = [0xa83a2a, 0x2a4a8a, 0xe0c890, 0x3a6a3a, 0x6a3a6a, 0xc87a30, 0x2a2a2a, 0xd8d0c0, 0x8a5a2e, 0x4a7a8a];
+      for (let v = 0; v < 2; v++) {
+        const e = img(32, 36);
+        r(e, 0, 0, 32, 36, 0x5a3418); r(e, 1, 1, 30, 34, 0x3a2010);
+        for (let sh = 0; sh < 4; sh++) {
+          const y0 = 2 + sh * 8;
+          r(e, 1, y0 + 7, 30, 1, 0x6a4024);
+          let x = 2;
+          while (x < 30) {
+            const w = 1 + rr.int(3), h = 4 + rr.int(3), c = lomos[rr.int(lomos.length)];
+            if (rr.next() < 0.12 && x < 26) { r(e, x, y0 + 5, 4, 2, c); x += 5; continue; }
+            r(e, x, y0 + 7 - h, w, h, c); p(e, x, y0 + 7 - h, Px.shade(c, 1.3)); x += w;
+          }
+        }
+        outline(e, 0x1a0e06); put('estanteria' + v, e);
+      }
+      for (let v = 0; v < 2; v++) {
+        const pl = img(16, 16);
+        let y = 14;
+        for (let i = 0; i < 4 + v * 2; i++) { const w = 9 + rr.int(4), x = 3 + rr.int(3) - 1, c = lomos[rr.int(lomos.length)]; r(pl, x, y - 2, w, 2, c); r(pl, x, y - 2, w, 1, Px.shade(c, 1.25)); y -= 2; }
+        outline(pl, 0x1a0e06); put('pila_libros' + v, pl);
+      }
+      // Chimenea de piedra en la pared izquierda del salón, vista de lado
+      const ch = img(18, 50);
+      voronoi(ch, 0, 0, 12, 50, 9, [0xc9a46c, 0xb48e56, 0xd6b47c, 0xa88650], 0x8a6e48, rr);
+      r(ch, 8, 16, 10, 26, 0x6a5040); r(ch, 9, 18, 8, 22, 0x1a1210);
+      ov(ch, 12, 33, 3, 5, 0xe86a20); ov(ch, 12, 35, 2, 3, 0xf8b030); ov(ch, 12, 37, 1, 1.5, 0xfff0a0);
+      r(ch, 10, 38, 6, 2, 0x5a3a20);
+      r(ch, 8, 14, 10, 3, 0x8a6a4a); r(ch, 8, 42, 10, 3, 0x8a6a4a);
+      outline(ch, 0x3a2a1a); put('chimenea_lat', ch);
+      // Encimera de cocina pegada a la pared derecha (vista de arriba)
+      const en = img(16, 16);
+      r(en, 0, 0, 16, 16, 0x8a8a86); speck(en, 0, 0, 16, 16, 0x5a5a56, 0.4, rr); speck(en, 0, 0, 16, 16, 0xc0c0bc, 0.2, rr);
+      r(en, 0, 0, 2, 16, 0x6a6a66); r(en, 14, 0, 2, 16, 0x7a4a26);
+      put('encimera_lat', en);
+      const fr = Px.copy(en); r(fr, 3, 3, 9, 10, 0xb8bcc0); r(fr, 4, 4, 7, 8, 0x8a9094); r(fr, 12, 7, 2, 2, 0xd0d0d0); put('fregadero_lat', fr);
+      const fo = Px.copy(en); for (const [x, y] of [[5, 4], [10, 4], [5, 11], [10, 11]]) { ov(fo, x, y, 2.5, 2.5, 0x2a2a2a); ov(fo, x, y, 1.2, 1.2, 0x5a5a5a); } put('fogones_lat', fo);
+    }
     put('cama_gris', bed(0x8e939e, 0xc8ccd4, 0x1e1e22, true));
     put('cama_rosa', bed(0xd8b0c0, 0xece4e8, 0xb89870, false));
     put('cama_blanca', bed(0xf0eee8, 0xffffff, 0xc8a878, false));
@@ -662,13 +708,13 @@ const Art = { tiles: [], tileColor: [], P: {}, people: {} };
       ov(t, 52, 20, 3, 2.5, 0x5a8a3a); r(t, 30, 21, 6, 2, 0x4a9a3a);
       r(t, 6, 29, 2, 5, 0x5a3420); r(t, 56, 29, 2, 5, 0x5a3420);
       for (let x = 6; x < 60; x += 12) { r(t, x, 0, 6, 4, 0x6a4024); r(t, x, 30, 6, 4, 0x6a4024); }
-      outline(t, 0x3a2414); put('mesa_larga', t);
+      outline(t, 0x3a2414); put('mesa_larga', t); put('mesa_larga_v', Px.rot90(t));
     }
     {
       const s = img(48, 18);
       r(s, 0, 0, 48, 7, 0x1e2230); r(s, 0, 7, 48, 9, 0x2a3044); r(s, 0, 7, 48, 1, 0x3a4258); for (let x = 16; x < 48; x += 16) r(s, x, 8, 1, 8, 0x1a1e2a);
       r(s, 0, 2, 3, 14, 0x1e2230); r(s, 45, 2, 3, 14, 0x1e2230);
-      outline(s, 0x0a0c12); put('sofa_n', Px.flipV(s));
+      outline(s, 0x0a0c12); put('sofa_n', Px.flipV(s)); put('sofa', s); put('sofa_v', Px.rot90(s));
       const m = img(34, 30);
       ov(m, 17, 14, 16, 12, 0xd8d8d8); ov(m, 17, 13, 15, 10.5, 0xf0f0ee);
       r(m, 3, 18, 28, 10, 0xd0d0d4); for (let x = 4; x < 31; x += 4) r(m, x, 22, 1, 6, 0xa8a8b0);

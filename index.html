@@ -196,11 +196,11 @@ const T = {
   VOID: 0, GRASS: 1, DIRT: 2, TRACK: 3, FIELD: 4, SAND: 5, ASPHALT: 6, PAVING: 7, CONCRETE: 8, TERRACE: 9, WATER: 10, DEEP: 11,
   CLIFF: 12, MOUNTAIN: 13, WALL_WHITE: 14, WALL_STONE: 15, WINDOW: 16, DOOR: 17, ROOF: 18, ROOF_SOLAR: 19, SHED: 20, DRYWALL: 21,
   BRAMBLE: 22, DAM: 23, BRIDGE: 24, FLOOR: 25, IWALL: 26, IWALL_STONE: 27, BATHWALL: 28, WALLTOP: 29, STAIRS: 30, CHURCH_WALL: 31,
-  CHURCH_DOOR: 32, BARRICADE: 33, GRASS_GREEN: 34, ROOF_DARK: 35, PORCH: 36, CHURCH_ROOF: 37, BATHFLOOR: 38, IWALL_HI: 39, GARAGE: 40, COUNT: 41
+  CHURCH_DOOR: 32, BARRICADE: 33, GRASS_GREEN: 34, ROOF_DARK: 35, PORCH: 36, CHURCH_ROOF: 37, BATHFLOOR: 38, IWALL_HI: 39, GARAGE: 40, PRETIL: 41, COUNT: 42
 };
 T.SOLID = new Array(T.COUNT).fill(false);
 for (const s of [T.VOID, T.WATER, T.DEEP, T.CLIFF, T.MOUNTAIN, T.WALL_WHITE, T.WALL_STONE, T.WINDOW, T.ROOF, T.ROOF_SOLAR, T.SHED, T.DRYWALL,
-  T.BRAMBLE, T.DAM, T.IWALL, T.IWALL_STONE, T.BATHWALL, T.WALLTOP, T.CHURCH_WALL, T.BARRICADE, T.ROOF_DARK, T.CHURCH_ROOF, T.IWALL_HI, T.GARAGE]) T.SOLID[s] = true;
+  T.BRAMBLE, T.DAM, T.IWALL, T.IWALL_STONE, T.BATHWALL, T.WALLTOP, T.CHURCH_WALL, T.BARRICADE, T.ROOF_DARK, T.CHURCH_ROOF, T.IWALL_HI, T.GARAGE, T.PRETIL]) T.SOLID[s] = true;
 T.isWater = t => t === T.WATER || t === T.DEEP;
 
 // ====================================================================== dibujos (generados por código)
@@ -343,6 +343,14 @@ const Art = { tiles: [], tileColor: [], P: {}, people: {} };
         for (let y = 0; y < 16; y += 5) r(b, 0, y, 16, 1, 0x948260);
         for (let y = 0; y < 16; y += 5) for (let x = (y % 2) * 3; x < 16; x += 6) r(b, x, y, 1, 5, 0x948260);
         speck(b, 0, 0, 16, 16, 0xcbb994, 0.15, R);
+        break;
+      case T.PRETIL: // pretil de piedra del puente viejo: losa de remate y sillares
+        r(b, 0, 0, 16, 16, 0xb8a47e);
+        voronoi(b, 0, 5, 16, 9, 4, [0xb0a088, 0x9e8e74, 0xc2b296], 0x6e6250, R);
+        r(b, 0, 2, 16, 3, 0xd6ccb4); r(b, 0, 2, 16, 1, 0xeee6d2); r(b, 0, 5, 16, 1, 0x8a7c64);
+        for (let x = 4; x < 16; x += 8) r(b, x, 2, 1, 3, 0xa89c84);
+        r(b, 0, 14, 16, 2, 0x5a5040);
+        speck(b, 0, 6, 16, 8, 0x7a8a4a, 0.05, R);
         break;
       case T.PORCH: voronoi(b, 0, 0, 16, 16, 6, [0xc8b6a4, 0xbaa794, 0xd2c2b0], 0x968472, R); break;
       case T.FLOOR:
@@ -1216,7 +1224,10 @@ const WG = (function () {
   }
   const riverBase = y => 160 - (y - 43) * 0.17 + 3 * Math.sin(y * 0.11) + 1.5 * Math.sin(y * 0.31 + 1);
   function riverX(y) { const k = plateau(y, 109, 13, 6); return riverBase(y) * (1 - k) + Math.round(riverBase(109)) * k; }
-  function floorW(y) { return 4 + 2 * fbm(3, y, 50) + 13 * plateau(y, 109, 9, 6) + 5 * plateau(y, 57, 4, 4); }
+  // la ribera alrededor del cortijo es un valle abierto: fondo ancho y laderas suaves con bancales
+  const gentleK = y => plateau(y, 117, 30, 10);
+  function floorW(y) { return 4 + 2 * fbm(3, y, 50) + 13 * plateau(y, 109, 9, 6) + 5 * plateau(y, 57, 4, 4) + 8 * plateau(y, 117, 28, 8); }
+  const SLOPE = 15;
   G.riverX = riverX; G.floorW = floorW;
 
   const R_OLIV = A('Olivares de Pozo Alcón', 0, 0, 0, 0), R_BARR = A('Valle del Guadalentín', 0, 0, 0, 0), R_CARC = A('Cárcavas del Guadalentín', 0, 0, 0, 0),
@@ -1227,8 +1238,9 @@ const WG = (function () {
     if ((x < 62 && y < 84) || (x < 112 && y < 28)) return R_SIER;
     if (y >= 43) {
       const cx = riverX(y), fw = floorW(y), d = x - cx;
-      if (Math.abs(d) <= fw + 3) return y < 64 ? R_NORTE : R_BARR;
-      if (d > 0) return d <= fw + 28 ? R_CARC : R_LLAN;
+      const g = gentleK(y) > 0.5;
+      if (Math.abs(d) <= fw + (g ? SLOPE + 1 : 3)) return y < 64 ? R_NORTE : R_BARR;
+      if (d > 0) return d <= fw + (g ? SLOPE + 18 : 28) ? R_CARC : R_LLAN;
     }
     if (y < 64) return R_NORTE;
     return R_OLIV;
@@ -1268,8 +1280,17 @@ const WG = (function () {
       const n = fbm(x, y, 1);
       let t = n > 0.62 ? T.DIRT : T.GRASS;
       if (y >= 43) {
-        const cx = riverX(y), fw = floorW(y), d = x - cx, wall = 3 + fbm(x, y, 9) * 1.6;
-        if (Math.abs(d) <= fw) t = Math.abs(d) < 3.5 ? T.GRASS_GREEN : (n > 0.55 ? T.DIRT : T.GRASS_GREEN);
+        const cx = riverX(y), fw = floorW(y), d = x - cx, g = gentleK(y) > 0.5, wall = g ? SLOPE : 3 + fbm(x, y, 9) * 1.6;
+        if (Math.abs(d) <= fw) {
+          t = Math.abs(d) < 3.5 || g ? (n > 0.66 ? T.GRASS : T.GRASS_GREEN) : (n > 0.55 ? T.DIRT : T.GRASS_GREEN);
+          if (g && Math.abs(d) > 6 && fbm(x * 1.4, y * 1.4, 91) > 0.66) t = T.FIELD; // huertas en el fondo del valle
+        }
+        else if (g && Math.abs(d) <= fw + wall) {
+          // ladera en bancales: muros de piedra seca siguiendo el valle, con pasos cada pocas casillas
+          const k = Math.floor(Math.abs(d) - fw);
+          t = n > 0.56 ? T.DIRT : T.GRASS;
+          if (k % 5 === 2 && k < SLOPE - 1 && (y + k * 3) % 9 > 1) t = T.DRYWALL;
+        }
         else if (Math.abs(d) <= fw + wall) t = T.CLIFF;
         else if (d > 0) {
           const bw = 22 + fbm(1, y, 3) * 8;
@@ -1320,8 +1341,10 @@ const WG = (function () {
     const rx = G.rx = Math.round(riverX(109));
     const brY = 99;
     road(w, [[100, 101], [112, 102], [124, 100], [136, 99], [rx - 2, 99]], 2, T.TRACK);
-    for (let x = rx - 2; x <= rx + 3; x++) for (let y = brY; y <= brY + 1; y++) w.set(x, y, T.isWater(w.get(x, y)) ? T.BRIDGE : T.TRACK);
-    for (let x = rx - 2; x <= rx + 1; x++) { if (T.isWater(w.get(x, brY - 1))) w.set(x, brY - 1, T.DRYWALL); if (T.isWater(w.get(x, brY + 2))) w.set(x, brY + 2, T.DRYWALL); }
+    // el puente viejo: tablero de piedra con pretiles a ambos lados
+    for (let x = rx - 3; x <= rx + 3; x++) for (let y = brY; y <= brY + 1; y++) w.set(x, y, x <= rx + 1 ? T.BRIDGE : T.TRACK);
+    for (let x = rx - 3; x <= rx + 1; x++) { w.set(x, brY - 1, T.PRETIL); w.set(x, brY + 2, T.PRETIL); reserved[(brY - 1) * OW_W + x] = reserved[(brY + 2) * OW_W + x] = 1; }
+    G.bridgeX = rx - 1; G.bridgeY = brY;
     for (let y = brY; y <= 110; y++) for (let x = rx + 2; x <= rx + 3; x++) w.set(x, y, T.TRACK);
     road(w, [[66, 120], [80, 124], [96, 130], [112, 132]], 2, T.TRACK);
     road(w, [[68, 96], [80, 92], [92, 86], [100, 86]], 2, T.TRACK);
@@ -1340,6 +1363,7 @@ const WG = (function () {
 
     buildTown(w);
     buildCortijo(w);
+    buildCasaBlanca(w);
 
     // La Linde Negra
     for (let y = 64; y <= 65; y++) for (let x = 56; x < OW_W; x++) {
@@ -1380,9 +1404,21 @@ const WG = (function () {
     w.pickups.push(new Pickup(Pickup.RELIC, 74 * 16 + 8, 44 * 16 + 8, 'reliquia_sierra'));
     clearAround(w, 182, 152, 1); clearAround(w, 74, 44, 1);
     scatter(w);
+    // siempre queda una senda libre por la orilla este, para que ningún árbol cierre el valle
+    for (let y = 44; y < OW_H - 1; y++) {
+      const rc = Math.round(riverX(y));
+      for (const x of [rc + 2, rc + 3]) {
+        if (T.SOLID[w.get(x, y)]) continue;
+        const before = w.props.length;
+        w.props = w.props.filter(pp => pp.id || !(Math.floor(pp.x / 16) === x && Math.floor((pp.y - 1) / 16) === y));
+        if (w.props.length !== before) w.unblock(x, y, 1, 1);
+      }
+    }
     for (let x = 0; x < OW_W; x++) { w.set(x, 0, T.MOUNTAIN); w.set(x, OW_H - 1, T.MOUNTAIN); }
     for (let y = 0; y < OW_H; y++) { w.set(0, y, T.MOUNTAIN); w.set(OW_W - 1, y, T.MOUNTAIN); }
     const cort = A('Cortijo Río Guadalentín', rx - 6, 96, 26, 26); cort.noSpawn = true; w.areas.push(cort);
+    const pv = A('Puente Viejo', rx - 4, 97, 7, 5); pv.noSpawn = true; w.areas.push(pv);
+    const cb = A('Casa blanca del puente', rx - 14, 90, 9, 8); cb.noSpawn = true; w.areas.push(cb);
     const church = A('Iglesia de la Encarnación', 29, 86, 23, 16); church.safe = true; w.areas.push(church);
     w.areas.push(A('Plaza del Ayuntamiento', 42, 112, 11, 7));
     w.areas.push(A('Ermita de Santa Ana', 16, 125, 12, 10));
@@ -1577,6 +1613,9 @@ const WG = (function () {
     w.prop('furgo', rx + 6, 118, rx + 5, 118, 2, 1);
     w.prop('todoterreno', rx + 9, 119, rx + 8, 119, 2, 1);
     w.fill(hx0 + 8, 110, 3, 3, T.FIELD);
+    // la alberca que se ve desde la ventana
+    w.fill(hx1 - 1, 118, 5, 3, T.CONCRETE); w.fill(hx1, 119, 3, 1, T.WATER);
+    w.props = w.props.filter(pp => !(pp.x / 16 >= hx1 - 1 && pp.x / 16 < hx1 + 4 && pp.y / 16 >= 118 && pp.y / 16 < 121.5));
     w.pickups.push(new Pickup(Pickup.HERB, (hx0 + 8) * 16 + 8, 110 * 16 + 10, null));
     w.pickups.push(new Pickup(Pickup.HERB, (hx0 + 10) * 16 + 8, 112 * 16 + 10, null));
     w.npcs.push(new Npc('Gato', 'gato', null, Art.cat, null, (hx0 + 1) * 16 + 6, 107 * 16 + 6));
@@ -1584,6 +1623,24 @@ const WG = (function () {
     w.block(hx0 + 5, 109, 1, 1);
     w.warps.push(new Warp(G.doorX, G.doorY, 1, 1, 'casa_baja', 9 * 16 + 8, 11 * 16 + 4, 1));
     G.questSpawns = [[rx - 3, 116], [rx + 1, 119], [rx + 7, 120], [rx - 4, 101], [rx + 12, 118], [rx - 6, 117]];
+  }
+
+  // La casa blanca al otro lado del puente (como en la foto): sola, encalada, con la parra y el pozo
+  function buildCasaBlanca(w) {
+    const rx = G.rx, x0 = rx - 13, x1 = rx - 7, y0 = 91;
+    for (let y = y0 - 1; y <= y0 + 6; y++) for (let x = x0 - 1; x <= x1 + 1; x++) { w.set(x, y, T.GRASS_GREEN); reserved[y * OW_W + x] = 1; }
+    for (let y = y0; y <= y0 + 2; y++) for (let x = x0; x <= x1; x++) w.set(x, y, T.ROOF);
+    for (let x = x0; x <= x1; x++) { w.set(x, y0 + 3, T.WALL_WHITE); w.set(x, y0 + 4, T.WALL_WHITE); }
+    w.set(x0 + 1, y0 + 3, T.WINDOW); w.set(x1 - 1, y0 + 3, T.WINDOW); w.set(x0 + 1, y0 + 4, T.WINDOW);
+    w.set(x0 + 4, y0 + 4, T.DOOR);
+    const door = w.prop('compuerta', x0 + 4, y0 + 4); door.hidden = true; door.id = 'casablanca';
+    w.fill(x0, y0 + 5, x1 - x0 + 1, 1, T.PORCH);
+    w.fill(x0 + 3, y0 + 6, 3, 2, T.TRACK);
+    w.prop('pilar', x0 + 2, y0 + 5, x0 + 2, y0 + 5, 1, 1);
+    w.prop('pilar', x0 + 6, y0 + 5, x0 + 6, y0 + 5, 1, 1);
+    w.prop('cipres', x1 + 1, y0 + 2, x1 + 1, y0 + 2, 1, 1);
+    w.prop('higuera1', x0 - 1, y0 + 6, x0 - 1, y0 + 6, 1, 1);
+    w.prop('chatarra' + 2, x1 + 0.5, y0 + 6, x1, y0 + 6, 2, 1);
   }
 
   function scatter(w) {
@@ -1595,6 +1652,24 @@ const WG = (function () {
       const sierra = (x < 62 && y < 84) || (x < 112 && y < 28);
       const reg = region(x, y), n = fbm(x, y, 41);
       if (sierra) { if (r.next() < 0.22) w.prop('pino' + r.int(3), x, y, x, y, 1, 1); continue; }
+      if (reg === R_BARR && gentleK(y) > 0.5) {
+        const dr = Math.abs(x - riverX(y)), k = dr - floorW(y);
+        if (k > 0) { // ladera: olivos y almendros en hileras entre bancales
+          const kk = Math.floor(k) % 5;
+          if ((kk === 0 || kk === 4) && y % 2 === 0 && r.next() < 0.8) w.prop(fbm(x, y, 70) > 0.55 ? 'almendro' + r.int(2) : 'olivo' + r.int(3), x, y, x, y, 1, 1);
+          else if (r.next() < 0.03) w.prop('retama' + r.int(3), x, y, x, y, 1, 1);
+          continue;
+        }
+        // fondo del valle: chopos y sauces junto al agua, hierba abierta
+        if (t === T.FIELD) { if (x % 2 === 0 && y % 2 === 1 && r.next() < 0.5) w.prop('canas', x, y); continue; }
+        if (dr > 6 && fbm(x * 1.2, y * 1.2, 90) > 0.62) { if (x % 3 === 0 && y % 3 === 0 && r.next() < 0.9) w.prop('chopo' + r.int(2), x, y, x, y, 1, 1); continue; } // chopera
+        if (dr < 4.5 && !nearWater(w, x, y) && r.next() < 0.16) w.prop('chopo' + r.int(2), x, y, x, y, 1, 1);
+        else if (dr < 3 && r.next() < 0.1) w.prop('canas', x, y);
+        else if (dr < 7 && r.next() < 0.03) w.prop('sauce', x, y, x, y, 1, 1);
+        else if (r.next() < 0.012) w.prop('retama' + r.int(3), x, y, x, y, 1, 1);
+        else if (r.next() < 0.006) w.pickups.push(new Pickup(Pickup.HERB, x * 16 + 8, y * 16 + 10, null));
+        continue;
+      }
       if (reg === R_BARR || (reg === R_NORTE && Math.abs(x - riverX(y)) <= floorW(y))) {
         const dr = Math.abs(x - riverX(y));
         if (dr < 4 && r.next() < 0.07 && !nearWater(w, x, y)) w.prop('chopo' + r.int(2), x, y, x, y, 1, 1);
@@ -1773,6 +1848,8 @@ class Player extends Entity {
     this.maxHp = this.hp = 100; this.maxFe = this.fe = 60; this.lvl = 1; this.xp = 0; this.atk = 12; this.herbs = 0; this.relics = 0;
     this.feAcc = 0; this.hasSword = false; this.atkT = 0; this.atkCool = 0; this.invul = 0; this.prayT = 0; this.hitSet = new Set();
     this.rollT = 0; this.rollCool = 0; this.rollX = 0; this.rollY = 0; this.poison = 0; this.poisonAcc = 0;
+    this.pts = 0; this.skills = new Set(); this.combo = 0; this.lastAtk = -9; this.atkKind = 'slash'; this.charge = 0; this.spinT = 0;
+    this.nextCrit = false; this.shieldT = 0; this.alientoUsed = false; this.dodgeDone = false;
   }
   xpNext() { return Math.floor(25 + 22 * Math.pow(this.lvl, 1.45)); }
   canLight() { return this.lvl >= 3; }
@@ -1950,6 +2027,7 @@ class Monster extends Entity {
       const cx = this.x + this.ax * 13, cy = this.y - 6 + this.ay * 13;
       hit = Math.hypot(p.x - cx, p.y - 8 - cy) < 15;
     }
+    if (hit && !this.hitDone && p.rolling && !p.dead) { this.hitDone = true; g.perfectDodge(); }
     if (hit && !this.hitDone && p.invul <= 0 && !p.dead) {
       this.hitDone = true;
       g.hurtPlayer(this.dmg, this.x, this.y, this.kind === MK.ALACRAN ? 4 : 0);
@@ -2170,7 +2248,7 @@ const G = {
   lastArea: '', banner: '', bannerT: 0, toastS: '', toastT: 0, titleT: 0, menuIdx: 0, hasSave: false,
   dlg: [], page: null, dlgChars: 0, dlgEnd: null, introPages: null, introIdx: 0, introChars: 0, endPages: null, endIdx: 0,
   keys: new Set(), queue: new Set(), just: new Set(), stick: { x: 0, y: 0 }, menuRects: [],
-  rnd: RNG(12345),
+  rnd: RNG(12345), waves: [], hitStop: 0, slowT: 0, skillSel: 0,
 };
 
 // --------------------------------------------------------------------- entrada
@@ -2206,7 +2284,12 @@ G.update = function (dt) {
     case ST.HELP: if (this.confirm() || this.pressed('Escape')) this.st = this.helpBack || ST.TITLE; break;
     case ST.INTRO: this.updateIntro(dt); break;
     case ST.CINE: this.updateCine(dt); break;
-    case ST.PLAY: this.updatePlay(dt); break;
+    case ST.PLAY:
+      if (this.hitStop > 0) this.hitStop -= dt;
+      else this.updatePlay(this.slowT > 0 ? dt * 0.35 : dt);
+      if (this.slowT > 0) this.slowT -= dt;
+      break;
+    case ST.SKILLS: this.updateSkills(); this.clock += dt; break;
     case ST.DIALOG: this.updateDialog(dt); this.updateFx(dt); this.clock += dt; break;
     case ST.MAP: if (this.pressed('KeyM', 'Escape', 'Tab', 'Enter', 'Tap', 'Space', 'KeyE')) this.st = ST.PLAY; break;
     case ST.PAUSE: this.updatePause(); break;
@@ -2269,17 +2352,18 @@ G.newGame = function () {
   this.say('Guardián', 'Otra mañana en el cortijo. La red eléctrica cayó hace siete años, pero las placas y las baterías dan luz de sobra: nevera, tele, ventilador... Lo que ya no hay es nadie al otro lado.',
     'Mi espada está en el baúl del rellano. Ya no salgo de casa sin ella.');
 };
-G.pauseMenu = function () { return ['Continuar', 'Guardar partida', 'Controles', Sound.musicOn ? 'Música: sí' : 'Música: no', 'Salir al título']; };
+G.pauseMenu = function () { return ['Continuar', 'Habilidades' + (this.player.pts > 0 ? ' (' + this.player.pts + ')' : ''), 'Guardar partida', 'Controles', Sound.musicOn ? 'Música: sí' : 'Música: no', 'Salir al título']; };
 G.updatePause = function () {
   const m = this.pauseMenu();
   if (this.pressed('Escape', 'KeyP')) { this.st = ST.PLAY; return; }
   if (this.menuNav(m)) {
     switch (this.menuIdx) {
       case 0: this.st = ST.PLAY; break;
-      case 1: this.save(); this.toast('Partida guardada'); this.st = ST.PLAY; break;
-      case 2: this.helpBack = ST.PAUSE; this.st = ST.HELP; break;
-      case 3: Sound.toggle(); break;
-      case 4: this.st = ST.TITLE; this.menuIdx = 0; this.hasSave = !!this.readSave(); Sound.music('calma'); break;
+      case 1: this.openSkills(); break;
+      case 2: this.save(); this.toast('Partida guardada'); this.st = ST.PLAY; break;
+      case 3: this.helpBack = ST.PAUSE; this.st = ST.HELP; break;
+      case 4: Sound.toggle(); break;
+      case 5: this.st = ST.TITLE; this.menuIdx = 0; this.hasSave = !!this.readSave(); Sound.music('calma'); break;
     }
   }
 };
@@ -2309,14 +2393,12 @@ G.updatePlay = function (dt) {
   if (this.down('ArrowRight', 'KeyD')) ix += 1;
   if (this.down('ArrowUp', 'KeyW')) iy -= 1;
   if (this.down('ArrowDown', 'KeyS')) iy += 1;
-  if (this.pressed('Space', 'KeyJ')) {
-    if (!p.hasSword) this.toast('No llevas la espada. Está en el baúl del rellano.');
-    else if (p.atkCool <= 0) { p.atkT = 0.24; p.atkCool = 0.36; p.hitSet.clear(); Sound.play('swing'); }
-  }
+  if (this.pressed('KeyH', 'Skills')) { this.openSkills(); return; }
+  if (this.pressed('Space', 'KeyJ')) this.attackPress();
   if (this.pressed('ShiftLeft', 'ShiftRight', 'KeyX', 'Roll') && p.rollCool <= 0 && p.kbT <= 0) {
     let rx = ix, ry = iy; const rl = Math.hypot(rx, ry);
     if (rl < 0.25) { rx = [0, 0, -1, 1][p.dir]; ry = [1, -1, 0, 0][p.dir]; } else { rx /= rl; ry /= rl; }
-    p.rollT = 0.3; p.rollCool = 0.65; p.rollX = rx; p.rollY = ry; p.invul = Math.max(p.invul, 0.32); p.atkT = 0; p.rolling = true;
+    p.rollT = 0.3; p.rollCool = this.has('ligero') ? 0.35 : 0.65; p.rollX = rx; p.rollY = ry; p.invul = Math.max(p.invul, 0.32); p.atkT = 0; p.charge = 0; p.rolling = true; p.dodgeDone = false;
     Sound.play('swing');
   }
   if (this.pressed('KeyK', 'Digit1')) this.pray();
@@ -2336,32 +2418,20 @@ G.updatePlay = function (dt) {
   const len = Math.hypot(ix, iy);
   if (p.rollT > 0) {
     p.rollT -= dt;
-    p.move(w, p.rollX * 175 * dt, p.rollY * 175 * dt);
+    p.move(w, p.rollX * (this.has('ligero') ? 190 : 175) * dt, p.rollY * (this.has('ligero') ? 190 : 175) * dt);
     if (this.rnd.next() < 0.5) this.fx.push(Fx.spark(p.x + this.rnd.gauss() * 3, p.y, this.rnd.gauss() * 10, -8, 0xc8b898, 0.35));
     p.moving = true; p.anim += dt * 2;
     if (p.rollT <= 0) p.rolling = false;
   } else
   if ((p.moving = len > 0.25 && p.kbT <= 0)) {
-    const sp = 74 * (p.atkT > 0 ? 0.45 : 1) * Math.min(1, len);
+    const sp = 74 * (this.has('ligero') ? 1.12 : 1) * (p.atkT > 0 || p.charge > 0.2 ? 0.45 : 1) * Math.min(1, len);
     if (p.atkT <= 0) p.faceTo(ix, iy);
     p.move(w, ix / len * sp * dt, iy / len * sp * dt);
     p.anim += dt;
   } else p.anim = 0;
-  p.feAcc += dt * (this.isNight() ? 1.0 : 1.6);
+  p.feAcc += dt * (this.isNight() ? 1.0 : 1.6) * (this.has('fervor') ? 2 : 1);
   while (p.feAcc >= 1) { p.feAcc -= 1; if (p.fe < p.maxFe) p.fe++; }
-  if (p.atkT > 0.04 && p.atkT < 0.21) {
-    const c = this.swordCenter();
-    for (const m of w.monsters) {
-      if (m.dead || p.hitSet.has(m)) continue;
-      if (Math.hypot(m.x - c[0], (m.y - 6) - c[1]) < 15 + m.hw) {
-        p.hitSet.add(m);
-        let d = p.atk + this.rnd.int(5) - 1;
-        const crit = this.rnd.next() < 0.1;
-        if (crit) d *= 2;
-        this.damageMonster(m, d, crit, m.x - p.x, m.y - p.y);
-      }
-    }
-  }
+  this.updateCombat(dt);
   const ptx = Math.floor(p.x / TS), pty = Math.floor(p.y / TS);
   for (const wp of w.warps) {
     if (ptx >= wp.x && ptx < wp.x + wp.w && pty >= wp.y && pty < wp.y + wp.h) { Sound.play('door'); this.enter(wp.to, wp.tx, wp.ty, wp.dir); return; }
@@ -2377,6 +2447,7 @@ G.updatePlay = function (dt) {
     o.x += o.vx * dt; o.y += o.vy * dt; o.life -= dt;
     const tx = Math.floor(o.x / TS), ty = Math.floor(o.y / TS);
     let gone = o.life <= 0 || (w.solid(tx, ty) && !T.isWater(w.get(tx, ty)));
+    if (!gone && p.rolling && Math.hypot(o.x - p.x, o.y - (p.y - 8)) < 10) this.perfectDodge();
     if (!gone && p.invul <= 0 && Math.hypot(o.x - p.x, o.y - (p.y - 8)) < 8) { this.hurtPlayer(o.dmg, o.x, o.y); gone = true; }
     if (gone) for (let i = 0; i < 4; i++) this.fx.push(Fx.spark(o.x, o.y, this.rnd.gauss() * 30, this.rnd.gauss() * 30, o.mud ? 0x6a7a3a : 0x50d8c8, 0.3));
     return !gone;
@@ -2387,9 +2458,9 @@ G.updatePlay = function (dt) {
   const an = w.areaName(ptx, pty);
   if (an !== this.lastArea) { this.lastArea = an; this.banner = an; this.bannerT = 2.6; }
 };
-G.swordCenter = function () {
+G.swordCenter = function (r = 15) {
   const p = this.player;
-  return [[p.x, p.y + 6], [p.x, p.y - 22], [p.x - 15, p.y - 8], [p.x + 15, p.y - 8]][p.dir];
+  return [[p.x, p.y - 8 + r - 1], [p.x, p.y - 8 - r + 1], [p.x - r, p.y - 8], [p.x + r, p.y - 8]][p.dir];
 };
 G.damageMonster = function (m, d, crit, kx, ky) {
   if (!m.vulnerable()) { this.fx.push(Fx.text(m.x, m.y - 14, 'bajo el agua', 0x9ad8d0)); return; }
@@ -2408,7 +2479,7 @@ G.killMonster = function (m) {
   m.dead = true;
   for (let i = 0; i < 14; i++) this.fx.push(Fx.spark(m.x, m.y - 8, this.rnd.gauss() * 60, this.rnd.gauss() * 60 - 30, i % 2 === 0 ? 0x2a2030 : 0x6a5a7a, 0.6));
   this.gainXp(m.xp, m.x, m.y - 28);
-  if (this.rnd.next() < 0.22) this.world.pickups.push(new Pickup(Pickup.HERB, m.x, m.y, null));
+  if (this.rnd.next() < (this.has('herbolario') ? 0.35 : 0.22)) this.world.pickups.push(new Pickup(Pickup.HERB, m.x, m.y, null));
   if (this.stage === 2 && this.world.outdoor) {
     this.questKills++;
     if (this.questKills >= 6) { this.stage = 3; this.save(); this.say('Guardián', 'La ribera está limpia... por ahora.', 'La radio del porche ha vuelto a crepitar. Juraría que he oído una voz.'); }
@@ -2426,32 +2497,43 @@ G.gainXp = function (amount, x, y) {
   this.fx.push(Fx.text(x, y, '+' + amount + ' XP', 0xb0e0ff));
   while (p.xp >= p.xpNext()) {
     p.xp -= p.xpNext(); p.lvl++;
-    p.maxHp += 12; p.maxFe += 6; p.atk += 2; p.hp = p.maxHp; p.fe = p.maxFe;
+    const gain = p.lvl % 5 === 0 ? 2 : 1;
+    p.maxHp += 8; p.maxFe += 4; p.atk += 1; p.hp = p.maxHp; p.fe = p.maxFe; p.pts += gain;
     Sound.play('level');
     this.fx.push(Fx.ring(p.x, p.y - 8, 40, 0xffe080));
-    if (p.lvl === 3) this.say('Guardián', '¡Nivel 3! Siento la luz más fuerte que nunca.', 'Has aprendido LUZ: pulsa L (o el botón Luz) para liberar una onda sagrada que daña a los engendros cercanos. Cuesta 40 de Fe.');
-    else this.toast('¡Nivel ' + p.lvl + '! Vida y Fe al máximo. Ataque +2');
+    const how = this.touch ? 'el botón Hab.' : 'la tecla H';
+    if (p.lvl === 3) this.say('Guardián', '¡Nivel 3! Siento la luz más fuerte que nunca.', 'Has aprendido LUZ: pulsa L (o el botón Luz) para liberar una onda sagrada que daña a los engendros cercanos. Cuesta 40 de Fe.', 'Y tienes un punto de habilidad nuevo: gástalo en el árbol con ' + how + '.');
+    else if (!this.flags.has('tuto_hab')) { this.flags.add('tuto_hab'); this.say('Guardián', '¡Nivel ' + p.lvl + '! Vida y Fe al máximo.', 'Has ganado un punto de habilidad. Ábrelo con ' + how + ': hay tres ramas, Espada, Fe y Camino.'); }
+    else this.toast('¡Nivel ' + p.lvl + '! +' + gain + (gain > 1 ? ' puntos' : ' punto') + ' de habilidad (' + how + ')');
   }
 };
 G.hurtPlayer = function (dmg, fx, fy, poison) {
   const p = this.player;
   if (p.dead) return;
-  if (poison) { p.poison = Math.max(p.poison, poison); this.toast('¡Envenenado! Come hierbas para curarte.'); }
+  if (poison) { p.poison = Math.max(p.poison, this.has('herbolario') ? poison / 2 : poison); this.toast('¡Envenenado! Come hierbas para curarte.'); }
+  if (p.shieldT > 0) dmg = Math.ceil(dmg / 2);
   p.hp -= dmg; p.invul = 0.9; p.flash = 0.2;
   p.knock(p.x - fx, p.y - fy, 160);
   this.shake(0.18);
   this.fx.push(Fx.text(p.x, p.y - 26, '-' + dmg, 0xff6050));
   Sound.play('hurt');
   try { if (navigator.vibrate) navigator.vibrate(40); } catch (e) { }
+  if (p.hp <= 0 && this.has('aliento') && !p.alientoUsed) {
+    p.alientoUsed = true; p.hp = Math.round(p.maxHp * 0.4); p.invul = 1.6;
+    this.fx.push(Fx.ring(p.x, p.y - 8, 50, 0xffe8a0)); Sound.play('purify'); this.toast('¡Segundo aliento! Te levantas.');
+    return;
+  }
   if (p.hp <= 0) { p.hp = 0; p.dead = true; this.deadT = 0; this.st = ST.DEAD; Sound.play('die'); }
 };
 G.shake = function (t) { this.shakeT = Math.max(this.shakeT, t); };
 G.pray = function () {
   const p = this.player;
-  if (p.fe < 25) { this.toast('No te queda Fe suficiente para orar (25).'); return; }
-  if (p.hp >= p.maxHp) { this.toast('No estás herido.'); return; }
-  p.fe -= 25;
-  const h = Math.max(25, Math.floor(p.maxHp * 0.35));
+  const cost = this.has('oracion') ? 18 : 25;
+  if (p.fe < cost) { this.toast('No te queda Fe suficiente para orar (' + cost + ').'); return; }
+  if (p.hp >= p.maxHp && !this.has('escudo')) { this.toast('No estás herido.'); return; }
+  p.fe -= cost;
+  if (this.has('escudo')) p.shieldT = 5;
+  const h = Math.round(Math.max(25, Math.floor(p.maxHp * 0.35)) * (this.has('oracion') ? 1.5 : 1));
   p.hp = Math.min(p.maxHp, p.hp + h); p.prayT = 0.8;
   this.fx.push(Fx.text(p.x, p.y - 30, '+' + h, 0x80ff90));
   for (let i = 0; i < 18; i++) this.fx.push(Fx.spark(p.x + this.rnd.gauss() * 8, p.y - this.rnd.next() * 20, 0, -20 - this.rnd.next() * 30, 0xffe8a0, 0.9));
@@ -2462,17 +2544,23 @@ G.holyLight = function () {
   if (!p.canLight()) { this.toast('Aún no dominas la Luz (nivel 3).'); return; }
   if (p.fe < 40) { this.toast('No te queda Fe suficiente para la Luz (40).'); return; }
   p.fe -= 40;
-  this.fx.push(Fx.ring(p.x, p.y - 8, 64, 0xfff0b0));
+  const R = this.has('ardiente') ? 83 : 64;
+  if (this.has('cruzluz')) p.poison = 0;
+  this.fx.push(Fx.ring(p.x, p.y - 8, R, 0xfff0b0));
   for (let i = 0; i < 24; i++) { const a = i * Math.PI / 12; this.fx.push(Fx.spark(p.x, p.y - 8, Math.cos(a) * 140, Math.sin(a) * 140, 0xfff0b0, 0.4)); }
   Sound.play('light'); this.shake(0.15);
-  for (const m of [...this.world.monsters]) if (!m.dead && Math.hypot(m.x - p.x, m.y - p.y) < 64 + m.hw) this.damageMonster(m, p.atk * 2 + 6, false, m.x - p.x, m.y - p.y);
+  for (const m of [...this.world.monsters]) if (!m.dead && Math.hypot(m.x - p.x, m.y - p.y) < R + m.hw) {
+    this.damageMonster(m, Math.round((p.atk * 2 + 6) * (this.has('ardiente') ? 1.5 : 1)), false, m.x - p.x, m.y - p.y);
+    if (this.has('cruzluz') && !m.dead && m.kind !== MK.BESTIA && m.kind !== MK.NIDO && m.vulnerable()) m.setState('stun', 2);
+  }
 };
 G.eatHerb = function () {
   const p = this.player;
   if (p.herbs <= 0) { this.toast('No te quedan hierbas medicinales.'); return; }
   if (p.hp >= p.maxHp && p.poison <= 0) { this.toast('No estás herido.'); return; }
-  p.herbs--; p.hp = Math.min(p.maxHp, p.hp + 30); p.poison = 0;
-  this.fx.push(Fx.text(p.x, p.y - 30, '+30', 0x80ff90));
+  const hh = this.has('herbolario') ? 55 : 30;
+  p.herbs--; p.hp = Math.min(p.maxHp, p.hp + hh); p.poison = 0;
+  this.fx.push(Fx.text(p.x, p.y - 30, '+' + hh, 0x80ff90));
   Sound.play('heal');
 };
 G.collect = function (k) {
@@ -2705,13 +2793,14 @@ G.use = function (pr) {
       this.restWorld = 'exterior'; this.restX = WG.fireX * TS + 8; this.restY = (WG.fireY + 1) * TS + 10;
       this.rest('Descansas junto a la hoguera de los supervivientes.');
       break;
+    case 'casablanca': this.say('Guardián', 'La casa blanca de enfrente del puente. Era de los vecinos; se fueron el primer invierno del Colapso.', 'Las ventanas están tapiadas por dentro. Alguien las tapió... desde dentro.'); break;
     case 'puerta_iglesia': this.say('Guardián', 'La puerta de la Encarnación está atrancada. Dentro descansan los heridos.'); break;
   }
 };
 G.rest = function (msg) {
   const p = this.player;
   for (const m of this.world.monsters) if (!m.dead && m.dist(p) < 10 * TS && m.aggro) { this.toast('No puedes descansar con engendros cerca.'); return; }
-  p.hp = p.maxHp; p.fe = p.maxFe; p.poison = 0;
+  p.hp = p.maxHp; p.fe = p.maxFe; p.poison = 0; p.alientoUsed = false;
   for (const L of WG.lairs) { L.cleared = false; L.active = false; }
   this.worlds.exterior.monsters = this.worlds.exterior.monsters.filter(m => !m.lair || m.kind === MK.BESTIA);
   if (this.world.id === 'casa_alta') { this.restWorld = 'casa_alta'; this.restX = WG.upStart[0]; this.restY = WG.upStart[1]; }
@@ -2804,7 +2893,8 @@ G.save = function () {
   const p = this.player;
   const d = {
     stage: this.stage, flags: [...this.flags], picked: [...this.picked], hp: p.hp, maxHp: p.maxHp, fe: p.fe, maxFe: p.maxFe, lvl: p.lvl, xp: p.xp, atk: p.atk,
-    herbs: p.herbs, relics: p.relics, sword: p.hasSword, world: this.world.id, x: p.x, y: p.y, restWorld: this.restWorld, restX: this.restX, restY: this.restY, day: this.day, kills: this.questKills
+    herbs: p.herbs, relics: p.relics, sword: p.hasSword, world: this.world.id, x: p.x, y: p.y, restWorld: this.restWorld, restX: this.restX, restY: this.restY, day: this.day, kills: this.questKills,
+    pts: p.pts, skills: [...p.skills]
   };
   try { localStorage.setItem(SAVE_KEY, JSON.stringify(d)); this.hasSave = true; } catch (e) { this.toast('Este navegador no deja guardar la partida.'); }
 };
@@ -2816,6 +2906,7 @@ G.load = function () {
     const p = this.player = new Player();
     this.stage = d.stage; this.flags = new Set(d.flags); this.picked = new Set(d.picked);
     Object.assign(p, { hp: d.hp, maxHp: d.maxHp, fe: d.fe, maxFe: d.maxFe, lvl: d.lvl, xp: d.xp, atk: d.atk, herbs: d.herbs, relics: d.relics, hasSword: d.sword });
+    p.skills = new Set(d.skills || []); p.pts = d.pts !== undefined ? d.pts : Math.max(0, d.lvl - 1);
     this.restWorld = d.restWorld; this.restX = d.restX; this.restY = d.restY; this.day = d.day; this.questKills = d.kills;
     for (const id in this.worlds) { const w = this.worlds[id]; w.pickups = w.pickups.filter(k => !(k.id && this.picked.has(k.id))); }
     if (p.hasSword) for (const pp of this.worlds.casa_alta.props) if (pp.id === 'baul') pp.img = Art.P.baul_abierto;
@@ -3313,6 +3404,216 @@ G.renderCine = function (g) {
   this.text(g, sk, VW - g.measureText(sk).width - 8, 9, DIM);
   this.cineSkip = { x: VW - 56, y: 0, w: 56, h: 18 };
 };
+// ====================================================================== árbol de habilidades y combate avanzado
+// Tres ramas de cinco habilidades. Cada una pide la anterior de su rama y un nivel mínimo.
+const SKILLS = [
+  { branch: 'Espada', color: '#d0503a', list: [
+    { id: 'filo', name: 'Filo templado', desc: 'Tu espada hace un 15% más de daño.' },
+    { id: 'estocada', name: 'Estocada', desc: 'Tercer golpe del combo: una estocada que hace ×1,6 de daño, llega más lejos y aturde a los enemigos ligeros.' },
+    { id: 'torbellino', name: 'Torbellino', desc: 'Mantén pulsado atacar y suelta: giras con la espada y golpeas a todo lo que te rodea (×2 de daño).' },
+    { id: 'certero', name: 'Golpe certero', desc: 'Críticos más frecuentes (22%) y más fuertes (×2,5).' },
+    { id: 'juicio', name: 'Juicio', desc: 'La estocada y el torbellino lanzan ondas cortantes de luz que atraviesan a los engendros.' },
+  ] },
+  { branch: 'Fe', color: '#e8c46a', list: [
+    { id: 'oracion', name: 'Oración profunda', desc: 'Orar cuesta menos Fe (18) y cura un 50% más.' },
+    { id: 'ardiente', name: 'Luz ardiente', desc: 'La Luz hace un 50% más de daño y llega más lejos.' },
+    { id: 'fervor', name: 'Fervor', desc: '+30 de Fe máxima. La Fe se recupera el doble de rápido y cada espadazo te da 1 de Fe.' },
+    { id: 'escudo', name: 'Escudo de fe', desc: 'Después de orar, durante 5 segundos recibes la mitad de daño.' },
+    { id: 'cruzluz', name: 'Cruz de luz', desc: 'La Luz aturde 2 segundos a los engendros y te cura el veneno.' },
+  ] },
+  { branch: 'Camino', color: '#7ab04a', list: [
+    { id: 'curtido', name: 'Piel curtida', desc: '+25 de vida máxima.' },
+    { id: 'ligero', name: 'Pies ligeros', desc: 'Andas un 12% más rápido y puedes volver a rodar en la mitad de tiempo.' },
+    { id: 'herbolario', name: 'Herbolario', desc: 'Las hierbas curan 55, los engendros sueltan más y el veneno te dura la mitad.' },
+    { id: 'esquiva', name: 'Esquiva perfecta', desc: 'Si ruedas a través de un ataque, el tiempo se ralentiza y tu siguiente golpe es crítico.' },
+    { id: 'aliento', name: 'Segundo aliento', desc: 'Una vez por descanso, si caes te levantas con el 40% de la vida.' },
+  ] },
+];
+const SKILL_LVL = [1, 3, 5, 8, 11]; // nivel mínimo de cada fila
+
+G.has = function (id) { return this.player.skills.has(id); };
+G.skillAt = function (i) { return SKILLS[i % 3].list[Math.floor(i / 3)]; };
+G.skillState = function (i) {
+  const p = this.player, b = i % 3, r = Math.floor(i / 3), s = SKILLS[b].list[r];
+  if (p.skills.has(s.id)) return 'ok';
+  if (r > 0 && !p.skills.has(SKILLS[b].list[r - 1].id)) return 'bloq';
+  if (p.lvl < SKILL_LVL[r]) return 'nivel';
+  return p.pts > 0 ? 'puede' : 'sinpuntos';
+};
+G.learn = function (i) {
+  const p = this.player, s = this.skillAt(i), st = this.skillState(i);
+  if (st === 'ok') { this.toast('Ya la tienes.'); return; }
+  if (st === 'bloq') { this.toast('Primero aprende la anterior de esta rama.'); return; }
+  if (st === 'nivel') { this.toast('Necesitas nivel ' + SKILL_LVL[Math.floor(i / 3)] + '.'); return; }
+  if (st === 'sinpuntos') { this.toast('No te quedan puntos. Sube de nivel.'); return; }
+  p.pts--; p.skills.add(s.id);
+  if (s.id === 'curtido') { p.maxHp += 25; p.hp += 25; }
+  if (s.id === 'fervor') { p.maxFe += 30; p.fe += 30; }
+  Sound.play('level');
+  this.toast('Aprendido: ' + s.name);
+  this.save();
+};
+G.openSkills = function () { this.st = ST.SKILLS; this.skillSel = this.skillSel || 0; };
+ST.SKILLS = 'SKILLS';
+G.updateSkills = function () {
+  if (this.pressed('Escape', 'KeyH', 'KeyP', 'Pick99')) { this.st = ST.PLAY; return; }
+  let s = this.skillSel || 0;
+  if (this.pressed('ArrowLeft', 'KeyA')) s = s % 3 === 0 ? s + 2 : s - 1;
+  if (this.pressed('ArrowRight', 'KeyD')) s = s % 3 === 2 ? s - 2 : s + 1;
+  if (this.pressed('ArrowUp', 'KeyW')) s = (s + 12) % 15;
+  if (this.pressed('ArrowDown', 'KeyS')) s = (s + 3) % 15;
+  for (let i = 0; i < 15; i++) if (this.just.has('Pick' + i)) { this.just.delete('Pick' + i); if (s === i) this.learn(i); s = i; }
+  this.skillSel = s;
+  if (this.pressed('Enter', 'KeyE', 'Space', 'KeyZ')) this.learn(s);
+};
+G.uiSkills = function (g) {
+  const p = this.player;
+  g.fillStyle = 'rgba(10,8,6,0.94)'; g.fillRect(0, 0, VW, VH);
+  g.font = FT(12); this.text(g, 'Árbol de habilidades', 14, 16, GOLD);
+  g.font = FB(7); this.text(g, 'Nivel ' + p.lvl + '   ·   Puntos: ' + p.pts, 160, 15, p.pts > 0 ? '#ffe68a' : SOFT);
+  // botón volver
+  g.fillStyle = 'rgba(232,196,106,0.15)'; g.fillRect(VW - 60, 5, 52, 14); g.strokeStyle = GOLD; g.strokeRect(VW - 59.5, 5.5, 51, 13);
+  g.font = FB(6.5); this.text(g, 'Volver', VW - 48, 15, PAPER);
+  this.menuRects.push({ x: VW - 64, y: 0, w: 64, h: 24, i: 99 });
+  const colX = [70, 200, 330], y0 = 42, dy = 26;
+  SKILLS.forEach((B, b) => {
+    g.font = FB(7.5); const tw = g.measureText(B.branch).width; this.text(g, B.branch, colX[b] - tw / 2, 32, B.color);
+    g.strokeStyle = 'rgba(232,196,106,0.25)'; g.lineWidth = 1;
+    g.beginPath(); g.moveTo(colX[b], y0); g.lineTo(colX[b], y0 + dy * 4); g.stroke();
+    B.list.forEach((s, r) => {
+      const i = r * 3 + b, x = colX[b], y = y0 + r * dy, st = this.skillState(i), sel = this.skillSel === i;
+      const ok = st === 'ok', can = st === 'puede';
+      g.fillStyle = ok ? B.color : (can ? 'rgba(232,196,106,0.18)' : 'rgba(40,34,28,0.95)');
+      g.fillRect(x - 54, y - 9, 108, 18);
+      g.strokeStyle = sel ? '#fff' : (ok ? B.color : can ? GOLD : '#4a4036'); g.lineWidth = sel ? 1.5 : 1;
+      g.strokeRect(x - 53.5, y - 8.5, 107, 17);
+      if (can) { g.fillStyle = `rgba(255,230,140,${0.25 + 0.2 * Math.sin(this.clock * 5)})`; g.fillRect(x - 54, y - 9, 3, 18); }
+      g.font = FB(6.6);
+      const nm = s.name, w = g.measureText(nm).width;
+      this.text(g, nm, x - w / 2, y + 2.5, ok ? '#120e0a' : (st === 'bloq' || st === 'nivel') ? '#7a6e60' : PAPER);
+      if (st === 'nivel') { g.font = FB(5); this.text(g, 'Nv ' + SKILL_LVL[r], x + 38, y + 7, '#7a6e60'); }
+      this.menuRects.push({ x: x - 56, y: y - 11, w: 112, h: 22, i });
+    });
+  });
+  // descripción
+  const s = this.skillAt(this.skillSel || 0), st = this.skillState(this.skillSel || 0);
+  g.fillStyle = 'rgba(30,24,18,0.95)'; g.fillRect(10, VH - 50, VW - 20, 44); g.strokeStyle = 'rgba(232,196,106,0.5)'; g.strokeRect(10.5, VH - 49.5, VW - 21, 43);
+  g.font = FB(7.5); this.text(g, s.name, 18, VH - 38, GOLD);
+  const stTxt = { ok: 'Aprendida', puede: G.touch ? 'Toca otra vez para aprender (1 punto)' : 'Enter para aprender (1 punto)', bloq: 'Requiere la anterior', nivel: 'Requiere nivel ' + SKILL_LVL[Math.floor((this.skillSel || 0) / 3)], sinpuntos: 'Sin puntos' }[st];
+  g.font = FB(6); const tw = g.measureText(stTxt).width; this.text(g, stTxt, VW - 18 - tw, VH - 38, st === 'puede' ? '#ffe68a' : SOFT);
+  g.font = FB(6.6); this.wrap(g, s.desc, VW - 40).forEach((l, k) => this.text(g, l, 18, VH - 27 + k * 9, PAPER));
+};
+
+// ---------------------------------------------------------------- combate
+G.swordDamage = function (mult) {
+  const p = this.player;
+  let d = (p.atk * (this.has('filo') ? 1.15 : 1) + this.rnd.int(5) - 1) * mult;
+  let crit = this.rnd.next() < (this.has('certero') ? 0.22 : 0.1);
+  if (p.nextCrit) { crit = true; p.nextCrit = false; }
+  if (crit) d *= this.has('certero') ? 2.5 : 2;
+  return [Math.round(d), crit];
+};
+G.attackPress = function () {
+  const p = this.player;
+  if (!p.hasSword) { this.toast('No llevas la espada. Está en el baúl del rellano.'); return; }
+  if (p.atkCool > 0 || p.spinT > 0 || p.rolling) return;
+  const maxCombo = this.has('estocada') ? 3 : 2;
+  p.combo = this.clock - p.lastAtk < 0.6 ? (p.combo + 1) % maxCombo : 0;
+  p.lastAtk = this.clock;
+  p.atkKind = p.combo === 2 ? 'thrust' : p.combo === 1 ? 'back' : 'slash';
+  p.atkT = 0.24; p.atkCool = p.atkKind === 'thrust' ? 0.5 : p.atkKind === 'back' ? 0.28 : 0.32;
+  p.hitSet.clear(); Sound.play('swing');
+  if (p.atkKind === 'thrust') {
+    const [dx, dy] = [[0, 1], [0, -1], [-1, 0], [1, 0]][p.dir];
+    p.move(this.world, dx * 7, dy * 7);
+    if (this.has('juicio')) this.wave(p.x + dx * 12, p.y - 8 + dy * 12, dx, dy);
+  }
+};
+G.spinAttack = function () {
+  const p = this.player;
+  p.spinT = 0.38; p.atkT = 0; p.atkCool = 0.45; p.hitSet.clear(); p.combo = 0;
+  Sound.play('swing'); setTimeout(() => Sound.play('swing'), 120);
+  this.fx.push(Fx.ring(p.x, p.y - 8, 34, 0xffffff));
+  this.shake(0.12);
+  if (this.has('juicio')) for (let k = 0; k < 4; k++) { const a = Math.PI / 4 + k * Math.PI / 2; this.wave(p.x, p.y - 8, Math.cos(a), Math.sin(a)); }
+};
+G.wave = function (x, y, dx, dy) {
+  this.waves.push({ x, y, vx: dx * 190, vy: dy * 190, life: 0.55, hit: new Set() });
+};
+G.swordHit = function (m, mult) {
+  const p = this.player;
+  p.hitSet.add(m);
+  const [d, crit] = this.swordDamage(mult);
+  this.damageMonster(m, d, crit, m.x - p.x, m.y - p.y);
+  this.hitStop = crit ? 0.075 : 0.04;
+  if (crit) this.shake(0.1);
+  if (this.has('fervor') && p.fe < p.maxFe) p.fe++;
+};
+G.updateCombat = function (dt) {
+  const p = this.player, w = this.world;
+  // cargar el torbellino manteniendo el botón
+  const holding = this.down('Space', 'KeyJ', 'AtkHold');
+  if (holding && p.hasSword && this.has('torbellino') && p.atkT <= 0 && !p.rolling && p.spinT <= 0) {
+    const was = p.charge; p.charge += dt;
+    if (was < 0.55 && p.charge >= 0.55) { Sound.play('orb'); this.fx.push(Fx.ring(p.x, p.y - 8, 18, 0xffe8a0)); }
+  } else if (!holding) {
+    if (p.charge >= 0.55 && this.has('torbellino')) this.spinAttack();
+    p.charge = 0;
+  }
+  if (p.shieldT > 0) p.shieldT -= dt;
+  // golpes de espada
+  if (p.atkT > 0.04 && p.atkT < 0.21) {
+    const thrust = p.atkKind === 'thrust', c = this.swordCenter(thrust ? 24 : 15), rad = thrust ? 13 : 15;
+    for (const m of w.monsters) {
+      if (m.dead || p.hitSet.has(m)) continue;
+      if (Math.hypot(m.x - c[0], (m.y - 6) - c[1]) < rad + m.hw) {
+        this.swordHit(m, thrust ? 1.6 : p.atkKind === 'back' ? 0.9 : 1);
+        if (thrust && !m.dead && m.kind !== MK.BESTIA && m.kind !== MK.NIDO && m.vulnerable()) m.setState('stun', 0.6);
+      }
+    }
+  }
+  if (p.spinT > 0) {
+    p.spinT -= dt;
+    for (const m of w.monsters) if (!m.dead && !p.hitSet.has(m) && Math.hypot(m.x - p.x, m.y - p.y) < 30 + m.hw) this.swordHit(m, 2);
+  }
+  // ondas de Juicio
+  this.waves = this.waves.filter(o => {
+    o.x += o.vx * dt; o.y += o.vy * dt; o.life -= dt;
+    for (const m of w.monsters) if (!m.dead && !o.hit.has(m) && Math.hypot(m.x - o.x, m.y - 6 - o.y) < 10 + m.hw) {
+      o.hit.add(m); const [d, crit] = this.swordDamage(1.1); this.damageMonster(m, d, crit, o.vx, o.vy);
+    }
+    if (this.rnd.next() < 0.6) this.fx.push(Fx.spark(o.x, o.y, this.rnd.gauss() * 10, this.rnd.gauss() * 10, 0xfff0b0, 0.25));
+    return o.life > 0 && !w.solid(Math.floor(o.x / TS), Math.floor((o.y + 8) / TS));
+  });
+};
+/** Rodaste a través de un ataque. */
+G.perfectDodge = function () {
+  const p = this.player;
+  if (!this.has('esquiva') || p.dodgeDone) return;
+  p.dodgeDone = true; p.nextCrit = true; this.slowT = 0.7;
+  this.fx.push(Fx.text(p.x, p.y - 30, '¡Esquiva perfecta!', 0xa0e8ff));
+  this.fx.push(Fx.ring(p.x, p.y - 8, 28, 0xa0e8ff));
+  Sound.play('orb');
+};
+G.drawCombatFx = function (g, cx, cy) {
+  const p = this.player;
+  if (p.charge > 0.15 && this.has('torbellino')) {
+    const k = Math.min(1, p.charge / 0.55);
+    g.strokeStyle = k >= 1 ? `rgba(255,236,160,${0.6 + 0.3 * Math.sin(this.clock * 20)})` : `rgba(255,255,255,${0.35 * k})`;
+    g.lineWidth = 1.5; g.beginPath(); g.arc(p.x - cx, p.y - 10 - cy, 13, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * k); g.stroke();
+  }
+  if (p.shieldT > 0) {
+    g.strokeStyle = `rgba(255,220,120,${0.3 + 0.15 * Math.sin(this.clock * 6)})`; g.lineWidth = 1;
+    g.beginPath(); g.ellipse(p.x - cx, p.y - 10 - cy, 12, 15, 0, 0, Math.PI * 2); g.stroke();
+  }
+  for (const o of this.waves) {
+    const a = Math.atan2(o.vy, o.vx);
+    g.strokeStyle = 'rgba(255,240,190,0.9)'; g.lineWidth = 2;
+    g.beginPath(); g.arc(o.x - cx, o.y - cy, 8, a - 1.1, a + 1.1); g.stroke();
+    g.strokeStyle = 'rgba(255,255,255,0.5)'; g.lineWidth = 1;
+    g.beginPath(); g.arc(o.x - cx - Math.cos(a) * 3, o.y - cy - Math.sin(a) * 3, 8, a - 0.9, a + 0.9); g.stroke();
+  }
+};
 // ====================================================================== dibujo
 const view = document.createElement('canvas'); view.width = WW; view.height = WH;
 const vctx = view.getContext('2d');
@@ -3367,6 +3668,7 @@ G.render = function (ctx, cw, ch, dpr) {
       if (this.st === ST.MAP) this.uiMap(ctx);
       if (this.st === ST.PAUSE) this.uiPause(ctx);
       if (this.st === ST.DEAD) this.uiDead(ctx);
+      if (this.st === ST.SKILLS) this.uiSkills(ctx);
   }
   if (this.toastT > 0 && this.st !== ST.TITLE) this.uiToast(ctx);
   ctx.restore();
@@ -3412,6 +3714,7 @@ G.renderWorld = function (g) {
       g.drawImage(cv(s), Math.floor(e.x - s.w / 2) - cx, Math.floor(e.y - s.h - 2 + bob) - cy);
     } else this.drawPlayer(g, cx, cy);
   }
+  this.drawCombatFx(g, cx, cy);
   for (const o of this.orbs) { const im = o.mud ? Art.E.mud : Art.orb; g.drawImage(cv(im), Math.floor(o.x) - (im.w >> 1) - cx, Math.floor(o.y) - (im.h >> 1) - cy); }
   for (const f of this.fx) {
     const a = Math.max(0, Math.min(1, f.life / f.max));
@@ -3452,7 +3755,7 @@ G.renderWorld = function (g) {
 };
 
 const ROOFS = new Set([T.ROOF, T.ROOF_DARK, T.ROOF_SOLAR, T.CHURCH_ROOF]);
-const FACES = new Set([T.WALL_WHITE, T.WINDOW, T.DOOR, T.CHURCH_WALL, T.CHURCH_DOOR, T.SHED, T.WALL_STONE, T.DAM, T.IWALL, T.IWALL_STONE, T.BATHWALL, T.WALLTOP, T.GARAGE]);
+const FACES = new Set([T.WALL_WHITE, T.WINDOW, T.DOOR, T.CHURCH_WALL, T.CHURCH_DOOR, T.SHED, T.WALL_STONE, T.DAM, T.IWALL, T.IWALL_STONE, T.BATHWALL, T.WALLTOP, T.GARAGE, T.PRETIL]);
 G.edgeDetail = function (g, t, x, y, sx, sy) {
   const w = this.world;
   if (T.isWater(t)) {
@@ -3538,7 +3841,7 @@ G.drawPlayer = function (g, cx, cy) {
   this.shadow(g, p.x - cx, p.y - cy, 6);
   if (p.prayT > 0) this.glow(g, p.x - cx, p.y - 10 - cy, 22, `rgba(255,230,150,${0.43 * p.prayT})`);
   // espada a la espalda: en diagonal, empuñadura asomando por encima del hombro
-  const back = p.hasSword && !attacking && !p.rolling;
+  const back = p.hasSword && !attacking && !p.rolling && p.spinT <= 0;
   const backSword = () => {
     const off = [0, 0, 2, -2][p.dir], tilt = [-0.62, 0.62, 0.55, -0.55][p.dir];
     g.save(); g.translate(p.x - cx + off + (p.dir === 0 ? 3 : 0), p.y - (p.dir === 0 ? 18 : 13) - cy); g.rotate(Math.PI + tilt);
@@ -3546,15 +3849,33 @@ G.drawPlayer = function (g, cx, cy) {
   };
   if (back && p.dir !== 1) backSword();
   if (attacking && p.dir === 1) this.drawSwing(g, cx, cy);
+  if (p.spinT > 0) this.drawSpin(g, cx, cy, true);
   if (p.rolling) { g.save(); g.translate(sx + 8, sy + 23); g.rotate((1 - p.rollT / 0.3) * Math.PI * 2 * (p.rollX < 0 ? -1 : 1)); g.drawImage(cv(s), -8, -16, 16, 18); g.restore(); }
   else g.drawImage(cv(p.flash > 0 ? white(s) : s), sx, sy);
   if (attacking && p.dir !== 1) this.drawSwing(g, cx, cy);
+  if (p.spinT > 0) this.drawSpin(g, cx, cy, false);
   if (back && p.dir === 1) backSword();
+};
+G.drawSpin = function (g, cx, cy, behind) {
+  const p = this.player, t = 1 - p.spinT / 0.38, ang = -Math.PI / 2 + t * Math.PI * 2.2;
+  const s = Math.sin(ang) < 0; if (s !== behind) return; // la mitad de arriba se pinta detrás del cuerpo
+  const hx = p.x - cx, hy = p.y - 11 - cy;
+  g.strokeStyle = 'rgba(255,255,255,0.4)'; g.lineWidth = 3; g.lineCap = 'round';
+  g.beginPath(); g.ellipse(hx, hy + 2, 20, 13, 0, ang - 1.6, ang); g.stroke();
+  g.save(); g.translate(hx + Math.cos(ang) * 4, hy + Math.sin(ang) * 3); g.rotate(ang + Math.PI / 2); g.drawImage(cv(Art.sword), -3, -18); g.restore();
 };
 G.drawSwing = function (g, cx, cy) {
   const p = this.player, t = 1 - p.atkT / 0.24;
   const base = [Math.PI / 2, -Math.PI / 2, Math.PI, 0][p.dir];
-  const rev = p.dir === 2 || p.dir === 0;
+  if (p.atkKind === 'thrust') {
+    const reach = Math.sin(Math.min(1, t * 1.6) * Math.PI / 2) * 12 - 4;
+    const hx = p.x - cx + Math.cos(base) * reach, hy = p.y - 11 - cy + Math.sin(base) * reach;
+    g.strokeStyle = 'rgba(255,255,255,0.45)'; g.lineWidth = 2;
+    g.beginPath(); g.moveTo(hx + Math.cos(base) * 6, hy + Math.sin(base) * 6); g.lineTo(hx + Math.cos(base) * (22 + reach), hy + Math.sin(base) * (22 + reach)); g.stroke();
+    g.save(); g.translate(hx, hy); g.rotate(base + Math.PI / 2); g.drawImage(cv(Art.sword), -3, -18); g.restore();
+    return;
+  }
+  const rev = (p.dir === 2 || p.dir === 0) !== (p.atkKind === 'back');
   const a0 = rev ? base + 1.3 : base - 1.3, ang = rev ? a0 - t * 2.6 : a0 + t * 2.6;
   const hx = p.x - cx + (p.dir === 2 ? -3 : p.dir === 3 ? 3 : 0), hy = p.y - 11 - cy;
   g.strokeStyle = 'rgba(255,255,255,0.35)'; g.lineWidth = 3; g.lineCap = 'round';
@@ -3656,6 +3977,7 @@ G.uiHud = function (g) {
   const p = this.player;
   this.panel(g, 4, 4, 116, 40);
   g.font = FBB(7); this.text(g, 'Guardián  ·  Nv. ' + p.lvl, 9, 12.5, GOLD);
+  if (p.pts > 0) { g.font = FBB(5.6); this.text(g, '+' + p.pts + ' hab.', 88, 12.5, `rgba(255,230,140,${0.6 + 0.4 * Math.sin(this.clock * 4)})`); }
   this.bar(g, 9, 16, 76, 5.2, p.hp / p.maxHp, p.poison > 0 ? '#6aa830' : '#c8402e', '#3a1410');
   this.bar(g, 9, 24, 76, 3.6, p.fe / p.maxFe, '#e8c050', '#3a2c10');
   this.bar(g, 9, 30.5, 76, 1.6, p.xp / p.xpNext(), '#8ac0e8', '#1a2430');
@@ -3758,11 +4080,11 @@ G.menuList = function (g, items, y0, step) {
 };
 G.uiPause = function (g) {
   g.fillStyle = 'rgba(0,0,0,0.6)'; g.fillRect(0, 0, VW, VH);
-  this.panel(g, VW / 2 - 70, 34, 140, 132);
-  g.font = FT(11); this.center(g, 'Pausa', 52, GOLD);
-  this.menuList(g, this.pauseMenu(), 72, 15);
+  this.panel(g, VW / 2 - 70, 26, 140, 148);
+  g.font = FT(11); this.center(g, 'Pausa', 44, GOLD);
+  this.menuList(g, this.pauseMenu(), 62, 15);
   g.font = FB(5.8);
-  this.center(g, 'Reliquias ' + this.player.relics + '/5  ·  Ataque ' + this.player.atk + '  ·  Nivel ' + this.player.lvl, 158, SOFT);
+  this.center(g, 'Reliquias ' + this.player.relics + '/5  ·  Ataque ' + this.player.atk + '  ·  Nivel ' + this.player.lvl, 166, SOFT);
 };
 G.uiDead = function (g) {
   const a = Math.min(1, this.deadT / 1.2);
@@ -3783,8 +4105,8 @@ G.uiHelp = function (g) {
   this.panel(g, 30, 12, VW - 60, VH - 24);
   g.font = FT(11); this.center(g, 'Controles', 30, GOLD);
   const rows = G.touch
-    ? [['Joystick (izquierda)', 'Moverse'], ['Espada', 'Golpe de espada'], ['Rodar', 'Esquivar (eres invulnerable un instante)'], ['Usar', 'Hablar, abrir, examinar'], ['Orar', 'Recupera vida (25 de Fe)'], ['Luz', 'Onda sagrada (nivel 3, 40 de Fe)'], ['Hierba', 'Comer hierbas medicinales (+30 vida)'], ['Mapa / Menú', 'Botones de arriba'], ['Toca la pantalla', 'Pasar los diálogos']]
-    : [['WASD / Flechas', 'Moverse'], ['Espacio / J', 'Golpe de espada'], ['Mayús / X', 'Rodar para esquivar'], ['E / Enter', 'Hablar, usar, abrir, pasar texto'], ['K / 1', 'Orar: recupera vida (25 de Fe)'], ['L / 2', 'Luz: onda sagrada (nivel 3, 40 de Fe)'], ['Q / 3', 'Comer hierbas medicinales (+30 vida)'], ['M / Tab', 'Mapa de la comarca'], ['Esc / P', 'Pausa y guardar'], ['N', 'Activar o quitar la música']];
+    ? [['Joystick (izquierda)', 'Moverse'], ['Espada', 'Combo de golpes · mantén para Torbellino'], ['Rodar', 'Esquivar (eres invulnerable un instante)'], ['Usar', 'Hablar, abrir, examinar'], ['Orar', 'Recupera vida (25 de Fe)'], ['Luz', 'Onda sagrada (nivel 3, 40 de Fe)'], ['Hierba', 'Comer hierbas medicinales (+30 vida)'], ['Mapa / Menú / Hab.', 'Mapa, pausa y árbol de habilidades'], ['Toca la pantalla', 'Pasar los diálogos']]
+    : [['WASD / Flechas', 'Moverse'], ['Espacio / J', 'Combo de espada (mantén: Torbellino)'], ['Mayús / X', 'Rodar para esquivar'], ['E / Enter', 'Hablar, usar, abrir, pasar texto'], ['K / 1', 'Orar: recupera vida (25 de Fe)'], ['L / 2', 'Luz: onda sagrada (nivel 3, 40 de Fe)'], ['Q / 3', 'Comer hierbas medicinales (+30 vida)'], ['M / Tab', 'Mapa de la comarca'], ['H', 'Árbol de habilidades'], ['Esc / P', 'Pausa y guardar'], ['N', 'Activar o quitar la música']];
   g.font = FB(7);
   rows.forEach((r, i) => { this.text(g, r[0], 52, 48 + i * 14, GOLD); this.text(g, r[1], 150, 48 + i * 14, PAPER); });
   g.font = FB(5.8);
@@ -3816,10 +4138,12 @@ const Touch = {
     const side = G.layout.ox;
     if (side > 44 * k) {
       this.buttons.push({ id: 'menu', x: side / 2, y: 34 * k, r: 17 * k, label: 'Menú', code: 'Escape' });
+      this.buttons.push({ id: 'skills', x: side / 2, y: 76 * k, r: 17 * k, label: 'Hab.', code: 'Skills' });
       this.buttons.push({ id: 'map', x: cw - side / 2, y: 34 * k, r: 17 * k, label: 'Mapa', code: 'KeyM' });
     } else {
       this.buttons.push({ id: 'menu', x: cw / 2 - 26 * k, y: ch - 18 * k, r: 15 * k, label: 'Menú', code: 'Escape' });
       this.buttons.push({ id: 'map', x: cw / 2 + 26 * k, y: ch - 18 * k, r: 15 * k, label: 'Mapa', code: 'KeyM' });
+      this.buttons.push({ id: 'skills', x: cw / 2 + 60 * k, y: ch - 18 * k, r: 15 * k, label: 'Hab.', code: 'Skills' });
     }
   },
   hit(x, y) { for (const b of this.buttons) if (Math.hypot(x - b.x, y - b.y) < b.r * 1.2) return b; return null; },
@@ -3839,7 +4163,7 @@ const Touch = {
       const lit = (this.flash[b.id] || 0) > performance.now();
       const off = (b.id === 'light' && !p.canLight()) || (b.id === 'herb' && p.herbs === 0) || (b.id === 'atk' && !p.hasSword);
       ctx.globalAlpha = off ? 0.35 : 1;
-      ctx.fillStyle = lit ? 'rgba(232,196,106,0.55)' : 'rgba(18,14,12,0.45)';
+      ctx.fillStyle = lit ? 'rgba(232,196,106,0.55)' : (b.id === 'skills' && p.pts > 0) ? `rgba(232,196,106,${0.25 + 0.2 * Math.sin(performance.now() / 200)})` : 'rgba(18,14,12,0.45)';
       ctx.beginPath(); ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2); ctx.fill();
       ctx.lineWidth = 2; ctx.strokeStyle = 'rgba(232,196,106,0.75)'; ctx.stroke();
       ctx.fillStyle = PAPER; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
@@ -3917,7 +4241,7 @@ const Touch = {
 
   function toView(x, y) { const L = G.layout; return [(x - L.ox) / L.sc, (y - L.oy) / L.sc]; }
   function tapAt(x, y) {
-    if (G.st === ST.TITLE || G.st === ST.PAUSE) {
+    if (G.st === ST.TITLE || G.st === ST.PAUSE || G.st === ST.SKILLS) {
       const [vx, vy] = toView(x, y);
       for (const r of G.menuRects) if (vx >= r.x && vx <= r.x + r.w && vy >= r.y && vy <= r.y + r.h) { G.queue.add('Pick' + r.i); return; }
       return;
@@ -3936,7 +4260,7 @@ const Touch = {
       if (G.st === ST.PLAY) {
         Touch.layout(cw, ch);
         const b = Touch.hit(x, y);
-        if (b) { G.queue.add(b.code); Touch.flash[b.id] = performance.now() + 150; continue; }
+        if (b) { G.queue.add(b.code); Touch.flash[b.id] = performance.now() + 150; if (b.id === 'atk') { Touch.atkId = t.identifier; G.keys.add('AtkHold'); } continue; }
         if (x < cw * 0.45 && Touch.stickId === null) { Touch.stickId = t.identifier; Touch.cx = x; Touch.cy = y; Touch.updateStick(); }
       } else tapAt(x, y);
     }
@@ -3948,7 +4272,10 @@ const Touch = {
   const endTouch = e => {
     e.preventDefault();
     Sound.unlock();
-    for (const t of e.changedTouches) if (t.identifier === Touch.stickId) { Touch.stickId = null; G.stick.x = G.stick.y = 0; }
+    for (const t of e.changedTouches) {
+      if (t.identifier === Touch.stickId) { Touch.stickId = null; G.stick.x = G.stick.y = 0; }
+      if (t.identifier === Touch.atkId) { Touch.atkId = null; G.keys.delete('AtkHold'); }
+    }
   };
   canvas.addEventListener('touchend', endTouch, { passive: false });
   canvas.addEventListener('touchcancel', endTouch, { passive: false });

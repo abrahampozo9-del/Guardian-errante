@@ -77,7 +77,10 @@ const WG = (function () {
   }
   const riverBase = y => 160 - (y - 43) * 0.17 + 3 * Math.sin(y * 0.11) + 1.5 * Math.sin(y * 0.31 + 1);
   function riverX(y) { const k = plateau(y, 109, 13, 6); return riverBase(y) * (1 - k) + Math.round(riverBase(109)) * k; }
-  function floorW(y) { return 4 + 2 * fbm(3, y, 50) + 13 * plateau(y, 109, 9, 6) + 5 * plateau(y, 57, 4, 4); }
+  // la ribera alrededor del cortijo es un valle abierto: fondo ancho y laderas suaves con bancales
+  const gentleK = y => plateau(y, 117, 30, 10);
+  function floorW(y) { return 4 + 2 * fbm(3, y, 50) + 13 * plateau(y, 109, 9, 6) + 5 * plateau(y, 57, 4, 4) + 8 * plateau(y, 117, 28, 8); }
+  const SLOPE = 15;
   G.riverX = riverX; G.floorW = floorW;
 
   const R_OLIV = A('Olivares de Pozo Alcón', 0, 0, 0, 0), R_BARR = A('Valle del Guadalentín', 0, 0, 0, 0), R_CARC = A('Cárcavas del Guadalentín', 0, 0, 0, 0),
@@ -88,8 +91,9 @@ const WG = (function () {
     if ((x < 62 && y < 84) || (x < 112 && y < 28)) return R_SIER;
     if (y >= 43) {
       const cx = riverX(y), fw = floorW(y), d = x - cx;
-      if (Math.abs(d) <= fw + 3) return y < 64 ? R_NORTE : R_BARR;
-      if (d > 0) return d <= fw + 28 ? R_CARC : R_LLAN;
+      const g = gentleK(y) > 0.5;
+      if (Math.abs(d) <= fw + (g ? SLOPE + 1 : 3)) return y < 64 ? R_NORTE : R_BARR;
+      if (d > 0) return d <= fw + (g ? SLOPE + 18 : 28) ? R_CARC : R_LLAN;
     }
     if (y < 64) return R_NORTE;
     return R_OLIV;
@@ -129,8 +133,17 @@ const WG = (function () {
       const n = fbm(x, y, 1);
       let t = n > 0.62 ? T.DIRT : T.GRASS;
       if (y >= 43) {
-        const cx = riverX(y), fw = floorW(y), d = x - cx, wall = 3 + fbm(x, y, 9) * 1.6;
-        if (Math.abs(d) <= fw) t = Math.abs(d) < 3.5 ? T.GRASS_GREEN : (n > 0.55 ? T.DIRT : T.GRASS_GREEN);
+        const cx = riverX(y), fw = floorW(y), d = x - cx, g = gentleK(y) > 0.5, wall = g ? SLOPE : 3 + fbm(x, y, 9) * 1.6;
+        if (Math.abs(d) <= fw) {
+          t = Math.abs(d) < 3.5 || g ? (n > 0.66 ? T.GRASS : T.GRASS_GREEN) : (n > 0.55 ? T.DIRT : T.GRASS_GREEN);
+          if (g && Math.abs(d) > 6 && fbm(x * 1.4, y * 1.4, 91) > 0.66) t = T.FIELD; // huertas en el fondo del valle
+        }
+        else if (g && Math.abs(d) <= fw + wall) {
+          // ladera en bancales: muros de piedra seca siguiendo el valle, con pasos cada pocas casillas
+          const k = Math.floor(Math.abs(d) - fw);
+          t = n > 0.56 ? T.DIRT : T.GRASS;
+          if (k % 5 === 2 && k < SLOPE - 1 && (y + k * 3) % 9 > 1) t = T.DRYWALL;
+        }
         else if (Math.abs(d) <= fw + wall) t = T.CLIFF;
         else if (d > 0) {
           const bw = 22 + fbm(1, y, 3) * 8;
@@ -181,8 +194,10 @@ const WG = (function () {
     const rx = G.rx = Math.round(riverX(109));
     const brY = 99;
     road(w, [[100, 101], [112, 102], [124, 100], [136, 99], [rx - 2, 99]], 2, T.TRACK);
-    for (let x = rx - 2; x <= rx + 3; x++) for (let y = brY; y <= brY + 1; y++) w.set(x, y, T.isWater(w.get(x, y)) ? T.BRIDGE : T.TRACK);
-    for (let x = rx - 2; x <= rx + 1; x++) { if (T.isWater(w.get(x, brY - 1))) w.set(x, brY - 1, T.DRYWALL); if (T.isWater(w.get(x, brY + 2))) w.set(x, brY + 2, T.DRYWALL); }
+    // el puente viejo: tablero de piedra con pretiles a ambos lados
+    for (let x = rx - 3; x <= rx + 3; x++) for (let y = brY; y <= brY + 1; y++) w.set(x, y, x <= rx + 1 ? T.BRIDGE : T.TRACK);
+    for (let x = rx - 3; x <= rx + 1; x++) { w.set(x, brY - 1, T.PRETIL); w.set(x, brY + 2, T.PRETIL); reserved[(brY - 1) * OW_W + x] = reserved[(brY + 2) * OW_W + x] = 1; }
+    G.bridgeX = rx - 1; G.bridgeY = brY;
     for (let y = brY; y <= 110; y++) for (let x = rx + 2; x <= rx + 3; x++) w.set(x, y, T.TRACK);
     road(w, [[66, 120], [80, 124], [96, 130], [112, 132]], 2, T.TRACK);
     road(w, [[68, 96], [80, 92], [92, 86], [100, 86]], 2, T.TRACK);
@@ -201,6 +216,7 @@ const WG = (function () {
 
     buildTown(w);
     buildCortijo(w);
+    buildCasaBlanca(w);
 
     // La Linde Negra
     for (let y = 64; y <= 65; y++) for (let x = 56; x < OW_W; x++) {
@@ -241,9 +257,21 @@ const WG = (function () {
     w.pickups.push(new Pickup(Pickup.RELIC, 74 * 16 + 8, 44 * 16 + 8, 'reliquia_sierra'));
     clearAround(w, 182, 152, 1); clearAround(w, 74, 44, 1);
     scatter(w);
+    // siempre queda una senda libre por la orilla este, para que ningún árbol cierre el valle
+    for (let y = 44; y < OW_H - 1; y++) {
+      const rc = Math.round(riverX(y));
+      for (const x of [rc + 2, rc + 3]) {
+        if (T.SOLID[w.get(x, y)]) continue;
+        const before = w.props.length;
+        w.props = w.props.filter(pp => pp.id || !(Math.floor(pp.x / 16) === x && Math.floor((pp.y - 1) / 16) === y));
+        if (w.props.length !== before) w.unblock(x, y, 1, 1);
+      }
+    }
     for (let x = 0; x < OW_W; x++) { w.set(x, 0, T.MOUNTAIN); w.set(x, OW_H - 1, T.MOUNTAIN); }
     for (let y = 0; y < OW_H; y++) { w.set(0, y, T.MOUNTAIN); w.set(OW_W - 1, y, T.MOUNTAIN); }
     const cort = A('Cortijo Río Guadalentín', rx - 6, 96, 26, 26); cort.noSpawn = true; w.areas.push(cort);
+    const pv = A('Puente Viejo', rx - 4, 97, 7, 5); pv.noSpawn = true; w.areas.push(pv);
+    const cb = A('Casa blanca del puente', rx - 14, 90, 9, 8); cb.noSpawn = true; w.areas.push(cb);
     const church = A('Iglesia de la Encarnación', 29, 86, 23, 16); church.safe = true; w.areas.push(church);
     w.areas.push(A('Plaza del Ayuntamiento', 42, 112, 11, 7));
     w.areas.push(A('Ermita de Santa Ana', 16, 125, 12, 10));
@@ -438,6 +466,9 @@ const WG = (function () {
     w.prop('furgo', rx + 6, 118, rx + 5, 118, 2, 1);
     w.prop('todoterreno', rx + 9, 119, rx + 8, 119, 2, 1);
     w.fill(hx0 + 8, 110, 3, 3, T.FIELD);
+    // la alberca que se ve desde la ventana
+    w.fill(hx1 - 1, 118, 5, 3, T.CONCRETE); w.fill(hx1, 119, 3, 1, T.WATER);
+    w.props = w.props.filter(pp => !(pp.x / 16 >= hx1 - 1 && pp.x / 16 < hx1 + 4 && pp.y / 16 >= 118 && pp.y / 16 < 121.5));
     w.pickups.push(new Pickup(Pickup.HERB, (hx0 + 8) * 16 + 8, 110 * 16 + 10, null));
     w.pickups.push(new Pickup(Pickup.HERB, (hx0 + 10) * 16 + 8, 112 * 16 + 10, null));
     w.npcs.push(new Npc('Gato', 'gato', null, Art.cat, null, (hx0 + 1) * 16 + 6, 107 * 16 + 6));
@@ -445,6 +476,24 @@ const WG = (function () {
     w.block(hx0 + 5, 109, 1, 1);
     w.warps.push(new Warp(G.doorX, G.doorY, 1, 1, 'casa_baja', 9 * 16 + 8, 11 * 16 + 4, 1));
     G.questSpawns = [[rx - 3, 116], [rx + 1, 119], [rx + 7, 120], [rx - 4, 101], [rx + 12, 118], [rx - 6, 117]];
+  }
+
+  // La casa blanca al otro lado del puente (como en la foto): sola, encalada, con la parra y el pozo
+  function buildCasaBlanca(w) {
+    const rx = G.rx, x0 = rx - 13, x1 = rx - 7, y0 = 91;
+    for (let y = y0 - 1; y <= y0 + 6; y++) for (let x = x0 - 1; x <= x1 + 1; x++) { w.set(x, y, T.GRASS_GREEN); reserved[y * OW_W + x] = 1; }
+    for (let y = y0; y <= y0 + 2; y++) for (let x = x0; x <= x1; x++) w.set(x, y, T.ROOF);
+    for (let x = x0; x <= x1; x++) { w.set(x, y0 + 3, T.WALL_WHITE); w.set(x, y0 + 4, T.WALL_WHITE); }
+    w.set(x0 + 1, y0 + 3, T.WINDOW); w.set(x1 - 1, y0 + 3, T.WINDOW); w.set(x0 + 1, y0 + 4, T.WINDOW);
+    w.set(x0 + 4, y0 + 4, T.DOOR);
+    const door = w.prop('compuerta', x0 + 4, y0 + 4); door.hidden = true; door.id = 'casablanca';
+    w.fill(x0, y0 + 5, x1 - x0 + 1, 1, T.PORCH);
+    w.fill(x0 + 3, y0 + 6, 3, 2, T.TRACK);
+    w.prop('pilar', x0 + 2, y0 + 5, x0 + 2, y0 + 5, 1, 1);
+    w.prop('pilar', x0 + 6, y0 + 5, x0 + 6, y0 + 5, 1, 1);
+    w.prop('cipres', x1 + 1, y0 + 2, x1 + 1, y0 + 2, 1, 1);
+    w.prop('higuera1', x0 - 1, y0 + 6, x0 - 1, y0 + 6, 1, 1);
+    w.prop('chatarra' + 2, x1 + 0.5, y0 + 6, x1, y0 + 6, 2, 1);
   }
 
   function scatter(w) {
@@ -456,6 +505,24 @@ const WG = (function () {
       const sierra = (x < 62 && y < 84) || (x < 112 && y < 28);
       const reg = region(x, y), n = fbm(x, y, 41);
       if (sierra) { if (r.next() < 0.22) w.prop('pino' + r.int(3), x, y, x, y, 1, 1); continue; }
+      if (reg === R_BARR && gentleK(y) > 0.5) {
+        const dr = Math.abs(x - riverX(y)), k = dr - floorW(y);
+        if (k > 0) { // ladera: olivos y almendros en hileras entre bancales
+          const kk = Math.floor(k) % 5;
+          if ((kk === 0 || kk === 4) && y % 2 === 0 && r.next() < 0.8) w.prop(fbm(x, y, 70) > 0.55 ? 'almendro' + r.int(2) : 'olivo' + r.int(3), x, y, x, y, 1, 1);
+          else if (r.next() < 0.03) w.prop('retama' + r.int(3), x, y, x, y, 1, 1);
+          continue;
+        }
+        // fondo del valle: chopos y sauces junto al agua, hierba abierta
+        if (t === T.FIELD) { if (x % 2 === 0 && y % 2 === 1 && r.next() < 0.5) w.prop('canas', x, y); continue; }
+        if (dr > 6 && fbm(x * 1.2, y * 1.2, 90) > 0.62) { if (x % 3 === 0 && y % 3 === 0 && r.next() < 0.9) w.prop('chopo' + r.int(2), x, y, x, y, 1, 1); continue; } // chopera
+        if (dr < 4.5 && !nearWater(w, x, y) && r.next() < 0.16) w.prop('chopo' + r.int(2), x, y, x, y, 1, 1);
+        else if (dr < 3 && r.next() < 0.1) w.prop('canas', x, y);
+        else if (dr < 7 && r.next() < 0.03) w.prop('sauce', x, y, x, y, 1, 1);
+        else if (r.next() < 0.012) w.prop('retama' + r.int(3), x, y, x, y, 1, 1);
+        else if (r.next() < 0.006) w.pickups.push(new Pickup(Pickup.HERB, x * 16 + 8, y * 16 + 10, null));
+        continue;
+      }
       if (reg === R_BARR || (reg === R_NORTE && Math.abs(x - riverX(y)) <= floorW(y))) {
         const dr = Math.abs(x - riverX(y));
         if (dr < 4 && r.next() < 0.07 && !nearWater(w, x, y)) w.prop('chopo' + r.int(2), x, y, x, y, 1, 1);

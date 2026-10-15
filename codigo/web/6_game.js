@@ -12,7 +12,7 @@ const G = {
   lastArea: '', banner: '', bannerT: 0, toastS: '', toastT: 0, titleT: 0, menuIdx: 0, hasSave: false,
   dlg: [], page: null, dlgChars: 0, dlgEnd: null, introPages: null, introIdx: 0, introChars: 0, endPages: null, endIdx: 0,
   keys: new Set(), queue: new Set(), just: new Set(), stick: { x: 0, y: 0 }, menuRects: [],
-  rnd: RNG(12345),
+  rnd: RNG(12345), waves: [], hitStop: 0, slowT: 0, skillSel: 0,
 };
 
 // --------------------------------------------------------------------- entrada
@@ -48,7 +48,12 @@ G.update = function (dt) {
     case ST.HELP: if (this.confirm() || this.pressed('Escape')) this.st = this.helpBack || ST.TITLE; break;
     case ST.INTRO: this.updateIntro(dt); break;
     case ST.CINE: this.updateCine(dt); break;
-    case ST.PLAY: this.updatePlay(dt); break;
+    case ST.PLAY:
+      if (this.hitStop > 0) this.hitStop -= dt;
+      else this.updatePlay(this.slowT > 0 ? dt * 0.35 : dt);
+      if (this.slowT > 0) this.slowT -= dt;
+      break;
+    case ST.SKILLS: this.updateSkills(); this.clock += dt; break;
     case ST.DIALOG: this.updateDialog(dt); this.updateFx(dt); this.clock += dt; break;
     case ST.MAP: if (this.pressed('KeyM', 'Escape', 'Tab', 'Enter', 'Tap', 'Space', 'KeyE')) this.st = ST.PLAY; break;
     case ST.PAUSE: this.updatePause(); break;
@@ -111,17 +116,18 @@ G.newGame = function () {
   this.say('Guardián', 'Otra mañana en el cortijo. La red eléctrica cayó hace siete años, pero las placas y las baterías dan luz de sobra: nevera, tele, ventilador... Lo que ya no hay es nadie al otro lado.',
     'Mi espada está en el baúl del rellano. Ya no salgo de casa sin ella.');
 };
-G.pauseMenu = function () { return ['Continuar', 'Guardar partida', 'Controles', Sound.musicOn ? 'Música: sí' : 'Música: no', 'Salir al título']; };
+G.pauseMenu = function () { return ['Continuar', 'Habilidades' + (this.player.pts > 0 ? ' (' + this.player.pts + ')' : ''), 'Guardar partida', 'Controles', Sound.musicOn ? 'Música: sí' : 'Música: no', 'Salir al título']; };
 G.updatePause = function () {
   const m = this.pauseMenu();
   if (this.pressed('Escape', 'KeyP')) { this.st = ST.PLAY; return; }
   if (this.menuNav(m)) {
     switch (this.menuIdx) {
       case 0: this.st = ST.PLAY; break;
-      case 1: this.save(); this.toast('Partida guardada'); this.st = ST.PLAY; break;
-      case 2: this.helpBack = ST.PAUSE; this.st = ST.HELP; break;
-      case 3: Sound.toggle(); break;
-      case 4: this.st = ST.TITLE; this.menuIdx = 0; this.hasSave = !!this.readSave(); Sound.music('calma'); break;
+      case 1: this.openSkills(); break;
+      case 2: this.save(); this.toast('Partida guardada'); this.st = ST.PLAY; break;
+      case 3: this.helpBack = ST.PAUSE; this.st = ST.HELP; break;
+      case 4: Sound.toggle(); break;
+      case 5: this.st = ST.TITLE; this.menuIdx = 0; this.hasSave = !!this.readSave(); Sound.music('calma'); break;
     }
   }
 };
@@ -151,14 +157,12 @@ G.updatePlay = function (dt) {
   if (this.down('ArrowRight', 'KeyD')) ix += 1;
   if (this.down('ArrowUp', 'KeyW')) iy -= 1;
   if (this.down('ArrowDown', 'KeyS')) iy += 1;
-  if (this.pressed('Space', 'KeyJ')) {
-    if (!p.hasSword) this.toast('No llevas la espada. Está en el baúl del rellano.');
-    else if (p.atkCool <= 0) { p.atkT = 0.24; p.atkCool = 0.36; p.hitSet.clear(); Sound.play('swing'); }
-  }
+  if (this.pressed('KeyH', 'Skills')) { this.openSkills(); return; }
+  if (this.pressed('Space', 'KeyJ')) this.attackPress();
   if (this.pressed('ShiftLeft', 'ShiftRight', 'KeyX', 'Roll') && p.rollCool <= 0 && p.kbT <= 0) {
     let rx = ix, ry = iy; const rl = Math.hypot(rx, ry);
     if (rl < 0.25) { rx = [0, 0, -1, 1][p.dir]; ry = [1, -1, 0, 0][p.dir]; } else { rx /= rl; ry /= rl; }
-    p.rollT = 0.3; p.rollCool = 0.65; p.rollX = rx; p.rollY = ry; p.invul = Math.max(p.invul, 0.32); p.atkT = 0; p.rolling = true;
+    p.rollT = 0.3; p.rollCool = this.has('ligero') ? 0.35 : 0.65; p.rollX = rx; p.rollY = ry; p.invul = Math.max(p.invul, 0.32); p.atkT = 0; p.charge = 0; p.rolling = true; p.dodgeDone = false;
     Sound.play('swing');
   }
   if (this.pressed('KeyK', 'Digit1')) this.pray();
@@ -178,32 +182,20 @@ G.updatePlay = function (dt) {
   const len = Math.hypot(ix, iy);
   if (p.rollT > 0) {
     p.rollT -= dt;
-    p.move(w, p.rollX * 175 * dt, p.rollY * 175 * dt);
+    p.move(w, p.rollX * (this.has('ligero') ? 190 : 175) * dt, p.rollY * (this.has('ligero') ? 190 : 175) * dt);
     if (this.rnd.next() < 0.5) this.fx.push(Fx.spark(p.x + this.rnd.gauss() * 3, p.y, this.rnd.gauss() * 10, -8, 0xc8b898, 0.35));
     p.moving = true; p.anim += dt * 2;
     if (p.rollT <= 0) p.rolling = false;
   } else
   if ((p.moving = len > 0.25 && p.kbT <= 0)) {
-    const sp = 74 * (p.atkT > 0 ? 0.45 : 1) * Math.min(1, len);
+    const sp = 74 * (this.has('ligero') ? 1.12 : 1) * (p.atkT > 0 || p.charge > 0.2 ? 0.45 : 1) * Math.min(1, len);
     if (p.atkT <= 0) p.faceTo(ix, iy);
     p.move(w, ix / len * sp * dt, iy / len * sp * dt);
     p.anim += dt;
   } else p.anim = 0;
-  p.feAcc += dt * (this.isNight() ? 1.0 : 1.6);
+  p.feAcc += dt * (this.isNight() ? 1.0 : 1.6) * (this.has('fervor') ? 2 : 1);
   while (p.feAcc >= 1) { p.feAcc -= 1; if (p.fe < p.maxFe) p.fe++; }
-  if (p.atkT > 0.04 && p.atkT < 0.21) {
-    const c = this.swordCenter();
-    for (const m of w.monsters) {
-      if (m.dead || p.hitSet.has(m)) continue;
-      if (Math.hypot(m.x - c[0], (m.y - 6) - c[1]) < 15 + m.hw) {
-        p.hitSet.add(m);
-        let d = p.atk + this.rnd.int(5) - 1;
-        const crit = this.rnd.next() < 0.1;
-        if (crit) d *= 2;
-        this.damageMonster(m, d, crit, m.x - p.x, m.y - p.y);
-      }
-    }
-  }
+  this.updateCombat(dt);
   const ptx = Math.floor(p.x / TS), pty = Math.floor(p.y / TS);
   for (const wp of w.warps) {
     if (ptx >= wp.x && ptx < wp.x + wp.w && pty >= wp.y && pty < wp.y + wp.h) { Sound.play('door'); this.enter(wp.to, wp.tx, wp.ty, wp.dir); return; }
@@ -219,6 +211,7 @@ G.updatePlay = function (dt) {
     o.x += o.vx * dt; o.y += o.vy * dt; o.life -= dt;
     const tx = Math.floor(o.x / TS), ty = Math.floor(o.y / TS);
     let gone = o.life <= 0 || (w.solid(tx, ty) && !T.isWater(w.get(tx, ty)));
+    if (!gone && p.rolling && Math.hypot(o.x - p.x, o.y - (p.y - 8)) < 10) this.perfectDodge();
     if (!gone && p.invul <= 0 && Math.hypot(o.x - p.x, o.y - (p.y - 8)) < 8) { this.hurtPlayer(o.dmg, o.x, o.y); gone = true; }
     if (gone) for (let i = 0; i < 4; i++) this.fx.push(Fx.spark(o.x, o.y, this.rnd.gauss() * 30, this.rnd.gauss() * 30, o.mud ? 0x6a7a3a : 0x50d8c8, 0.3));
     return !gone;
@@ -229,9 +222,9 @@ G.updatePlay = function (dt) {
   const an = w.areaName(ptx, pty);
   if (an !== this.lastArea) { this.lastArea = an; this.banner = an; this.bannerT = 2.6; }
 };
-G.swordCenter = function () {
+G.swordCenter = function (r = 15) {
   const p = this.player;
-  return [[p.x, p.y + 6], [p.x, p.y - 22], [p.x - 15, p.y - 8], [p.x + 15, p.y - 8]][p.dir];
+  return [[p.x, p.y - 8 + r - 1], [p.x, p.y - 8 - r + 1], [p.x - r, p.y - 8], [p.x + r, p.y - 8]][p.dir];
 };
 G.damageMonster = function (m, d, crit, kx, ky) {
   if (!m.vulnerable()) { this.fx.push(Fx.text(m.x, m.y - 14, 'bajo el agua', 0x9ad8d0)); return; }
@@ -250,7 +243,7 @@ G.killMonster = function (m) {
   m.dead = true;
   for (let i = 0; i < 14; i++) this.fx.push(Fx.spark(m.x, m.y - 8, this.rnd.gauss() * 60, this.rnd.gauss() * 60 - 30, i % 2 === 0 ? 0x2a2030 : 0x6a5a7a, 0.6));
   this.gainXp(m.xp, m.x, m.y - 28);
-  if (this.rnd.next() < 0.22) this.world.pickups.push(new Pickup(Pickup.HERB, m.x, m.y, null));
+  if (this.rnd.next() < (this.has('herbolario') ? 0.35 : 0.22)) this.world.pickups.push(new Pickup(Pickup.HERB, m.x, m.y, null));
   if (this.stage === 2 && this.world.outdoor) {
     this.questKills++;
     if (this.questKills >= 6) { this.stage = 3; this.save(); this.say('Guardián', 'La ribera está limpia... por ahora.', 'La radio del porche ha vuelto a crepitar. Juraría que he oído una voz.'); }
@@ -268,32 +261,43 @@ G.gainXp = function (amount, x, y) {
   this.fx.push(Fx.text(x, y, '+' + amount + ' XP', 0xb0e0ff));
   while (p.xp >= p.xpNext()) {
     p.xp -= p.xpNext(); p.lvl++;
-    p.maxHp += 12; p.maxFe += 6; p.atk += 2; p.hp = p.maxHp; p.fe = p.maxFe;
+    const gain = p.lvl % 5 === 0 ? 2 : 1;
+    p.maxHp += 8; p.maxFe += 4; p.atk += 1; p.hp = p.maxHp; p.fe = p.maxFe; p.pts += gain;
     Sound.play('level');
     this.fx.push(Fx.ring(p.x, p.y - 8, 40, 0xffe080));
-    if (p.lvl === 3) this.say('Guardián', '¡Nivel 3! Siento la luz más fuerte que nunca.', 'Has aprendido LUZ: pulsa L (o el botón Luz) para liberar una onda sagrada que daña a los engendros cercanos. Cuesta 40 de Fe.');
-    else this.toast('¡Nivel ' + p.lvl + '! Vida y Fe al máximo. Ataque +2');
+    const how = this.touch ? 'el botón Hab.' : 'la tecla H';
+    if (p.lvl === 3) this.say('Guardián', '¡Nivel 3! Siento la luz más fuerte que nunca.', 'Has aprendido LUZ: pulsa L (o el botón Luz) para liberar una onda sagrada que daña a los engendros cercanos. Cuesta 40 de Fe.', 'Y tienes un punto de habilidad nuevo: gástalo en el árbol con ' + how + '.');
+    else if (!this.flags.has('tuto_hab')) { this.flags.add('tuto_hab'); this.say('Guardián', '¡Nivel ' + p.lvl + '! Vida y Fe al máximo.', 'Has ganado un punto de habilidad. Ábrelo con ' + how + ': hay tres ramas, Espada, Fe y Camino.'); }
+    else this.toast('¡Nivel ' + p.lvl + '! +' + gain + (gain > 1 ? ' puntos' : ' punto') + ' de habilidad (' + how + ')');
   }
 };
 G.hurtPlayer = function (dmg, fx, fy, poison) {
   const p = this.player;
   if (p.dead) return;
-  if (poison) { p.poison = Math.max(p.poison, poison); this.toast('¡Envenenado! Come hierbas para curarte.'); }
+  if (poison) { p.poison = Math.max(p.poison, this.has('herbolario') ? poison / 2 : poison); this.toast('¡Envenenado! Come hierbas para curarte.'); }
+  if (p.shieldT > 0) dmg = Math.ceil(dmg / 2);
   p.hp -= dmg; p.invul = 0.9; p.flash = 0.2;
   p.knock(p.x - fx, p.y - fy, 160);
   this.shake(0.18);
   this.fx.push(Fx.text(p.x, p.y - 26, '-' + dmg, 0xff6050));
   Sound.play('hurt');
   try { if (navigator.vibrate) navigator.vibrate(40); } catch (e) { }
+  if (p.hp <= 0 && this.has('aliento') && !p.alientoUsed) {
+    p.alientoUsed = true; p.hp = Math.round(p.maxHp * 0.4); p.invul = 1.6;
+    this.fx.push(Fx.ring(p.x, p.y - 8, 50, 0xffe8a0)); Sound.play('purify'); this.toast('¡Segundo aliento! Te levantas.');
+    return;
+  }
   if (p.hp <= 0) { p.hp = 0; p.dead = true; this.deadT = 0; this.st = ST.DEAD; Sound.play('die'); }
 };
 G.shake = function (t) { this.shakeT = Math.max(this.shakeT, t); };
 G.pray = function () {
   const p = this.player;
-  if (p.fe < 25) { this.toast('No te queda Fe suficiente para orar (25).'); return; }
-  if (p.hp >= p.maxHp) { this.toast('No estás herido.'); return; }
-  p.fe -= 25;
-  const h = Math.max(25, Math.floor(p.maxHp * 0.35));
+  const cost = this.has('oracion') ? 18 : 25;
+  if (p.fe < cost) { this.toast('No te queda Fe suficiente para orar (' + cost + ').'); return; }
+  if (p.hp >= p.maxHp && !this.has('escudo')) { this.toast('No estás herido.'); return; }
+  p.fe -= cost;
+  if (this.has('escudo')) p.shieldT = 5;
+  const h = Math.round(Math.max(25, Math.floor(p.maxHp * 0.35)) * (this.has('oracion') ? 1.5 : 1));
   p.hp = Math.min(p.maxHp, p.hp + h); p.prayT = 0.8;
   this.fx.push(Fx.text(p.x, p.y - 30, '+' + h, 0x80ff90));
   for (let i = 0; i < 18; i++) this.fx.push(Fx.spark(p.x + this.rnd.gauss() * 8, p.y - this.rnd.next() * 20, 0, -20 - this.rnd.next() * 30, 0xffe8a0, 0.9));
@@ -304,17 +308,23 @@ G.holyLight = function () {
   if (!p.canLight()) { this.toast('Aún no dominas la Luz (nivel 3).'); return; }
   if (p.fe < 40) { this.toast('No te queda Fe suficiente para la Luz (40).'); return; }
   p.fe -= 40;
-  this.fx.push(Fx.ring(p.x, p.y - 8, 64, 0xfff0b0));
+  const R = this.has('ardiente') ? 83 : 64;
+  if (this.has('cruzluz')) p.poison = 0;
+  this.fx.push(Fx.ring(p.x, p.y - 8, R, 0xfff0b0));
   for (let i = 0; i < 24; i++) { const a = i * Math.PI / 12; this.fx.push(Fx.spark(p.x, p.y - 8, Math.cos(a) * 140, Math.sin(a) * 140, 0xfff0b0, 0.4)); }
   Sound.play('light'); this.shake(0.15);
-  for (const m of [...this.world.monsters]) if (!m.dead && Math.hypot(m.x - p.x, m.y - p.y) < 64 + m.hw) this.damageMonster(m, p.atk * 2 + 6, false, m.x - p.x, m.y - p.y);
+  for (const m of [...this.world.monsters]) if (!m.dead && Math.hypot(m.x - p.x, m.y - p.y) < R + m.hw) {
+    this.damageMonster(m, Math.round((p.atk * 2 + 6) * (this.has('ardiente') ? 1.5 : 1)), false, m.x - p.x, m.y - p.y);
+    if (this.has('cruzluz') && !m.dead && m.kind !== MK.BESTIA && m.kind !== MK.NIDO && m.vulnerable()) m.setState('stun', 2);
+  }
 };
 G.eatHerb = function () {
   const p = this.player;
   if (p.herbs <= 0) { this.toast('No te quedan hierbas medicinales.'); return; }
   if (p.hp >= p.maxHp && p.poison <= 0) { this.toast('No estás herido.'); return; }
-  p.herbs--; p.hp = Math.min(p.maxHp, p.hp + 30); p.poison = 0;
-  this.fx.push(Fx.text(p.x, p.y - 30, '+30', 0x80ff90));
+  const hh = this.has('herbolario') ? 55 : 30;
+  p.herbs--; p.hp = Math.min(p.maxHp, p.hp + hh); p.poison = 0;
+  this.fx.push(Fx.text(p.x, p.y - 30, '+' + hh, 0x80ff90));
   Sound.play('heal');
 };
 G.collect = function (k) {
@@ -547,13 +557,14 @@ G.use = function (pr) {
       this.restWorld = 'exterior'; this.restX = WG.fireX * TS + 8; this.restY = (WG.fireY + 1) * TS + 10;
       this.rest('Descansas junto a la hoguera de los supervivientes.');
       break;
+    case 'casablanca': this.say('Guardián', 'La casa blanca de enfrente del puente. Era de los vecinos; se fueron el primer invierno del Colapso.', 'Las ventanas están tapiadas por dentro. Alguien las tapió... desde dentro.'); break;
     case 'puerta_iglesia': this.say('Guardián', 'La puerta de la Encarnación está atrancada. Dentro descansan los heridos.'); break;
   }
 };
 G.rest = function (msg) {
   const p = this.player;
   for (const m of this.world.monsters) if (!m.dead && m.dist(p) < 10 * TS && m.aggro) { this.toast('No puedes descansar con engendros cerca.'); return; }
-  p.hp = p.maxHp; p.fe = p.maxFe; p.poison = 0;
+  p.hp = p.maxHp; p.fe = p.maxFe; p.poison = 0; p.alientoUsed = false;
   for (const L of WG.lairs) { L.cleared = false; L.active = false; }
   this.worlds.exterior.monsters = this.worlds.exterior.monsters.filter(m => !m.lair || m.kind === MK.BESTIA);
   if (this.world.id === 'casa_alta') { this.restWorld = 'casa_alta'; this.restX = WG.upStart[0]; this.restY = WG.upStart[1]; }
@@ -646,7 +657,8 @@ G.save = function () {
   const p = this.player;
   const d = {
     stage: this.stage, flags: [...this.flags], picked: [...this.picked], hp: p.hp, maxHp: p.maxHp, fe: p.fe, maxFe: p.maxFe, lvl: p.lvl, xp: p.xp, atk: p.atk,
-    herbs: p.herbs, relics: p.relics, sword: p.hasSword, world: this.world.id, x: p.x, y: p.y, restWorld: this.restWorld, restX: this.restX, restY: this.restY, day: this.day, kills: this.questKills
+    herbs: p.herbs, relics: p.relics, sword: p.hasSword, world: this.world.id, x: p.x, y: p.y, restWorld: this.restWorld, restX: this.restX, restY: this.restY, day: this.day, kills: this.questKills,
+    pts: p.pts, skills: [...p.skills]
   };
   try { localStorage.setItem(SAVE_KEY, JSON.stringify(d)); this.hasSave = true; } catch (e) { this.toast('Este navegador no deja guardar la partida.'); }
 };
@@ -658,6 +670,7 @@ G.load = function () {
     const p = this.player = new Player();
     this.stage = d.stage; this.flags = new Set(d.flags); this.picked = new Set(d.picked);
     Object.assign(p, { hp: d.hp, maxHp: d.maxHp, fe: d.fe, maxFe: d.maxFe, lvl: d.lvl, xp: d.xp, atk: d.atk, herbs: d.herbs, relics: d.relics, hasSword: d.sword });
+    p.skills = new Set(d.skills || []); p.pts = d.pts !== undefined ? d.pts : Math.max(0, d.lvl - 1);
     this.restWorld = d.restWorld; this.restX = d.restX; this.restY = d.restY; this.day = d.day; this.questKills = d.kills;
     for (const id in this.worlds) { const w = this.worlds[id]; w.pickups = w.pickups.filter(k => !(k.id && this.picked.has(k.id))); }
     if (p.hasSword) for (const pp of this.worlds.casa_alta.props) if (pp.id === 'baul') pp.img = Art.P.baul_abierto;

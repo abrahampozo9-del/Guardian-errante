@@ -52,6 +52,7 @@ G.render = function (ctx, cw, ch, dpr) {
       if (this.st === ST.MAP) this.uiMap(ctx);
       if (this.st === ST.PAUSE) this.uiPause(ctx);
       if (this.st === ST.DEAD) this.uiDead(ctx);
+      if (this.st === ST.SKILLS) this.uiSkills(ctx);
   }
   if (this.toastT > 0 && this.st !== ST.TITLE) this.uiToast(ctx);
   ctx.restore();
@@ -97,6 +98,7 @@ G.renderWorld = function (g) {
       g.drawImage(cv(s), Math.floor(e.x - s.w / 2) - cx, Math.floor(e.y - s.h - 2 + bob) - cy);
     } else this.drawPlayer(g, cx, cy);
   }
+  this.drawCombatFx(g, cx, cy);
   for (const o of this.orbs) { const im = o.mud ? Art.E.mud : Art.orb; g.drawImage(cv(im), Math.floor(o.x) - (im.w >> 1) - cx, Math.floor(o.y) - (im.h >> 1) - cy); }
   for (const f of this.fx) {
     const a = Math.max(0, Math.min(1, f.life / f.max));
@@ -137,7 +139,7 @@ G.renderWorld = function (g) {
 };
 
 const ROOFS = new Set([T.ROOF, T.ROOF_DARK, T.ROOF_SOLAR, T.CHURCH_ROOF]);
-const FACES = new Set([T.WALL_WHITE, T.WINDOW, T.DOOR, T.CHURCH_WALL, T.CHURCH_DOOR, T.SHED, T.WALL_STONE, T.DAM, T.IWALL, T.IWALL_STONE, T.BATHWALL, T.WALLTOP, T.GARAGE]);
+const FACES = new Set([T.WALL_WHITE, T.WINDOW, T.DOOR, T.CHURCH_WALL, T.CHURCH_DOOR, T.SHED, T.WALL_STONE, T.DAM, T.IWALL, T.IWALL_STONE, T.BATHWALL, T.WALLTOP, T.GARAGE, T.PRETIL]);
 G.edgeDetail = function (g, t, x, y, sx, sy) {
   const w = this.world;
   if (T.isWater(t)) {
@@ -223,7 +225,7 @@ G.drawPlayer = function (g, cx, cy) {
   this.shadow(g, p.x - cx, p.y - cy, 6);
   if (p.prayT > 0) this.glow(g, p.x - cx, p.y - 10 - cy, 22, `rgba(255,230,150,${0.43 * p.prayT})`);
   // espada a la espalda: en diagonal, empuñadura asomando por encima del hombro
-  const back = p.hasSword && !attacking && !p.rolling;
+  const back = p.hasSword && !attacking && !p.rolling && p.spinT <= 0;
   const backSword = () => {
     const off = [0, 0, 2, -2][p.dir], tilt = [-0.62, 0.62, 0.55, -0.55][p.dir];
     g.save(); g.translate(p.x - cx + off + (p.dir === 0 ? 3 : 0), p.y - (p.dir === 0 ? 18 : 13) - cy); g.rotate(Math.PI + tilt);
@@ -231,15 +233,33 @@ G.drawPlayer = function (g, cx, cy) {
   };
   if (back && p.dir !== 1) backSword();
   if (attacking && p.dir === 1) this.drawSwing(g, cx, cy);
+  if (p.spinT > 0) this.drawSpin(g, cx, cy, true);
   if (p.rolling) { g.save(); g.translate(sx + 8, sy + 23); g.rotate((1 - p.rollT / 0.3) * Math.PI * 2 * (p.rollX < 0 ? -1 : 1)); g.drawImage(cv(s), -8, -16, 16, 18); g.restore(); }
   else g.drawImage(cv(p.flash > 0 ? white(s) : s), sx, sy);
   if (attacking && p.dir !== 1) this.drawSwing(g, cx, cy);
+  if (p.spinT > 0) this.drawSpin(g, cx, cy, false);
   if (back && p.dir === 1) backSword();
+};
+G.drawSpin = function (g, cx, cy, behind) {
+  const p = this.player, t = 1 - p.spinT / 0.38, ang = -Math.PI / 2 + t * Math.PI * 2.2;
+  const s = Math.sin(ang) < 0; if (s !== behind) return; // la mitad de arriba se pinta detrás del cuerpo
+  const hx = p.x - cx, hy = p.y - 11 - cy;
+  g.strokeStyle = 'rgba(255,255,255,0.4)'; g.lineWidth = 3; g.lineCap = 'round';
+  g.beginPath(); g.ellipse(hx, hy + 2, 20, 13, 0, ang - 1.6, ang); g.stroke();
+  g.save(); g.translate(hx + Math.cos(ang) * 4, hy + Math.sin(ang) * 3); g.rotate(ang + Math.PI / 2); g.drawImage(cv(Art.sword), -3, -18); g.restore();
 };
 G.drawSwing = function (g, cx, cy) {
   const p = this.player, t = 1 - p.atkT / 0.24;
   const base = [Math.PI / 2, -Math.PI / 2, Math.PI, 0][p.dir];
-  const rev = p.dir === 2 || p.dir === 0;
+  if (p.atkKind === 'thrust') {
+    const reach = Math.sin(Math.min(1, t * 1.6) * Math.PI / 2) * 12 - 4;
+    const hx = p.x - cx + Math.cos(base) * reach, hy = p.y - 11 - cy + Math.sin(base) * reach;
+    g.strokeStyle = 'rgba(255,255,255,0.45)'; g.lineWidth = 2;
+    g.beginPath(); g.moveTo(hx + Math.cos(base) * 6, hy + Math.sin(base) * 6); g.lineTo(hx + Math.cos(base) * (22 + reach), hy + Math.sin(base) * (22 + reach)); g.stroke();
+    g.save(); g.translate(hx, hy); g.rotate(base + Math.PI / 2); g.drawImage(cv(Art.sword), -3, -18); g.restore();
+    return;
+  }
+  const rev = (p.dir === 2 || p.dir === 0) !== (p.atkKind === 'back');
   const a0 = rev ? base + 1.3 : base - 1.3, ang = rev ? a0 - t * 2.6 : a0 + t * 2.6;
   const hx = p.x - cx + (p.dir === 2 ? -3 : p.dir === 3 ? 3 : 0), hy = p.y - 11 - cy;
   g.strokeStyle = 'rgba(255,255,255,0.35)'; g.lineWidth = 3; g.lineCap = 'round';
@@ -341,6 +361,7 @@ G.uiHud = function (g) {
   const p = this.player;
   this.panel(g, 4, 4, 116, 40);
   g.font = FBB(7); this.text(g, 'Guardián  ·  Nv. ' + p.lvl, 9, 12.5, GOLD);
+  if (p.pts > 0) { g.font = FBB(5.6); this.text(g, '+' + p.pts + ' hab.', 88, 12.5, `rgba(255,230,140,${0.6 + 0.4 * Math.sin(this.clock * 4)})`); }
   this.bar(g, 9, 16, 76, 5.2, p.hp / p.maxHp, p.poison > 0 ? '#6aa830' : '#c8402e', '#3a1410');
   this.bar(g, 9, 24, 76, 3.6, p.fe / p.maxFe, '#e8c050', '#3a2c10');
   this.bar(g, 9, 30.5, 76, 1.6, p.xp / p.xpNext(), '#8ac0e8', '#1a2430');
@@ -443,11 +464,11 @@ G.menuList = function (g, items, y0, step) {
 };
 G.uiPause = function (g) {
   g.fillStyle = 'rgba(0,0,0,0.6)'; g.fillRect(0, 0, VW, VH);
-  this.panel(g, VW / 2 - 70, 34, 140, 132);
-  g.font = FT(11); this.center(g, 'Pausa', 52, GOLD);
-  this.menuList(g, this.pauseMenu(), 72, 15);
+  this.panel(g, VW / 2 - 70, 26, 140, 148);
+  g.font = FT(11); this.center(g, 'Pausa', 44, GOLD);
+  this.menuList(g, this.pauseMenu(), 62, 15);
   g.font = FB(5.8);
-  this.center(g, 'Reliquias ' + this.player.relics + '/5  ·  Ataque ' + this.player.atk + '  ·  Nivel ' + this.player.lvl, 158, SOFT);
+  this.center(g, 'Reliquias ' + this.player.relics + '/5  ·  Ataque ' + this.player.atk + '  ·  Nivel ' + this.player.lvl, 166, SOFT);
 };
 G.uiDead = function (g) {
   const a = Math.min(1, this.deadT / 1.2);
@@ -468,8 +489,8 @@ G.uiHelp = function (g) {
   this.panel(g, 30, 12, VW - 60, VH - 24);
   g.font = FT(11); this.center(g, 'Controles', 30, GOLD);
   const rows = G.touch
-    ? [['Joystick (izquierda)', 'Moverse'], ['Espada', 'Golpe de espada'], ['Rodar', 'Esquivar (eres invulnerable un instante)'], ['Usar', 'Hablar, abrir, examinar'], ['Orar', 'Recupera vida (25 de Fe)'], ['Luz', 'Onda sagrada (nivel 3, 40 de Fe)'], ['Hierba', 'Comer hierbas medicinales (+30 vida)'], ['Mapa / Menú', 'Botones de arriba'], ['Toca la pantalla', 'Pasar los diálogos']]
-    : [['WASD / Flechas', 'Moverse'], ['Espacio / J', 'Golpe de espada'], ['Mayús / X', 'Rodar para esquivar'], ['E / Enter', 'Hablar, usar, abrir, pasar texto'], ['K / 1', 'Orar: recupera vida (25 de Fe)'], ['L / 2', 'Luz: onda sagrada (nivel 3, 40 de Fe)'], ['Q / 3', 'Comer hierbas medicinales (+30 vida)'], ['M / Tab', 'Mapa de la comarca'], ['Esc / P', 'Pausa y guardar'], ['N', 'Activar o quitar la música']];
+    ? [['Joystick (izquierda)', 'Moverse'], ['Espada', 'Combo de golpes · mantén para Torbellino'], ['Rodar', 'Esquivar (eres invulnerable un instante)'], ['Usar', 'Hablar, abrir, examinar'], ['Orar', 'Recupera vida (25 de Fe)'], ['Luz', 'Onda sagrada (nivel 3, 40 de Fe)'], ['Hierba', 'Comer hierbas medicinales (+30 vida)'], ['Mapa / Menú / Hab.', 'Mapa, pausa y árbol de habilidades'], ['Toca la pantalla', 'Pasar los diálogos']]
+    : [['WASD / Flechas', 'Moverse'], ['Espacio / J', 'Combo de espada (mantén: Torbellino)'], ['Mayús / X', 'Rodar para esquivar'], ['E / Enter', 'Hablar, usar, abrir, pasar texto'], ['K / 1', 'Orar: recupera vida (25 de Fe)'], ['L / 2', 'Luz: onda sagrada (nivel 3, 40 de Fe)'], ['Q / 3', 'Comer hierbas medicinales (+30 vida)'], ['M / Tab', 'Mapa de la comarca'], ['H', 'Árbol de habilidades'], ['Esc / P', 'Pausa y guardar'], ['N', 'Activar o quitar la música']];
   g.font = FB(7);
   rows.forEach((r, i) => { this.text(g, r[0], 52, 48 + i * 14, GOLD); this.text(g, r[1], 150, 48 + i * 14, PAPER); });
   g.font = FB(5.8);

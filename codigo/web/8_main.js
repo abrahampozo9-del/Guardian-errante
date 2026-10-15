@@ -17,10 +17,12 @@ const Touch = {
     const side = G.layout.ox;
     if (side > 44 * k) {
       this.buttons.push({ id: 'menu', x: side / 2, y: 34 * k, r: 17 * k, label: 'Menú', code: 'Escape' });
+      this.buttons.push({ id: 'skills', x: side / 2, y: 76 * k, r: 17 * k, label: 'Hab.', code: 'Skills' });
       this.buttons.push({ id: 'map', x: cw - side / 2, y: 34 * k, r: 17 * k, label: 'Mapa', code: 'KeyM' });
     } else {
       this.buttons.push({ id: 'menu', x: cw / 2 - 26 * k, y: ch - 18 * k, r: 15 * k, label: 'Menú', code: 'Escape' });
       this.buttons.push({ id: 'map', x: cw / 2 + 26 * k, y: ch - 18 * k, r: 15 * k, label: 'Mapa', code: 'KeyM' });
+      this.buttons.push({ id: 'skills', x: cw / 2 + 60 * k, y: ch - 18 * k, r: 15 * k, label: 'Hab.', code: 'Skills' });
     }
   },
   hit(x, y) { for (const b of this.buttons) if (Math.hypot(x - b.x, y - b.y) < b.r * 1.2) return b; return null; },
@@ -40,7 +42,7 @@ const Touch = {
       const lit = (this.flash[b.id] || 0) > performance.now();
       const off = (b.id === 'light' && !p.canLight()) || (b.id === 'herb' && p.herbs === 0) || (b.id === 'atk' && !p.hasSword);
       ctx.globalAlpha = off ? 0.35 : 1;
-      ctx.fillStyle = lit ? 'rgba(232,196,106,0.55)' : 'rgba(18,14,12,0.45)';
+      ctx.fillStyle = lit ? 'rgba(232,196,106,0.55)' : (b.id === 'skills' && p.pts > 0) ? `rgba(232,196,106,${0.25 + 0.2 * Math.sin(performance.now() / 200)})` : 'rgba(18,14,12,0.45)';
       ctx.beginPath(); ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2); ctx.fill();
       ctx.lineWidth = 2; ctx.strokeStyle = 'rgba(232,196,106,0.75)'; ctx.stroke();
       ctx.fillStyle = PAPER; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
@@ -118,7 +120,7 @@ const Touch = {
 
   function toView(x, y) { const L = G.layout; return [(x - L.ox) / L.sc, (y - L.oy) / L.sc]; }
   function tapAt(x, y) {
-    if (G.st === ST.TITLE || G.st === ST.PAUSE) {
+    if (G.st === ST.TITLE || G.st === ST.PAUSE || G.st === ST.SKILLS) {
       const [vx, vy] = toView(x, y);
       for (const r of G.menuRects) if (vx >= r.x && vx <= r.x + r.w && vy >= r.y && vy <= r.y + r.h) { G.queue.add('Pick' + r.i); return; }
       return;
@@ -137,7 +139,7 @@ const Touch = {
       if (G.st === ST.PLAY) {
         Touch.layout(cw, ch);
         const b = Touch.hit(x, y);
-        if (b) { G.queue.add(b.code); Touch.flash[b.id] = performance.now() + 150; continue; }
+        if (b) { G.queue.add(b.code); Touch.flash[b.id] = performance.now() + 150; if (b.id === 'atk') { Touch.atkId = t.identifier; G.keys.add('AtkHold'); } continue; }
         if (x < cw * 0.45 && Touch.stickId === null) { Touch.stickId = t.identifier; Touch.cx = x; Touch.cy = y; Touch.updateStick(); }
       } else tapAt(x, y);
     }
@@ -149,7 +151,10 @@ const Touch = {
   const endTouch = e => {
     e.preventDefault();
     Sound.unlock();
-    for (const t of e.changedTouches) if (t.identifier === Touch.stickId) { Touch.stickId = null; G.stick.x = G.stick.y = 0; }
+    for (const t of e.changedTouches) {
+      if (t.identifier === Touch.stickId) { Touch.stickId = null; G.stick.x = G.stick.y = 0; }
+      if (t.identifier === Touch.atkId) { Touch.atkId = null; G.keys.delete('AtkHold'); }
+    }
   };
   canvas.addEventListener('touchend', endTouch, { passive: false });
   canvas.addEventListener('touchcancel', endTouch, { passive: false });

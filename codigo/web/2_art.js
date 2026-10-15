@@ -3,11 +3,11 @@ const T = {
   VOID: 0, GRASS: 1, DIRT: 2, TRACK: 3, FIELD: 4, SAND: 5, ASPHALT: 6, PAVING: 7, CONCRETE: 8, TERRACE: 9, WATER: 10, DEEP: 11,
   CLIFF: 12, MOUNTAIN: 13, WALL_WHITE: 14, WALL_STONE: 15, WINDOW: 16, DOOR: 17, ROOF: 18, ROOF_SOLAR: 19, SHED: 20, DRYWALL: 21,
   BRAMBLE: 22, DAM: 23, BRIDGE: 24, FLOOR: 25, IWALL: 26, IWALL_STONE: 27, BATHWALL: 28, WALLTOP: 29, STAIRS: 30, CHURCH_WALL: 31,
-  CHURCH_DOOR: 32, BARRICADE: 33, GRASS_GREEN: 34, ROOF_DARK: 35, PORCH: 36, CHURCH_ROOF: 37, BATHFLOOR: 38, IWALL_HI: 39, GARAGE: 40, COUNT: 41
+  CHURCH_DOOR: 32, BARRICADE: 33, GRASS_GREEN: 34, ROOF_DARK: 35, PORCH: 36, CHURCH_ROOF: 37, BATHFLOOR: 38, IWALL_HI: 39, GARAGE: 40, PRETIL: 41, COUNT: 42
 };
 T.SOLID = new Array(T.COUNT).fill(false);
 for (const s of [T.VOID, T.WATER, T.DEEP, T.CLIFF, T.MOUNTAIN, T.WALL_WHITE, T.WALL_STONE, T.WINDOW, T.ROOF, T.ROOF_SOLAR, T.SHED, T.DRYWALL,
-  T.BRAMBLE, T.DAM, T.IWALL, T.IWALL_STONE, T.BATHWALL, T.WALLTOP, T.CHURCH_WALL, T.BARRICADE, T.ROOF_DARK, T.CHURCH_ROOF, T.IWALL_HI, T.GARAGE]) T.SOLID[s] = true;
+  T.BRAMBLE, T.DAM, T.IWALL, T.IWALL_STONE, T.BATHWALL, T.WALLTOP, T.CHURCH_WALL, T.BARRICADE, T.ROOF_DARK, T.CHURCH_ROOF, T.IWALL_HI, T.GARAGE, T.PRETIL]) T.SOLID[s] = true;
 T.isWater = t => t === T.WATER || t === T.DEEP;
 
 // ====================================================================== dibujos (generados por código)
@@ -150,6 +150,14 @@ const Art = { tiles: [], tileColor: [], P: {}, people: {} };
         for (let y = 0; y < 16; y += 5) r(b, 0, y, 16, 1, 0x948260);
         for (let y = 0; y < 16; y += 5) for (let x = (y % 2) * 3; x < 16; x += 6) r(b, x, y, 1, 5, 0x948260);
         speck(b, 0, 0, 16, 16, 0xcbb994, 0.15, R);
+        break;
+      case T.PRETIL: // pretil de piedra del puente viejo: losa de remate y sillares
+        r(b, 0, 0, 16, 16, 0xb8a47e);
+        voronoi(b, 0, 5, 16, 9, 4, [0xb0a088, 0x9e8e74, 0xc2b296], 0x6e6250, R);
+        r(b, 0, 2, 16, 3, 0xd6ccb4); r(b, 0, 2, 16, 1, 0xeee6d2); r(b, 0, 5, 16, 1, 0x8a7c64);
+        for (let x = 4; x < 16; x += 8) r(b, x, 2, 1, 3, 0xa89c84);
+        r(b, 0, 14, 16, 2, 0x5a5040);
+        speck(b, 0, 6, 16, 8, 0x7a8a4a, 0.05, R);
         break;
       case T.PORCH: voronoi(b, 0, 0, 16, 16, 6, [0xc8b6a4, 0xbaa794, 0xd2c2b0], 0x968472, R); break;
       case T.FLOOR:

@@ -19,6 +19,8 @@ class Player extends Entity {
     this.maxHp = this.hp = 100; this.maxFe = this.fe = 60; this.lvl = 1; this.xp = 0; this.atk = 12; this.herbs = 0; this.relics = 0;
     this.feAcc = 0; this.hasSword = false; this.atkT = 0; this.atkCool = 0; this.invul = 0; this.prayT = 0; this.hitSet = new Set();
     this.rollT = 0; this.rollCool = 0; this.rollX = 0; this.rollY = 0; this.poison = 0; this.poisonAcc = 0;
+    this.pts = 0; this.skills = new Set(); this.combo = 0; this.lastAtk = -9; this.atkKind = 'slash'; this.charge = 0; this.spinT = 0;
+    this.nextCrit = false; this.shieldT = 0; this.alientoUsed = false; this.dodgeDone = false;
   }
   xpNext() { return Math.floor(25 + 22 * Math.pow(this.lvl, 1.45)); }
   canLight() { return this.lvl >= 3; }
@@ -196,6 +198,7 @@ class Monster extends Entity {
       const cx = this.x + this.ax * 13, cy = this.y - 6 + this.ay * 13;
       hit = Math.hypot(p.x - cx, p.y - 8 - cy) < 15;
     }
+    if (hit && !this.hitDone && p.rolling && !p.dead) { this.hitDone = true; g.perfectDodge(); }
     if (hit && !this.hitDone && p.invul <= 0 && !p.dead) {
       this.hitDone = true;
       g.hurtPlayer(this.dmg, this.x, this.y, this.kind === MK.ALACRAN ? 4 : 0);

@@ -26,6 +26,7 @@ G.boot = function () {
   Art.initTerrain();
   Art.initVegetation();
   Art.initBuildings();
+  Art.initProps2();
   Art.initEnemies();
   this.buildWorlds();
   this.hasSave = !!this.readSave();

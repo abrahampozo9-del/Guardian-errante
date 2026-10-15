@@ -310,13 +310,17 @@ G.nightOverlay = function (g, dk, cx, cy) {
     dctx.fillStyle = gr; dctx.beginPath(); dctx.arc(x, y, r, 0, Math.PI * 2); dctx.fill();
   };
   light(this.player.x - cx, this.player.y - 10 - cy, 92);
-  for (const pr of this.world.props) if (pr.anim === 1 || pr.img === Art.P.cruzluz) {
-    const lx = pr.x - cx, ly = pr.y - 6 - cy;
-    if (lx > -90 && lx < WW + 90 && ly > -90 && ly < WH + 90) light(lx, ly, pr.anim === 1 ? 72 + Math.sin(this.clock * 9) * 3 : 55);
+  for (const pr of this.world.props) if (pr.anim === 1 || pr.img === Art.P.cruzluz || pr.light) {
+    const lx = pr.x - cx, ly = pr.y - (pr.light ? 26 : 6) - cy;
+    if (lx > -90 && lx < WW + 90 && ly > -90 && ly < WH + 90) light(lx, ly, pr.light ? 58 + Math.sin(this.clock * 5 + pr.x) * 1.5 : pr.anim === 1 ? 72 + Math.sin(this.clock * 9) * 3 : 55);
   }
   for (const k of this.world.pickups) if (k.type === Pickup.RELIC) light(k.x - cx, k.y - 8 - cy, 20);
   dctx.globalCompositeOperation = 'source-over';
   g.drawImage(darkC, 0, 0);
+  for (const pr of this.world.props) if (pr.light) {
+    const lx = pr.x - cx, ly = pr.y - 26 - cy;
+    if (lx > -60 && lx < WW + 60 && ly > -60 && ly < WH + 60) { this.glow(g, lx, ly, 30, `rgba(255,200,90,${0.3 * dk})`); this.glow(g, lx, pr.y - cy, 22, `rgba(255,190,90,${0.18 * dk})`); }
+  }
   for (const pr of this.world.props) if (pr.anim === 1) {
     const lx = pr.x - cx, ly = pr.y - 6 - cy;
     if (lx > -90 && lx < WW + 90 && ly > -90 && ly < WH + 90) this.glow(g, lx, ly, 46, `rgba(255,140,40,${0.24 * dk})`);

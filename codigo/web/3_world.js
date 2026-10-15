@@ -198,6 +198,7 @@ const WG = (function () {
     for (let x = rx - 3; x <= rx + 3; x++) for (let y = brY; y <= brY + 1; y++) w.set(x, y, x <= rx + 1 ? T.BRIDGE : T.TRACK);
     for (let x = rx - 3; x <= rx + 1; x++) { w.set(x, brY - 1, T.PRETIL); w.set(x, brY + 2, T.PRETIL); reserved[(brY - 1) * OW_W + x] = reserved[(brY + 2) * OW_W + x] = 1; }
     G.bridgeX = rx - 1; G.bridgeY = brY;
+    w.prop('farola', rx - 4, brY - 1).light = 1; w.prop('farola', rx + 2.5, brY + 3).light = 1;
     for (let y = brY; y <= 110; y++) for (let x = rx + 2; x <= rx + 3; x++) w.set(x, y, T.TRACK);
     road(w, [[66, 120], [80, 124], [96, 130], [112, 132]], 2, T.TRACK);
     road(w, [[68, 96], [80, 92], [92, 86], [100, 86]], 2, T.TRACK);
@@ -329,6 +330,7 @@ const WG = (function () {
       if (cxm < 23 && cym > 127) { ermita(w, x0, y0, x1, y1); continue; }
       houses(w, x0, y0, x1, y1);
     }
+    hs.forEach((h, i) => vs.forEach((v, j) => { if ((i + j) % 2 === 0 && h > 86 && h < 134) { const f = w.prop('farola', v + 0.5, h); f.light = 1; } }));
     const px0 = 33, px1 = 50, py0 = 95, py1 = 102;
     w.fill(px0, py0, px1 - px0 + 1, py1 - py0 + 1, T.PAVING);
     w.unblock(px0, py0 + 2, px1 - px0 + 1, py1 - py0 - 1);
@@ -511,9 +513,11 @@ const WG = (function () {
           const kk = Math.floor(k) % 5;
           if ((kk === 0 || kk === 4) && y % 2 === 0 && r.next() < 0.8) w.prop(fbm(x, y, 70) > 0.55 ? 'almendro' + r.int(2) : 'olivo' + r.int(3), x, y, x, y, 1, 1);
           else if (r.next() < 0.03) w.prop('retama' + r.int(3), x, y, x, y, 1, 1);
+          else if (r.next() < 0.008) w.prop('roca_musgo' + r.int(2), x, y, x, y, 1, 1);
           continue;
         }
         // fondo del valle: chopos y sauces junto al agua, hierba abierta
+        if (dr < 7 && dr > 2 && r.next() < 0.012) { w.prop('setas' + r.int(2), x, y); continue; }
         if (t === T.FIELD) { if (x % 2 === 0 && y % 2 === 1 && r.next() < 0.5) w.prop('canas', x, y); continue; }
         if (dr > 6 && fbm(x * 1.2, y * 1.2, 90) > 0.62) { if (x % 3 === 0 && y % 3 === 0 && r.next() < 0.9) w.prop('chopo' + r.int(2), x, y, x, y, 1, 1); continue; } // chopera
         if (dr < 4.5 && !nearWater(w, x, y) && r.next() < 0.16) w.prop('chopo' + r.int(2), x, y, x, y, 1, 1);
@@ -532,7 +536,9 @@ const WG = (function () {
         continue;
       }
       if (reg === R_CARC) {
-        if (r.next() < 0.07) w.prop('retama' + r.int(3), x, y, x, y, 1, 1);
+        if (r.next() < 0.012) w.prop('arbol_muerto' + r.int(2), x, y, x, y, 1, 1);
+        else if (r.next() < 0.006) w.prop('huesos', x, y);
+        else if (r.next() < 0.07) w.prop('retama' + r.int(3), x, y, x, y, 1, 1);
         else if (r.next() < 0.03) w.prop('roca' + r.int(2), x, y, x, y, 1, 1);
         else if (r.next() < 0.015) w.prop('pino' + r.int(3), x, y, x, y, 1, 1);
         continue;

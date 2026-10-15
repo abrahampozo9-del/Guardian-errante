@@ -1,15 +1,20 @@
 // ====================================================================== cinemáticas pixel art
 // TEXTOS DE LAS CINEMÁTICAS: para cambiar el lore basta con editar CINE.
 // Cada cinemática tiene un título opcional (rótulo de misión) y una lista de páginas
-// { escena, texto }. Escenas disponibles: apagon, colapso, valle, ribera, guardian,
-// radio, iglesia, cruz, bolera, alba.
+// { escena, texto }. Escenas disponibles: escrituras, anticristo, apagon, arrebato, colapso,
+// batalla, valle, ribera, guardian, radio, iglesia, cruz, bolera, alba.
 const CINE = {
   intro: {
     pages: [
-      ['apagon', 'Primero fueron los apagones. Luego, el silencio en la radio.\nY después... ellos.'],
-      ['colapso', 'Salieron del agua y de la tierra. En pocos meses, casi toda la humanidad había caído.\nLo llamaron el Colapso.'],
-      ['valle', 'Siete años después, en un cortijo junto al río Guadalentín, a las afueras de Pozo Alcón, un hombre sigue en pie.'],
-      ['guardian', '«No soy un santo. Solo un hombre que sigue la luz,\naunque a veces la encuentre en la oscuridad.»'],
+      ['escrituras', 'El mundo colapsó hace siete años.\nResulta que todo lo que decía el libro del Apocalipsis era real.'],
+      ['anticristo', 'El Anticristo nos engañó y se apoderó de la Tierra.\nLo nombraron señor del mundo...'],
+      ['apagon', '...y después, todo se apagó.'],
+      ['arrebato', 'Los más nobles y limpios de espíritu ascendieron al cielo.'],
+      ['colapso', 'Los más pecadores se convirtieron en cosas horribles...\no bajaron directamente al infierno.'],
+      ['batalla', 'Ahora se libra una batalla. Se escuchan ruidos increíbles.\nMe han llegado rumores de ángeles y demonios luchando.'],
+      ['escrituras', 'Estudio las escrituras para saber en qué fase estamos.\nPero todo es demasiado críptico, y la realidad está siendo demasiado para mí.'],
+      ['valle', 'Y yo estoy aquí, en mi cortijo junto al Guadalentín, a las afueras de Pozo Alcón.\nSolo.'],
+      ['guardian', 'Ni lo suficientemente pecador...\nni lo suficientemente santo.'],
     ],
   },
   ribera: {
@@ -181,6 +186,102 @@ const C = {
 };
 
 const SCENES = {
+  escrituras(t) {
+    // de noche, a la luz de una vela, las escrituras abiertas sobre la mesa
+    C.r(0, 0, CW, CH, '#120c08');
+    C.r(122, 10, 44, 36, '#1a0a0a'); C.sky(['#1a0606', '#3a0e08', '#5a1a0c'], 10, 46); C.r(0, 0, 122, 46, '#120c08'); C.r(166, 0, 34, 46, '#120c08');
+    C.stars(6, 90, t, 0.4); C.r(122, 26, 44, 2, '#2a1c12'); C.r(143, 10, 2, 36, '#2a1c12'); C.r(120, 8, 48, 2, '#3a2818'); C.r(120, 46, 48, 2, '#3a2818');
+    C.r(60, 14, 2, 12, '#5a4a38'); C.r(56, 18, 10, 2, '#5a4a38'); // crucifijo en la pared
+    const fl = Math.sin(t * 13) * 0.6 + Math.sin(t * 7) * 0.4;
+    cg.save(); cg.translate(0, -16);
+    C.glow(70, 64, 70 + fl * 3, 'rgba(255,170,70,0.32)');
+    C.r(0, 78, CW, 52, '#3a2618'); C.r(0, 78, CW, 2, '#5a3c24');
+    // libro abierto
+    cg.fillStyle = '#d8c8a0'; cg.beginPath(); cg.moveTo(78, 84); cg.lineTo(100, 82); cg.lineTo(100, 98); cg.lineTo(76, 100); cg.fill();
+    cg.fillStyle = '#e6d8b4'; cg.beginPath(); cg.moveTo(100, 82); cg.lineTo(124, 84); cg.lineTo(126, 100); cg.lineTo(100, 98); cg.fill();
+    C.r(99, 82, 2, 17, '#a89070');
+    for (let i = 0; i < 6; i++) { C.r(80, 86 + i * 2, 17, 1, 'rgba(60,40,30,0.55)'); C.r(103, 86 + i * 2, 19 - (i === 5 ? 8 : 0), 1, 'rgba(60,40,30,0.55)'); }
+    C.r(104, 86, 3, 3, '#a02018'); // letra capitular
+    // vela
+    C.r(66, 70, 5, 12, '#e8dcc0'); C.r(64, 81, 9, 2, '#8a6a40');
+    cg.fillStyle = '#ffb040'; cg.beginPath(); cg.moveTo(66.5, 70); cg.lineTo(68.5 + fl, 63); cg.lineTo(70.5, 70); cg.fill();
+    C.r(68, 66, 1, 3, '#fff0b0');
+    cg.restore();
+    C.r(0, 0, CW, CH, `rgba(0,0,0,${0.08 + 0.05 * fl})`);
+  },
+  anticristo(t) {
+    C.sky(['#1a0c06', '#4a2008', '#8a4a10', '#c8902a']);
+    // falso sol: un aro dorado enfermizo
+    const pulse = 0.5 + 0.5 * Math.sin(t * 1.3);
+    C.glow(100, 34, 50, `rgba(255,220,120,${0.35 + 0.15 * pulse})`);
+    cg.strokeStyle = '#ffe28a'; cg.lineWidth = 2; cg.beginPath(); cg.arc(100, 34, 16 + pulse, 0, Math.PI * 2); cg.stroke();
+    C.ridge(78, 8, 0.03, 91, '#2a1408');
+    // tribuna y figura con los brazos abiertos
+    C.r(78, 62, 44, 22, '#140a06'); C.r(74, 60, 52, 3, '#2a160a');
+    for (let i = 0; i < 4; i++) { C.r(84 + i * 10, 64, 2, 18, '#241208'); }
+    const arm = Math.sin(t * 0.8) * 2;
+    C.r(97, 40, 6, 20, '#0a0504'); C.r(98, 35, 4, 5, '#0a0504');
+    cg.fillStyle = '#0a0504'; cg.beginPath(); cg.moveTo(97, 44); cg.lineTo(84, 34 - arm); cg.lineTo(85, 32 - arm); cg.lineTo(98, 41); cg.fill();
+    cg.beginPath(); cg.moveTo(103, 44); cg.lineTo(116, 34 - arm); cg.lineTo(115, 32 - arm); cg.lineTo(102, 41); cg.fill();
+    C.r(99, 37, 1, 1, '#ffcc40'); C.r(101, 37, 1, 1, '#ffcc40');
+    // estandartes con un ojo
+    for (const x of [40, 160]) { C.r(x, 20, 1, 60, '#3a2010'); C.r(x + 1, 22, 16, 26, '#6a1a10'); cg.fillStyle = '#e8c060'; cg.beginPath(); cg.ellipse(x + 9, 33, 5, 3, 0, 0, Math.PI * 2); cg.fill(); C.r(x + 8, 32, 2, 2, '#1a0806'); }
+    // multitud
+    const R = RNG(92);
+    for (let i = 0; i < 70; i++) { const x = R.int(CW), y = 88 + R.int(22), h = 4 + R.int(4), sw = Math.sin(t * 2 + i) > 0.7 ? 1 : 0; C.r(x, y - h - sw, 3, h + 6, '#0c0604'); C.r(x, y - h - 3 - sw, 3, 3, '#0c0604'); if (i % 5 === 0) C.r(x + 1, y - h - 6 - sw, 1, 3, '#0c0604'); }
+  },
+  arrebato(t) {
+    C.sky(['#050814', '#0c1430', '#18224a', '#202a40']);
+    C.stars(50, 101, t, 0.8);
+    C.ridge(86, 8, 0.03, 102, '#0c1018');
+    C.town(92, '#141826', '#0e1018', null);
+    C.r(0, 96, CW, 17, '#080a10');
+    // columnas de luz y almas que suben
+    cg.save(); cg.globalCompositeOperation = 'lighter';
+    for (const [x, w] of [[44, 10], [100, 14], [156, 9]]) {
+      const g2 = cg.createLinearGradient(0, 0, 0, CH); g2.addColorStop(0, 'rgba(255,250,220,0.5)'); g2.addColorStop(1, 'rgba(255,240,200,0.08)');
+      cg.fillStyle = g2; cg.fillRect(x - w / 2, 0, w, 100);
+      C.glow(x, 0, 30, 'rgba(255,250,230,0.5)');
+      for (let i = 0; i < 4; i++) { const y = 100 - ((t * 14 + i * 26 + x) % 104); C.r(x - 1, y, 2, 4, 'rgba(255,255,240,0.9)'); C.r(x - 1, y - 2, 2, 2, 'rgba(255,255,240,0.9)'); }
+    }
+    cg.restore();
+  },
+  batalla(t) {
+    C.sky(['#08060a', '#1c0e14', '#3a1414', '#5a2010']);
+    // nubes revueltas
+    for (let i = 0; i < 8; i++) { const x = (i * 33 + t * 6) % (CW + 60) - 30; C.glow(x, 30 + (i % 3) * 10, 30, 'rgba(10,6,8,0.7)'); }
+    const R = RNG(111);
+    // ángeles (luz blanca) y demonios (rojo oscuro, cuernos) chocando
+    const angel = (x, y, s, f) => {
+      C.glow(x, y, 12 * s, 'rgba(255,250,220,0.5)');
+      cg.fillStyle = '#fffbe8'; const wf = Math.sin(t * 8 + f) * 3 * s;
+      cg.beginPath(); cg.moveTo(x, y); cg.lineTo(x - 10 * s, y - 6 * s - wf); cg.lineTo(x - 7 * s, y + 2 * s); cg.fill();
+      cg.beginPath(); cg.moveTo(x, y); cg.lineTo(x + 10 * s, y - 6 * s - wf); cg.lineTo(x + 7 * s, y + 2 * s); cg.fill();
+      C.r(x - 1 * s, y - 2 * s, 2 * s, 7 * s, '#f0e8d0'); C.r(x - 1 * s, y - 4 * s, 2 * s, 2 * s, '#f8f0e0');
+      C.r(x + 2 * s, y - 6 * s, 1, 12 * s, '#ffe080'); // lanza
+    };
+    const demon = (x, y, s, f) => {
+      C.glow(x, y, 13 * s, 'rgba(200,40,10,0.45)');
+      cg.fillStyle = '#1a0404'; const wf = Math.sin(t * 7 + f) * 3 * s;
+      cg.beginPath(); cg.moveTo(x, y); cg.lineTo(x - 11 * s, y - 4 * s - wf); cg.lineTo(x - 8 * s, y + 1 * s); cg.lineTo(x - 5 * s, y - 1 * s); cg.fill();
+      cg.beginPath(); cg.moveTo(x, y); cg.lineTo(x + 11 * s, y - 4 * s - wf); cg.lineTo(x + 8 * s, y + 1 * s); cg.lineTo(x + 5 * s, y - 1 * s); cg.fill();
+      C.r(x - 1.5 * s, y - 2 * s, 3 * s, 8 * s, '#2a0606'); C.r(x - 1.5 * s, y - 4 * s, 3 * s, 2 * s, '#2a0606');
+      C.r(x - 2 * s, y - 6 * s, 1, 2 * s, '#2a0606'); C.r(x + 1.5 * s, y - 6 * s, 1, 2 * s, '#2a0606');
+      C.r(x - 1 * s, y - 3.5 * s, 1, 1, '#ff3010'); C.r(x + 0.5 * s, y - 3.5 * s, 1, 1, '#ff3010');
+    };
+    for (let i = 0; i < 5; i++) {
+      const bx = 20 + i * 40 + Math.sin(t * 0.7 + i) * 6, by = 22 + (i % 2) * 18 + Math.cos(t + i * 2) * 4, s = i === 2 ? 1.6 : 1;
+      angel(bx - 7 * s, by, s, i); demon(bx + 7 * s, by + 3, s, i + 3);
+      if (Math.sin(t * 5 + i * 1.7) > 0.85) { C.glow(bx, by, 14, 'rgba(255,200,120,0.6)'); }
+    }
+    // rastros de fuego cayendo
+    for (let i = 0; i < 5; i++) { const ph = (t * 0.5 + i * 0.21) % 1, x = 10 + R.int(180) + ph * 20, y = ph * 90; C.r(x, y, 2, 2, '#ffb040'); C.r(x - 2, y - 3, 2, 2, 'rgba(255,120,40,0.6)'); C.r(x - 4, y - 6, 2, 2, 'rgba(255,80,20,0.3)'); }
+    // el pueblo, abajo
+    C.ridge(92, 6, 0.04, 112, '#0a0606');
+    C.town(98, '#120808', '#0a0404', x => Math.sin(x * 3 + t * 4) > 0.6 ? '#ff7a20' : '#1a0806');
+    C.r(0, 100, CW, 13, '#060404');
+    const fl = t % 4.2; if (fl > 3.0 && fl < 3.15) C.r(0, 0, CW, CH, 'rgba(255,240,220,0.3)');
+  },
   apagon(t) {
     C.sky(['#06081a', '#0c1230', '#1a2244', '#2a2c48']);
     C.stars(60, 3, t, Math.min(1, t / 3));

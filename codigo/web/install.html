@@ -1,0 +1,100 @@
+<style>
+  #instalar {
+    position: fixed; z-index: 50;
+    left: 50%; transform: translateX(-50%);
+    bottom: max(14px, env(safe-area-inset-bottom, 0px));
+    width: min(520px, calc(100% - 32px));
+    box-sizing: border-box;
+    display: grid; grid-template-columns: 52px 1fr; gap: 6px 14px; align-items: center;
+    padding: 14px 16px;
+    background: rgba(18, 14, 12, 0.94);
+    border: 1px solid #8a6a3a; border-radius: 10px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.55);
+    color: #f2e6cc; font: 400 15px/1.35 "Alegreya Sans", "Segoe UI", sans-serif;
+  }
+  #instalar[hidden], #instalar [hidden] { display: none !important; }
+  #instalar img { width: 52px; height: 52px; border-radius: 12px; image-rendering: pixelated; grid-row: span 2; }
+  #instalar h2 { margin: 0; font: 700 16px/1.2 Cinzel, Georgia, serif; color: #e8c46a; }
+  #instalar p { margin: 0; color: #d8ccb0; }
+  #instalar .pasos { grid-column: 1 / -1; margin: 4px 0 0; padding-left: 20px; color: #f2e6cc; }
+  #instalar .pasos li { margin: 3px 0; }
+  #instalar .icono-compartir { display: inline-block; vertical-align: -3px; width: 16px; height: 18px; }
+  #instalar .botones { grid-column: 1 / -1; display: flex; gap: 10px; justify-content: flex-end; margin-top: 6px; }
+  #instalar button {
+    font: 700 15px "Alegreya Sans", "Segoe UI", sans-serif; border-radius: 8px; padding: 9px 16px; cursor: pointer;
+    border: 1px solid #8a6a3a; background: transparent; color: #d8ccb0;
+  }
+  #instalar button.principal { background: #e8c46a; color: #1a1410; border-color: #e8c46a; }
+  #instalar button:focus-visible { outline: 2px solid #f2e6cc; outline-offset: 2px; }
+  @media (orientation: landscape) and (max-height: 500px) {
+    #instalar { bottom: auto; top: max(10px, env(safe-area-inset-top, 0px)); padding: 10px 14px; }
+    #instalar .pasos { display: flex; gap: 4px 26px; flex-wrap: wrap; padding-left: 18px; }
+    #instalar .pasos li { margin: 0; }
+  }
+</style>
+<div id="instalar" hidden role="dialog" aria-labelledby="instalar-titulo">
+  <img src="icono-192.png" alt="">
+  <h2 id="instalar-titulo">Instala El Guardián Errante</h2>
+  <p id="instalar-texto">Tenlo como una app: con su icono, a pantalla completa y sin conexión.</p>
+  <ol class="pasos" id="instalar-ios" hidden>
+    <li>Pulsa <b>Compartir</b>
+      <svg class="icono-compartir" viewBox="0 0 16 18" aria-hidden="true"><path d="M8 1v11M4.5 4.5L8 1l3.5 3.5M3 8H1.5v9h13V8H13" fill="none" stroke="#e8c46a" stroke-width="1.6"/></svg>
+      en la barra de Safari.</li>
+    <li>Elige <b>Añadir a pantalla de inicio</b>.</li>
+    <li>Ábrelo desde el icono nuevo.</li>
+  </ol>
+  <ol class="pasos" id="instalar-android" hidden>
+    <li>Abre el menú <b>⋮</b> de Chrome.</li>
+    <li>Elige <b>Instalar aplicación</b> o <b>Añadir a pantalla de inicio</b>.</li>
+  </ol>
+  <div class="botones">
+    <button type="button" id="instalar-luego">Ahora no</button>
+    <button type="button" class="principal" id="instalar-si" hidden>Instalar</button>
+  </div>
+</div>
+<script>
+(function () {
+  const caja = document.getElementById('instalar');
+  const ua = navigator.userAgent;
+  const instalada = window.matchMedia('(display-mode: standalone)').matches || window.matchMedia('(display-mode: fullscreen)').matches || navigator.standalone === true;
+  if (instalada) return;
+  const esIOS = /iPad|iPhone|iPod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  const esAndroid = /Android/i.test(ua);
+  if (!esIOS && !esAndroid) return; // en el PC no molesta
+  let rechazado = 0;
+  try { rechazado = +localStorage.getItem('guardian_instalar_no') || 0; } catch (e) { }
+  if (Date.now() - rechazado < 3 * 24 * 3600 * 1000) return; // vuelve a ofrecerlo a los 3 días
+  let promptGuardado = null;
+  const mostrar = () => { caja.hidden = false; };
+  const ocultar = () => { caja.hidden = true; };
+  document.getElementById('instalar-luego').addEventListener('click', () => {
+    try { localStorage.setItem('guardian_instalar_no', String(Date.now())); } catch (e) { }
+    ocultar();
+  });
+  if (esIOS) {
+    const esSafari = /Safari/.test(ua) && !/CriOS|FxiOS|EdgiOS|GSA/.test(ua);
+    if (esSafari) document.getElementById('instalar-ios').hidden = false;
+    else document.getElementById('instalar-texto').textContent = 'Para instalarlo como app en el iPhone, abre esta página en Safari y usa Compartir → Añadir a pantalla de inicio.';
+    setTimeout(mostrar, 1200);
+  } else {
+    // Android: Chrome ofrece instalación directa con un botón
+    window.addEventListener('beforeinstallprompt', e => {
+      e.preventDefault();
+      promptGuardado = e;
+      document.getElementById('instalar-si').hidden = false;
+      document.getElementById('instalar-android').hidden = true;
+      mostrar();
+    });
+    // si el navegador no lo ofrece en 3 s, se enseñan los pasos a mano
+    setTimeout(() => { if (!promptGuardado) { document.getElementById('instalar-android').hidden = false; mostrar(); } }, 3000);
+    document.getElementById('instalar-si').addEventListener('click', async () => {
+      if (!promptGuardado) return;
+      promptGuardado.prompt();
+      try { await promptGuardado.userChoice; } catch (e) { }
+      promptGuardado = null;
+      ocultar();
+    });
+    window.addEventListener('appinstalled', ocultar);
+  }
+})();
+</script>

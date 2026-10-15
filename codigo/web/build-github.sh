@@ -21,6 +21,7 @@ cat <<'H'
 <style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html,body{margin:0}</style>
 H
 sed 's|/\*__JS__\*/|__JSHERE__|' shell.html | awk -v files="$JS" 'BEGIN{n=split(files,F,"\n")} /__JSHERE__/{for(i=1;i<=n;i++){while((getline l < F[i])>0) print l; close(F[i])} next} {print}' | sed 's|^<canvas id="juego"|</head><body>\n<canvas id="juego"|'
+cat install.html
 cat <<'H'
 <script>
 if ('serviceWorker' in navigator) window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
@@ -29,4 +30,4 @@ if ('serviceWorker' in navigator) window.addEventListener('load', () => navigato
 </html>
 H
 } > $D/index.html
-cp src/*.js shell.html build.js build-github.sh $D/codigo/web/
+cp src/*.js shell.html install.html build.js build-github.sh $D/codigo/web/

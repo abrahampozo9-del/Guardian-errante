@@ -22,7 +22,7 @@ G.buildMap = function (ow) {
 G.render = function (ctx, cw, ch, dpr) {
   vctx.imageSmoothingEnabled = false;
   if (this.st === ST.TITLE || (this.st === ST.HELP && this.helpBack !== ST.PAUSE)) this.renderTitleBg(vctx);
-  else if (this.st === ST.INTRO || this.st === ST.END) { vctx.fillStyle = '#08060a'; vctx.fillRect(0, 0, WW, WH); this.embers(vctx); }
+  else if (this.st === ST.INTRO || this.st === ST.END || this.st === ST.CINE) { vctx.fillStyle = '#08060a'; vctx.fillRect(0, 0, WW, WH); this.embers(vctx); }
   else this.renderWorld(vctx);
 
   ctx.setTransform(1, 0, 0, 1, 0, 0);
@@ -43,6 +43,7 @@ G.render = function (ctx, cw, ch, dpr) {
   switch (this.st) {
     case ST.TITLE: this.uiTitle(ctx); break;
     case ST.HELP: this.uiHelp(ctx); break;
+    case ST.CINE: this.renderCine(ctx); break;
     case ST.INTRO: this.uiStory(ctx, this.introPages[this.introIdx], this.introChars); break;
     case ST.END: this.uiStory(ctx, this.endPages[this.endIdx], this.introChars); break;
     default:
@@ -221,17 +222,19 @@ G.drawPlayer = function (g, cx, cy) {
   const sx = Math.round(p.x - 8) - cx, sy = Math.round(p.y - 23) - cy;
   this.shadow(g, p.x - cx, p.y - cy, 6);
   if (p.prayT > 0) this.glow(g, p.x - cx, p.y - 10 - cy, 22, `rgba(255,230,150,${0.43 * p.prayT})`);
-  const sw = cv(Art.sword);
-  if (p.hasSword && !attacking && p.dir === 1) g.drawImage(sw, sx + 9, sy + 4);
+  // espada a la espalda: en diagonal, empuñadura asomando por encima del hombro
+  const back = p.hasSword && !attacking && !p.rolling;
+  const backSword = () => {
+    const off = [0, 0, 2, -2][p.dir], tilt = [-0.62, 0.62, 0.55, -0.55][p.dir];
+    g.save(); g.translate(p.x - cx + off + (p.dir === 0 ? 3 : 0), p.y - (p.dir === 0 ? 18 : 13) - cy); g.rotate(Math.PI + tilt);
+    g.drawImage(cv(Art.sword), -2.5, -8, 5, 15); g.restore();
+  };
+  if (back && p.dir !== 1) backSword();
   if (attacking && p.dir === 1) this.drawSwing(g, cx, cy);
   if (p.rolling) { g.save(); g.translate(sx + 8, sy + 23); g.rotate((1 - p.rollT / 0.3) * Math.PI * 2 * (p.rollX < 0 ? -1 : 1)); g.drawImage(cv(s), -8, -16, 16, 18); g.restore(); }
   else g.drawImage(cv(p.flash > 0 ? white(s) : s), sx, sy);
   if (attacking && p.dir !== 1) this.drawSwing(g, cx, cy);
-  if (p.hasSword && !attacking && p.dir !== 1) {
-    if (p.dir === 0) g.drawImage(sw, sx + 11, sy + 9, 5, 13);
-    else if (p.dir === 3) g.drawImage(sw, sx + 3, sy + 10, 5, 13);
-    else g.drawImage(sw, sx + 8, sy + 10, 5, 13);
-  }
+  if (back && p.dir === 1) backSword();
 };
 G.drawSwing = function (g, cx, cy) {
   const p = this.player, t = 1 - p.atkT / 0.24;

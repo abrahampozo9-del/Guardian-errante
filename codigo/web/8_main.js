@@ -123,6 +123,7 @@ const Touch = {
       for (const r of G.menuRects) if (vx >= r.x && vx <= r.x + r.w && vy >= r.y && vy <= r.y + r.h) { G.queue.add('Pick' + r.i); return; }
       return;
     }
+    if (G.st === 'CINE' && G.cineSkip) { const [vx, vy] = toView(x, y), r = G.cineSkip; if (vx >= r.x && vy <= r.y + r.h) { G.queue.add('Skip'); return; } }
     G.queue.add('Tap');
   }
   function localXY(t) { const b = canvas.getBoundingClientRect(); return [t.clientX - b.left, t.clientY - b.top]; }

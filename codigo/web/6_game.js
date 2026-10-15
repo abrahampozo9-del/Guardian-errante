@@ -47,6 +47,7 @@ G.update = function (dt) {
     case ST.TITLE: this.updateTitle(); break;
     case ST.HELP: if (this.confirm() || this.pressed('Escape')) this.st = this.helpBack || ST.TITLE; break;
     case ST.INTRO: this.updateIntro(dt); break;
+    case ST.CINE: this.updateCine(dt); break;
     case ST.PLAY: this.updatePlay(dt); break;
     case ST.DIALOG: this.updateDialog(dt); this.updateFx(dt); this.clock += dt; break;
     case ST.MAP: if (this.pressed('KeyM', 'Escape', 'Tab', 'Enter', 'Tap', 'Space', 'KeyE')) this.st = ST.PLAY; break;
@@ -80,7 +81,8 @@ G.updateTitle = function () {
     else if (o === 'Controles') { this.helpBack = ST.TITLE; this.st = ST.HELP; }
   }
 };
-G.startIntro = function () {
+G.startIntro = function () { this.playCine('intro', () => this.newGame()); };
+G.startIntroOld = function () {
   this.introPages = [
     'Primero fueron los apagones. Luego, el silencio en la radio.\nY después... ellos.',
     'Salieron del agua y de la tierra.\nEn pocos meses, casi toda la humanidad había caído.',
@@ -404,7 +406,7 @@ G.stageLogic = function () {
       if (w.blocked(x, y, 7, 4)) x += 16;
       const m = new Monster(k, x, y, 0.85); m.quest = true; w.monsters.push(m);
     }
-    this.say('Guardián', 'Ahí están otra vez, rondando la poza.', 'Mientras yo siga aquí, nadie toca esta casa. Ataca con Espacio o con el botón de la espada.');
+    this.playCine('ribera', () => this.say('Guardián', 'Ahí están otra vez, rondando la poza.', 'Mientras yo siga aquí, nadie toca esta casa. Ataca con Espacio o con el botón de la espada.'));
   }
   if ((this.stage === 6 || this.stage === 7) && w.outdoor && !this.boss && this.lastArea === 'Presa de La Bolera') {
     this.stage = 7;
@@ -430,6 +432,7 @@ G.purifyCross = function () {
   this.say('Guardián', '«No soy un santo... solo un hombre que sigue la luz.»',
     'La cruz se enciende con una luz cálida. A lo lejos, las zarzas negras de La Linde se marchitan y se deshacen en ceniza.',
     'El camino del norte está abierto. Río arriba, hacia La Bolera.');
+  this.dlgEnd = () => this.playCine('bolera');
   this.save();
 };
 G.openBrambles = function () {
@@ -469,7 +472,7 @@ G.talk = function (n) {
           'Todo empezó en La Bolera. Algo despertó en la cueva del nacimiento del Guadalentín, bajo el embalse. Desde entonces, el agua trae la muerte.',
           'Las zarzas negras de La Linde han cerrado el camino del norte. Pero la Cruz de San Gregorio, en la A-326 camino del pantano, aún guarda luz.',
           'Ve a la cruz y reza. Si las zarzas se abren, sigue el río hasta la presa. Y puedes descansar junto a nuestra hoguera cuando quieras.');
-        this.stage = 5; this.restWorld = 'exterior'; this.restX = WG.fireX * TS + 8; this.restY = (WG.fireY + 1) * TS + 8; this.dlgEnd = () => this.save();
+        this.stage = 5; this.restWorld = 'exterior'; this.restX = WG.fireX * TS + 8; this.restY = (WG.fireY + 1) * TS + 8; this.dlgEnd = () => { this.save(); this.playCine('cruz'); };
       } else if (this.stage === 5) this.sayAs(n, 'La Cruz de San Gregorio está al norte, junto a la A-326, camino de La Bolera. Que Dios te guarde.');
       else if (this.stage <= 7) this.sayAs(n, 'Las zarzas han caído... lo hemos visto desde el campanario. Sigue el río hasta la presa, hijo.');
       else if (this.stage === 8) {
@@ -524,7 +527,7 @@ G.use = function (pr) {
         this.say('Radio', '...ksshh... ¿Hay alguien? Aquí Padre Tomás, desde la Iglesia de la Encarnación, en Pozo Alcón...', '...somos once... los engendros salen cada noche de La Bolera... si alguien me oye... ksshh...');
         this.dlg.push(['Guardián', 'Supervivientes. En el pueblo. Siete años creyendo que era el último...']);
         this.dlg.push(['Guardián', 'Pozo Alcón está al oeste: cruzo el puente viejo y subo hasta la A-326.']);
-        this.dlgEnd = () => this.save();
+        this.dlgEnd = () => { this.save(); this.playCine('supervivientes'); };
       } else if (this.stage < 3) this.say('Guardián', 'La radio solo escupe estática. Hace semanas que nadie contesta.');
       else this.say('Guardián', 'Estática. Ya sé dónde están: en la iglesia del pueblo.');
       break;
@@ -559,6 +562,10 @@ G.rest = function (msg) {
   this.say('Guardián', msg, 'Vida y Fe recuperadas. Partida guardada.');
 };
 G.startEnding = function () {
+  this.stage = 9;
+  this.playCine('final', () => { Sound.music('calma'); this.save(); this.toast('Partida guardada. Pozo Alcón es tuyo: explora libremente.'); });
+};
+G.startEndingOld = function () {
   this.endPages = [
     'Las semanas siguientes, el agua de La Bolera volvió a bajar limpia por el Guadalentín.',
     'Los once supervivientes de la Encarnación salieron de detrás de las barricadas.\nDespués llegaron otros, desde Hinojares, desde Huesa, desde Fontanar.',

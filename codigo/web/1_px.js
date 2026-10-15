@@ -1,6 +1,6 @@
 'use strict';
 // ====================================================================== utilidades de pixel art
-const TS = 16, VW = 400, VH = 225;
+const TS = 16, VW = 400, VH = 225, WW = 288, WH = 162; // VW×VH: interfaz · WW×WH: lo que ve la cámara del mundo (más cerca)
 
 function RNG(seed) {
   let s = (seed | 0) || 1;

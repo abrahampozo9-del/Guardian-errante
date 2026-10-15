@@ -80,7 +80,7 @@ const WG = (function () {
   function floorW(y) { return 4 + 2 * fbm(3, y, 50) + 13 * plateau(y, 109, 9, 6) + 5 * plateau(y, 57, 4, 4); }
   G.riverX = riverX; G.floorW = floorW;
 
-  const R_OLIV = A('Olivares de Pozo Alcón', 0, 0, 0, 0), R_BARR = A('Barranco del Guadalentín', 0, 0, 0, 0), R_CARC = A('Cárcavas del Guadalentín', 0, 0, 0, 0),
+  const R_OLIV = A('Olivares de Pozo Alcón', 0, 0, 0, 0), R_BARR = A('Valle del Guadalentín', 0, 0, 0, 0), R_CARC = A('Cárcavas del Guadalentín', 0, 0, 0, 0),
     R_LLAN = A('Los Llanos', 0, 0, 0, 0), R_SIER = A('Sierra del Pozo', 0, 0, 0, 0), R_NORTE = A('Tierras del norte', 0, 0, 0, 0), R_EMB = A('Embalse de La Bolera', 0, 0, 0, 0);
   R_CARC.tier = 1.2; R_LLAN.tier = 1.25; R_SIER.tier = 1.5; R_NORTE.tier = 1.5; R_EMB.tier = 1.6;
   function region(x, y) {
@@ -254,8 +254,38 @@ const WG = (function () {
     const hig = A('Bosque Encantado de Las Higueras', 135, 50, 40, 14); hig.tier = 1.4; w.areas.push(hig);
     const linde = A('La Linde Negra', 56, 63, 164, 4); linde.noSpawn = true; w.areas.push(linde);
     w.regionFn = region;
+    placeLairs(w);
     return w;
   };
+
+  // Guaridas fijas: cada grupo de engendros vive en un sitio concreto y vuelve allí.
+  function placeLairs(w) {
+    const rx = G.rx, L = G.lairs = [];
+    const add = (name, x, y, kinds, tier) => {
+      const water = kinds.includes(MK.AHOGADO);
+      // busca la casilla válida más cercana (agua para los ahogados)
+      for (let r = 0; r < 8; r++) for (let dy = -r; dy <= r; dy++) for (let dx = -r; dx <= r; dx++) {
+        const tx = Math.round(x) + dx, ty = Math.round(y) + dy;
+        if (water ? T.isWater(w.get(tx, ty)) && w.get(tx, ty) !== T.DEEP : !w.solid(tx, ty)) { L.push({ name, x: tx, y: ty, kinds, tier: tier || 1, active: false, cleared: false }); return; }
+      }
+    };
+    const rv = y => G.riverX(y);
+    add('Olivar de los jabalíes', rx + 24, 111, [MK.JABALI, MK.JABALI], 1);
+    add('Poza de los ahogados', rv(128), 128, [MK.AHOGADO], 1);
+    add('Majano de los huecos', rx - 12, 126, [MK.HUECO, MK.HUECO, MK.HUECO], 1);
+    add('Cárcavas de los alacranes', rx + 30, 140, [MK.ALACRAN, MK.ALACRAN, MK.ALACRAN], 1.1);
+    add('Nido del cañaveral', rv(152) + 3, 152, [MK.NIDO, MK.HUECO], 1.1);
+    add('Remanso río arriba', rv(86), 86, [MK.AHOGADO, MK.AHOGADO], 1.15);
+    add('Olivar de la carretera', 86, 118, [MK.JABALI, MK.HUECO], 1);
+    add('Calle de los huecos', 28, 120, [MK.HUECO, MK.HUECO], 1);
+    add('Corral abandonado', 56, 129, [MK.HUECO, MK.JABALI], 1);
+    add('Era de la ermita', 20, 106, [MK.NIDO], 1);
+    add('Cárcavas del sur', rx + 20, 175, [MK.ALACRAN, MK.JABALI, MK.ALACRAN], 1.2);
+    add('Pinar de la sierra', 40, 40, [MK.JABALI, MK.JABALI, MK.ALACRAN], 1.5);
+    add('Cruce del norte', 120, 50, [MK.SOMBRA, MK.HUECO], 1.5);
+    add('Higueras malditas', rv(55) - 3, 55, [MK.AHOGADO, MK.AHOGADO, MK.SOMBRA], 1.5);
+    add('Llanos de los almendros', rx + 45, 125, [MK.JABALI, MK.ALACRAN], 1.25);
+  }
 
   function buildTown(w) {
     const hs = [86, 95, 103, 111, 119, 127, 134], vs = [13, 23, 32, 41, 50, 59, 66];

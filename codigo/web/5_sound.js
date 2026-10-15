@@ -75,9 +75,11 @@ const Sound = (function () {
       purify: chord([392, 587, 784, 1175], 2.2),
       talk: arp([660], 0.03, 0.05),
       die: arp([330, 262, 196, 131], 0.18, 0.8),
+      thunder: (() => { let l = 0, l2 = 0; return gen(3.2, t => { l += (R.next() * 2 - 1 - l) * 0.05; l2 += (l - l2) * 0.3; const env = t < 0.05 ? t / 0.05 : Math.exp(-(t - 0.05) * 1.3) * (0.7 + 0.3 * Math.sin(t * 9)); return l2 * 9 * env; }); })(),
       door: gen(0.14, t => (Math.sin(2 * Math.PI * (120 - t * 300) * t)) * Math.exp(-t * 30) * 0.5),
     };
     for (const k in raw) buf[k] = toBuffer(raw[k]);
+    { let a = 0, b2 = 0; const r = gen(4, () => { a += (R.next() * 2 - 1 - a) * 0.5; b2 += (a - b2) * 0.35; return b2 * 0.5 + (R.next() < 0.002 ? (R.next() - 0.5) * 0.6 : 0); }); const n = r.length, f = 2000; for (let i = 0; i < f; i++) { const k = i / f; r[i] = r[i] * k + r[n - f + i] * (1 - k); } buf.rain = toBuffer(r.subarray(0, n - f)); }
     buf.calma = toBuffer(guitarLoop(false));
     buf.batalla = toBuffer(guitarLoop(true));
   }
@@ -112,6 +114,12 @@ const Sound = (function () {
     S.musicOn = !S.musicOn;
     try { localStorage.setItem('guardian_musica', S.musicOn ? 'si' : 'no'); } catch (e) { }
     S.music(S.wanted);
+  };
+  let rainSrc = null, rainGain = null;
+  S.rain = function (v) {
+    if (!ready) return;
+    if (!rainSrc && v > 0.02) { rainGain = ctx.createGain(); rainGain.gain.value = 0; rainGain.connect(sfxGain); rainSrc = ctx.createBufferSource(); rainSrc.buffer = buf.rain; rainSrc.loop = true; rainSrc.connect(rainGain); rainSrc.start(); }
+    if (rainSrc) { rainGain.gain.value = Math.min(1, v) * 0.55; if (v <= 0.02) { try { rainSrc.stop(); } catch (e) { } rainSrc = null; } }
   };
   S.suspend = function () { if (ctx && ctx.state === 'running') ctx.suspend(); };
   S.resume = function () { if (ctx && ctx.state === 'suspended') ctx.resume(); };

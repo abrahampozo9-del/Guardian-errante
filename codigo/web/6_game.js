@@ -23,6 +23,7 @@ G.confirm = function () { return this.pressed('Enter', 'KeyE', 'Space', 'KeyZ', 
 // --------------------------------------------------------------------- arranque
 G.boot = function () {
   Art.init();
+  Art.initEnemies();
   this.buildWorlds();
   this.hasSave = !!this.readSave();
 };
@@ -139,6 +140,7 @@ G.updatePlay = function (dt) {
   const p = this.player, w = this.world;
   this.clock += dt;
   if (w.outdoor) this.day = (this.day + dt / DAY_LEN) % 1;
+  this.updateWeather(dt);
   if (this.tableCool > 0) this.tableCool -= dt;
   if (this.pressed('Escape', 'KeyP')) { this.st = ST.PAUSE; this.menuIdx = 0; return; }
   if (this.pressed('KeyM', 'Tab')) { this.st = ST.MAP; return; }
@@ -151,6 +153,12 @@ G.updatePlay = function (dt) {
     if (!p.hasSword) this.toast('No llevas la espada. Está en el baúl del rellano.');
     else if (p.atkCool <= 0) { p.atkT = 0.24; p.atkCool = 0.36; p.hitSet.clear(); Sound.play('swing'); }
   }
+  if (this.pressed('ShiftLeft', 'ShiftRight', 'KeyX', 'Roll') && p.rollCool <= 0 && p.kbT <= 0) {
+    let rx = ix, ry = iy; const rl = Math.hypot(rx, ry);
+    if (rl < 0.25) { rx = [0, 0, -1, 1][p.dir]; ry = [1, -1, 0, 0][p.dir]; } else { rx /= rl; ry /= rl; }
+    p.rollT = 0.3; p.rollCool = 0.65; p.rollX = rx; p.rollY = ry; p.invul = Math.max(p.invul, 0.32); p.atkT = 0; p.rolling = true;
+    Sound.play('swing');
+  }
   if (this.pressed('KeyK', 'Digit1')) this.pray();
   if (this.pressed('KeyL', 'Digit2')) this.holyLight();
   if (this.pressed('KeyQ', 'Digit3')) this.eatHerb();
@@ -159,10 +167,21 @@ G.updatePlay = function (dt) {
   if (p.atkT > 0) p.atkT -= dt;
   if (p.invul > 0) p.invul -= dt;
   if (p.prayT > 0) p.prayT -= dt;
+  if (p.rollCool > 0) p.rollCool -= dt;
+  if (p.poison > 0) {
+    p.poison -= dt; p.poisonAcc += dt;
+    if (p.poisonAcc >= 1) { p.poisonAcc -= 1; if (p.hp > 1) { p.hp -= 3; this.fx.push(Fx.text(p.x, p.y - 26, '-3', 0x80d040)); } }
+  }
   p.applyKnock(w, dt);
   const len = Math.hypot(ix, iy);
-  p.moving = len > 0.25 && p.kbT <= 0;
-  if (p.moving) {
+  if (p.rollT > 0) {
+    p.rollT -= dt;
+    p.move(w, p.rollX * 175 * dt, p.rollY * 175 * dt);
+    if (this.rnd.next() < 0.5) this.fx.push(Fx.spark(p.x + this.rnd.gauss() * 3, p.y, this.rnd.gauss() * 10, -8, 0xc8b898, 0.35));
+    p.moving = true; p.anim += dt * 2;
+    if (p.rollT <= 0) p.rolling = false;
+  } else
+  if ((p.moving = len > 0.25 && p.kbT <= 0)) {
     const sp = 74 * (p.atkT > 0 ? 0.45 : 1) * Math.min(1, len);
     if (p.atkT <= 0) p.faceTo(ix, iy);
     p.move(w, ix / len * sp * dt, iy / len * sp * dt);
@@ -191,17 +210,15 @@ G.updatePlay = function (dt) {
   for (const m of w.monsters) {
     if (m.dead) continue;
     m.update(this, dt);
-    if (p.dead || p.invul > 0 || m.spawnFade > 0) continue;
-    const reach = m.kind === MK.BESTIA ? 22 : m.hw + 5;
-    if (Math.hypot(m.x - p.x, m.y - p.y) < reach) this.hurtPlayer(m.dmg, m.x, m.y);
+    if (m.kind === MK.BESTIA && !p.dead && p.invul <= 0 && Math.hypot(m.x - p.x, m.y - p.y) < 20) this.hurtPlayer(m.dmg, m.x, m.y);
   }
-  w.monsters = w.monsters.filter(m => !(m.dead || (!m.quest && m.kind !== MK.BESTIA && m.dist(p) > 36 * TS)));
+  w.monsters = w.monsters.filter(m => !(m.dead || (!m.quest && !m.lair && m.kind !== MK.BESTIA && m.dist(p) > 36 * TS)));
   this.orbs = this.orbs.filter(o => {
     o.x += o.vx * dt; o.y += o.vy * dt; o.life -= dt;
     const tx = Math.floor(o.x / TS), ty = Math.floor(o.y / TS);
     let gone = o.life <= 0 || (w.solid(tx, ty) && !T.isWater(w.get(tx, ty)));
     if (!gone && p.invul <= 0 && Math.hypot(o.x - p.x, o.y - (p.y - 8)) < 8) { this.hurtPlayer(o.dmg, o.x, o.y); gone = true; }
-    if (gone) for (let i = 0; i < 4; i++) this.fx.push(Fx.spark(o.x, o.y, this.rnd.gauss() * 30, this.rnd.gauss() * 30, 0x50d8c8, 0.3));
+    if (gone) for (let i = 0; i < 4; i++) this.fx.push(Fx.spark(o.x, o.y, this.rnd.gauss() * 30, this.rnd.gauss() * 30, o.mud ? 0x6a7a3a : 0x50d8c8, 0.3));
     return !gone;
   });
   this.spawnLogic(dt);
@@ -215,8 +232,13 @@ G.swordCenter = function () {
   return [[p.x, p.y + 6], [p.x, p.y - 22], [p.x - 15, p.y - 8], [p.x + 15, p.y - 8]][p.dir];
 };
 G.damageMonster = function (m, d, crit, kx, ky) {
+  if (!m.vulnerable()) { this.fx.push(Fx.text(m.x, m.y - 14, 'bajo el agua', 0x9ad8d0)); return; }
+  if (m.state === 'stun') { d = Math.round(d * 1.6); crit = true; }
   m.hp -= d; m.flash = 0.12;
-  if (m.kind !== MK.BESTIA) m.knock(kx, ky, crit ? 240 : 170); else if (crit) m.knock(kx, ky, 60);
+  const heavy = m.kind === MK.BESTIA || m.kind === MK.NIDO || (m.kind === MK.JABALI && m.state === 'atk') || (m.kind === MK.HUECO && m.state === 'wind');
+  if (!heavy) m.knock(kx, ky, crit ? 240 : 170); else if (crit && m.kind !== MK.NIDO) m.knock(kx, ky, 60);
+  // golpear durante el aviso interrumpe a los enemigos ligeros
+  if (m.state === 'wind' && (m.kind === MK.ALACRAN || m.kind === MK.SOMBRA || m.kind === MK.AHOGADO)) { m.setState('rec', 0.5); m.cool = 0.8; }
   this.fx.push(Fx.text(m.x, m.y - 22, crit ? '¡' + d + '!' : '' + d, crit ? 0xffe060 : 0xffffff));
   for (let i = 0; i < 5; i++) this.fx.push(Fx.spark(m.x, m.y - 8, this.rnd.gauss() * 50, this.rnd.gauss() * 50 - 20, m.kind === MK.SOMBRA ? 0x8a6ab0 : 0x7a1a14, 0.35));
   Sound.play('hit');
@@ -233,6 +255,10 @@ G.killMonster = function (m) {
     else this.toast('Engendros eliminados: ' + this.questKills + '/6');
   }
   if (m.kind === MK.BESTIA) this.bossDefeated();
+  if (m.lair) {
+    const left = this.world.monsters.filter(o => o.lair === m.lair && !o.dead && !o.fromNest).length;
+    if (left === 0) { m.lair.cleared = true; m.lair.active = false; this.toast('Guarida limpia: ' + m.lair.name); for (const o of this.world.monsters) if (o.lair === m.lair && !o.dead) { o.dead = true; } }
+  }
 };
 G.gainXp = function (amount, x, y) {
   const p = this.player;
@@ -247,9 +273,10 @@ G.gainXp = function (amount, x, y) {
     else this.toast('¡Nivel ' + p.lvl + '! Vida y Fe al máximo. Ataque +2');
   }
 };
-G.hurtPlayer = function (dmg, fx, fy) {
+G.hurtPlayer = function (dmg, fx, fy, poison) {
   const p = this.player;
   if (p.dead) return;
+  if (poison) { p.poison = Math.max(p.poison, poison); this.toast('¡Envenenado! Come hierbas para curarte.'); }
   p.hp -= dmg; p.invul = 0.9; p.flash = 0.2;
   p.knock(p.x - fx, p.y - fy, 160);
   this.shake(0.18);
@@ -283,8 +310,8 @@ G.holyLight = function () {
 G.eatHerb = function () {
   const p = this.player;
   if (p.herbs <= 0) { this.toast('No te quedan hierbas medicinales.'); return; }
-  if (p.hp >= p.maxHp) { this.toast('No estás herido.'); return; }
-  p.herbs--; p.hp = Math.min(p.maxHp, p.hp + 30);
+  if (p.hp >= p.maxHp && p.poison <= 0) { this.toast('No estás herido.'); return; }
+  p.herbs--; p.hp = Math.min(p.maxHp, p.hp + 30); p.poison = 0;
   this.fx.push(Fx.text(p.x, p.y - 30, '+30', 0x80ff90));
   Sound.play('heal');
 };
@@ -302,34 +329,42 @@ G.collect = function (k) {
 };
 G.spawnLogic = function (dt) {
   const w = this.world, p = this.player;
-  if (!w.outdoor) return;
+  if (!w.outdoor || this.stage < 2) return;
   this.spawnT -= dt;
   if (this.spawnT > 0) return;
-  this.spawnT = 1.1;
-  let near = 0;
-  for (const m of w.monsters) if (m.dist(p) < 26 * TS) near++;
-  let cap = this.isNight() ? 8 : 4;
-  if (this.stage < 2) cap = 0;
-  if (this.stage === 2) cap = 1;
-  if (near >= cap) return;
-  for (let tries = 0; tries < 12; tries++) {
-    const a = this.rnd.next() * Math.PI * 2, d = (13 + this.rnd.next() * 8) * TS;
+  this.spawnT = 0.8;
+  for (const L of WG.lairs) {
+    const d = Math.hypot(L.x * TS - p.x, L.y * TS - p.y) / TS;
+    if (!L.active && !L.cleared && d < 19) this.spawnLair(L);
+    else if (L.active && d > 30) { w.monsters = w.monsters.filter(m => m.lair !== L); L.active = false; }
+  }
+  // de noche (o con tormenta) rondan algunas sombras sueltas
+  if (!this.isNight() && !this.stormOn()) return;
+  const shades = w.monsters.filter(m => m.kind === MK.SOMBRA && !m.lair && !m.dead).length;
+  if (shades >= 2 || this.rnd.next() > 0.15) return;
+  for (let tries = 0; tries < 10; tries++) {
+    const a = this.rnd.next() * Math.PI * 2, d = (11 + this.rnd.next() * 6) * TS;
     const x = p.x + Math.cos(a) * d, y = p.y + Math.sin(a) * d, tx = Math.floor(x / TS), ty = Math.floor(y / TS);
     if (w.solid(tx, ty) || w.noSpawnAt(tx, ty) || w.blocked(x, y, 6, 4)) continue;
-    let tier = w.tierAt(tx, ty);
-    const ar = w.areaAt(tx, ty), an = ar ? ar.name : '', r = this.rnd.next();
-    let k;
-    if (this.isNight() && r < 0.4) k = MK.SOMBRA;
-    else if (an.startsWith('Pozo')) k = r < 0.8 ? MK.HUECO : MK.JABALI;
-    else if (an.startsWith('Cárcavas') || an.startsWith('Los Llanos')) k = r < 0.65 ? MK.ALACRAN : MK.JABALI;
-    else if (an.startsWith('Barranco')) k = r < 0.5 ? MK.JABALI : MK.HUECO;
-    else k = r < 0.55 ? MK.JABALI : (r < 0.8 ? MK.HUECO : MK.ALACRAN);
-    if (this.stage >= 8) tier *= 0.85;
-    if (this.isNight()) tier *= 1.15;
-    tier *= 1 + 0.05 * (p.lvl - 1);
-    w.monsters.push(new Monster(k, x, y, tier));
+    w.monsters.push(new Monster(MK.SOMBRA, x, y, w.tierAt(tx, ty) * (1 + 0.05 * (p.lvl - 1))));
     return;
   }
+};
+G.spawnLair = function (L) {
+  const w = this.world, p = this.player;
+  L.active = true;
+  const tier = L.tier * (1 + 0.05 * (p.lvl - 1)) * (this.stage >= 8 ? 0.9 : 1);
+  L.kinds.forEach((k, i) => {
+    for (let t = 0; t < 30; t++) {
+      const a = i * 2.1 + t * 0.7, r = t === 0 && i === 0 ? 0 : 1 + (t % 4) * 0.7;
+      const x = (L.x + 0.5 + Math.cos(a) * r) * TS, y = (L.y + 0.5 + Math.sin(a) * r) * TS;
+      const tx = Math.floor(x / TS), ty = Math.floor(y / TS);
+      if (k === MK.AHOGADO ? !T.isWater(w.get(tx, ty)) : w.blocked(x, y, 7, 4)) continue;
+      const m = new Monster(k, x, y, tier); m.lair = L; m.homeX = L.x * TS + 8; m.homeY = L.y * TS + 8;
+      w.monsters.push(m);
+      break;
+    }
+  });
 };
 G.spawnNear = function (k, x, y, tier) {
   for (let i = 0; i < 10; i++) { const xx = x + this.rnd.gauss() * 10, yy = y + this.rnd.gauss() * 10; if (!this.world.blocked(xx, yy, 6, 4)) { this.world.monsters.push(new Monster(k, xx, yy, tier)); return; } }
@@ -426,10 +461,10 @@ G.talk = function (n) {
   const p = this.player;
   switch (n.key) {
     case 'gato': this.say('Guardián', 'El gato atigrado duerme sobre el cojín, como siempre. Algunas cosas no cambian.'); break;
-    case 'perro': this.say('Guardián', 'El perrillo mueve la cola. Es el mejor centinela del barranco: ladra antes de que lleguen.'); break;
+    case 'perro': this.say('Guardián', 'El perrillo mueve la cola. Es el mejor centinela del valle: ladra antes de que lleguen.'); break;
     case 'cura':
       if (this.stage <= 4) {
-        this.sayAs(n, '¡Dios bendito! ¡Un hombre del barranco, vivo! Te oímos por la radio... bueno, oímos que alguien nos oía.',
+        this.sayAs(n, '¡Dios bendito! ¡Un hombre del valle, vivo! Te oímos por la radio... bueno, oímos que alguien nos oía.',
           'Soy Tomás. Somos once, resistiendo tras estas barricadas desde el Colapso.',
           'Todo empezó en La Bolera. Algo despertó en la cueva del nacimiento del Guadalentín, bajo el embalse. Desde entonces, el agua trae la muerte.',
           'Las zarzas negras de La Linde han cerrado el camino del norte. Pero la Cruz de San Gregorio, en la A-326 camino del pantano, aún guarda luz.',
@@ -448,7 +483,7 @@ G.talk = function (n) {
       else this.sayAs(n, 'Siéntate un poco, que te curo esas heridas. (Vida y Fe al máximo)');
       break;
     case 'guardia':
-      this.sayAs(n, this.stage < 6 ? 'Por la noche salen las Sombras del barranco. Si puedes, no andes a oscuras lejos de una hoguera.' : 'Antes conducía el autobús a Baza. Ahora vigilo esta barricada. La vida da muchas vueltas, ¿eh?',
+      this.sayAs(n, this.stage < 6 ? 'Por la noche salen las Sombras del valle. Si puedes, no andes a oscuras lejos de una hoguera.' : 'Antes conducía el autobús a Baza. Ahora vigilo esta barricada. La vida da muchas vueltas, ¿eh?',
         'Un consejo: cuando la Fe te lo permita, ora. Te salvará el pellejo.');
       break;
     case 'mecanica':
@@ -471,7 +506,7 @@ G.use = function (pr) {
       break;
     case 'pc': this.say('Guardián', 'El ordenador enciende sin problema: las placas dan de sobra. Lo que no hay es internet.', 'Encima del escritorio siguen mis apuntes de primeros auxilios. Me han servido más que nada en estos años.'); break;
     case 'libros': this.say('Guardián', 'Libros por todas partes: filosofía, teología, historia, primeros auxilios, novelas que he leído tres veces...', 'Cuando cayó el mundo, los libros siguieron hablando. Por eso los guardo.'); break;
-    case 'ventilador': this.say('Guardián', 'El ventilador zumba a toda potencia. En agosto, en este barranco, es casi un lujo.'); break;
+    case 'ventilador': this.say('Guardián', 'El ventilador zumba a toda potencia. En agosto, en este valle, es casi un lujo.'); break;
     case 'tele': this.say('Guardián', 'La tele enciende, pero todos los canales son nieve.', 'Por lo menos el reproductor aún lee las películas viejas. Alguna noche me pongo una.'); break;
     case 'nevera': this.say('Guardián', 'La nevera funciona gracias a las baterías. Agua fría, embutido de la matanza y poco más.'); break;
     case 'cocina': this.say('Guardián', 'La placa de la cocina tira de las baterías sin rechistar. Aquí se come caliente.'); break;
@@ -515,7 +550,9 @@ G.use = function (pr) {
 G.rest = function (msg) {
   const p = this.player;
   for (const m of this.world.monsters) if (!m.dead && m.dist(p) < 10 * TS && m.aggro) { this.toast('No puedes descansar con engendros cerca.'); return; }
-  p.hp = p.maxHp; p.fe = p.maxFe;
+  p.hp = p.maxHp; p.fe = p.maxFe; p.poison = 0;
+  for (const L of WG.lairs) { L.cleared = false; L.active = false; }
+  this.worlds.exterior.monsters = this.worlds.exterior.monsters.filter(m => !m.lair || m.kind === MK.BESTIA);
   if (this.world.id === 'casa_alta') { this.restWorld = 'casa_alta'; this.restX = WG.upStart[0]; this.restY = WG.upStart[1]; }
   if (this.isNight()) this.day = 0.02;
   this.save();
@@ -572,6 +609,7 @@ G.respawn = function () {
   p.dead = false; p.hp = p.maxHp; p.fe = p.maxFe; p.invul = 2; p.flash = 0;
   const ow = this.worlds.exterior;
   ow.monsters = ow.monsters.filter(m => m.quest);
+  for (const L of WG.lairs) L.active = false;
   this.orbs = [];
   this.enter(this.restWorld, this.restX, this.restY, 0);
   this.boss = null;
@@ -588,11 +626,11 @@ G.updateFx = function (dt) {
     return true;
   });
 };
-G.snapCamera = function () { this.camX = this.player.x - VW / 2; this.camY = this.player.y - 10 - VH / 2; this.clampCam(); };
+G.snapCamera = function () { this.camX = this.player.x - WW / 2; this.camY = this.player.y - 10 - WH / 2; this.clampCam(); };
 G.clampCam = function () {
   const mw = this.world.w * TS, mh = this.world.h * TS;
-  this.camX = mw <= VW ? (mw - VW) / 2 : Math.max(0, Math.min(mw - VW, this.camX));
-  this.camY = mh <= VH ? (mh - VH) / 2 : Math.max(0, Math.min(mh - VH, this.camY));
+  this.camX = mw <= WW ? (mw - WW) / 2 : Math.max(0, Math.min(mw - WW, this.camX));
+  this.camY = mh <= WH ? (mh - WH) / 2 : Math.max(0, Math.min(mh - WH, this.camY));
 };
 
 // --------------------------------------------------------------------- guardar

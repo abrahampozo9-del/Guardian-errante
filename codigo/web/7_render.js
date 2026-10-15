@@ -1,7 +1,7 @@
 // ====================================================================== dibujo
-const view = document.createElement('canvas'); view.width = VW; view.height = VH;
+const view = document.createElement('canvas'); view.width = WW; view.height = WH;
 const vctx = view.getContext('2d');
-const darkC = document.createElement('canvas'); darkC.width = VW; darkC.height = VH;
+const darkC = document.createElement('canvas'); darkC.width = WW; darkC.height = WH;
 const dctx = darkC.getContext('2d');
 vctx.imageSmoothingEnabled = false;
 G.layout = { ox: 0, oy: 0, sc: 1 };
@@ -22,7 +22,7 @@ G.buildMap = function (ow) {
 G.render = function (ctx, cw, ch, dpr) {
   vctx.imageSmoothingEnabled = false;
   if (this.st === ST.TITLE || (this.st === ST.HELP && this.helpBack !== ST.PAUSE)) this.renderTitleBg(vctx);
-  else if (this.st === ST.INTRO || this.st === ST.END) { vctx.fillStyle = '#08060a'; vctx.fillRect(0, 0, VW, VH); this.embers(vctx); }
+  else if (this.st === ST.INTRO || this.st === ST.END) { vctx.fillStyle = '#08060a'; vctx.fillRect(0, 0, WW, WH); this.embers(vctx); }
   else this.renderWorld(vctx);
 
   ctx.setTransform(1, 0, 0, 1, 0, 0);
@@ -60,13 +60,13 @@ G.render = function (ctx, cw, ch, dpr) {
 
 G.renderWorld = function (g) {
   const p = this.player, w = this.world;
-  this.camX += (p.x - VW / 2 - this.camX) * 0.18; this.camY += (p.y - 10 - VH / 2 - this.camY) * 0.18;
+  this.camX += (p.x - WW / 2 - this.camX) * 0.18; this.camY += (p.y - 10 - WH / 2 - this.camY) * 0.18;
   this.clampCam();
   let cx = Math.round(this.camX), cy = Math.round(this.camY);
   if (this.shakeT > 0) { cx += this.rnd.int(5) - 2; cy += this.rnd.int(5) - 2; }
-  g.fillStyle = '#0b0907'; g.fillRect(0, 0, VW, VH);
+  g.fillStyle = '#0b0907'; g.fillRect(0, 0, WW, WH);
   const frame = Math.floor(this.clock * 3), tx0 = Math.floor(cx / TS), ty0 = Math.floor(cy / TS);
-  for (let y = ty0; y <= ty0 + Math.ceil(VH / TS) + 1; y++) for (let x = tx0; x <= tx0 + Math.ceil(VW / TS) + 1; x++) {
+  for (let y = ty0; y <= ty0 + Math.ceil(WH / TS) + 1; y++) for (let x = tx0; x <= tx0 + Math.ceil(WW / TS) + 1; x++) {
     if (x < 0 || y < 0 || x >= w.w || y >= w.h) continue;
     const t = w.get(x, y), sx = x * TS - cx, sy = y * TS - cy;
     g.drawImage(cv(Art.tile(t, x, y, frame)), sx, sy);
@@ -77,12 +77,12 @@ G.renderWorld = function (g) {
   for (const pr of w.props) {
     if (pr.hidden) continue;
     const l = pr.left() - cx, tp = pr.top() - cy;
-    if (l > VW || tp > VH || l + pr.img.w < 0 || tp + pr.img.h < 0) continue;
+    if (l > WW || tp > WH || l + pr.img.w < 0 || tp + pr.img.h < 0) continue;
     list.push([pr.y, 0, pr]);
   }
-  for (const m of w.monsters) if (!m.dead && Math.abs(m.x - cx - VW / 2) < VW && Math.abs(m.y - cy - VH / 2) < VH) list.push([m.y, 1, m]);
+  for (const m of w.monsters) if (!m.dead && Math.abs(m.x - cx - WW / 2) < WW && Math.abs(m.y - cy - WH / 2) < WH) list.push([m.y, 1, m]);
   for (const n of w.npcs) list.push([n.y, 2, n]);
-  for (const k of w.pickups) if (Math.abs(k.x - cx - VW / 2) < VW && Math.abs(k.y - cy - VH / 2) < VH) list.push([k.y - 4, 3, k]);
+  for (const k of w.pickups) if (Math.abs(k.x - cx - WW / 2) < WW && Math.abs(k.y - cy - WH / 2) < WH) list.push([k.y - 4, 3, k]);
   list.push([p.y, 4, p]);
   list.sort((a, b) => a[0] - b[0]);
   for (const [, kind, e] of list) {
@@ -96,7 +96,7 @@ G.renderWorld = function (g) {
       g.drawImage(cv(s), Math.floor(e.x - s.w / 2) - cx, Math.floor(e.y - s.h - 2 + bob) - cy);
     } else this.drawPlayer(g, cx, cy);
   }
-  for (const o of this.orbs) g.drawImage(cv(Art.orb), Math.floor(o.x) - 4 - cx, Math.floor(o.y) - 4 - cy);
+  for (const o of this.orbs) { const im = o.mud ? Art.E.mud : Art.orb; g.drawImage(cv(im), Math.floor(o.x) - (im.w >> 1) - cx, Math.floor(o.y) - (im.h >> 1) - cy); }
   for (const f of this.fx) {
     const a = Math.max(0, Math.min(1, f.life / f.max));
     if (f.ring) {
@@ -109,21 +109,22 @@ G.renderWorld = function (g) {
       g.fillRect(Math.floor(f.x) - cx, Math.floor(f.y) - cy, s, s);
     }
   }
-  const dk = this.darkness();
+  const dk = Math.min(0.84, this.darkness() + this.stormDark());
   if (dk > 0.01) this.nightOverlay(g, dk, cx, cy);
+  this.drawWeather(g);
   if (w.outdoor && this.stage >= 6) {
     const gx = WG.crossX * TS + 8 - cx, gy = WG.crossY * TS - 8 - cy;
-    if (gx > -60 && gx < VW + 60 && gy > -60 && gy < VH + 60) this.glow(g, gx, gy, 26 + Math.sin(this.clock * 2) * 3, 'rgba(255,230,150,0.24)');
+    if (gx > -60 && gx < WW + 60 && gy > -60 && gy < WH + 60) this.glow(g, gx, gy, 26 + Math.sin(this.clock * 2) * 3, 'rgba(255,230,150,0.24)');
   }
-  if (p.invul > 0.6) { g.fillStyle = `rgba(160,20,10,${0.35 * (p.invul - 0.6) / 0.3})`; g.fillRect(0, 0, VW, VH); }
+  if (p.invul > 0.6) { g.fillStyle = `rgba(160,20,10,${0.35 * (p.invul - 0.6) / 0.3})`; g.fillRect(0, 0, WW, WH); }
   // flecha hacia el objetivo
   const tgt = this.objectiveTarget();
   if (tgt && w.outdoor && this.st === ST.PLAY) {
     const ox2 = tgt[0] * TS + 8 - cx, oy2 = tgt[1] * TS + 8 - cy;
-    if (ox2 < 8 || ox2 > VW - 8 || oy2 < 8 || oy2 > VH - 8) {
-      const ang = Math.atan2(oy2 - VH / 2, ox2 - VW / 2);
-      let ex = VW / 2 + Math.cos(ang) * (VW / 2 - 14), ey = VH / 2 + Math.sin(ang) * (VH / 2 - 14);
-      ex = Math.max(10, Math.min(VW - 10, ex)); ey = Math.max(30, Math.min(VH - 10, ey));
+    if (ox2 < 8 || ox2 > WW - 8 || oy2 < 8 || oy2 > WH - 8) {
+      const ang = Math.atan2(oy2 - WH / 2, ox2 - WW / 2);
+      let ex = WW / 2 + Math.cos(ang) * (WW / 2 - 14), ey = WH / 2 + Math.sin(ang) * (WH / 2 - 14);
+      ex = Math.max(10, Math.min(WW - 10, ex)); ey = Math.max(30, Math.min(WH - 10, ey));
       g.fillStyle = `rgba(255,214,110,${(140 + Math.sin(this.clock * 5) * 80) / 255})`;
       g.beginPath();
       g.moveTo(ex + Math.cos(ang) * 6, ey + Math.sin(ang) * 6);
@@ -169,20 +170,44 @@ G.glow = function (g, x, y, r, col) {
 };
 G.drawMonster = function (g, m, cx, cy) {
   const s = m.sprite();
-  if (m.kind !== MK.BESTIA) this.shadow(g, m.x - cx, m.y - cy, s.w / 2.6);
+  if (!m.ownShadow() && m.kind !== MK.BESTIA && !(m.kind === MK.AHOGADO && m.submerged)) this.shadow(g, m.x - cx, m.y - cy, s.w / 3);
   let alpha = 1;
-  if (m.kind === MK.SOMBRA) alpha = 0.78 + 0.12 * Math.sin(m.anim * 4);
+  if (m.kind === MK.SOMBRA) alpha = 0.72 + 0.14 * Math.sin(m.anim * 4) + (m.state === 'wind' || m.state === 'atk' ? 0.15 : 0);
   if (m.spawnFade > 0) alpha *= Math.max(0, 1 - m.spawnFade / 0.6);
-  g.globalAlpha = alpha;
-  const bob = m.kind === MK.SOMBRA ? Math.sin(m.anim * 3) * 2 - 3 : 0;
-  const sx = Math.round(m.x - s.w / 2) - cx;
+  g.globalAlpha = Math.max(0, Math.min(1, alpha));
+  const bob = m.kind === MK.SOMBRA ? Math.sin(m.anim * 3) * 2 - 4 : 0;
+  const shake = m.state === 'wind' && m.kind !== MK.SOMBRA ? Math.round(Math.sin(m.anim * 60)) : 0;
+  const sx = Math.round(m.x - s.w / 2) - cx + shake;
   let sy = Math.round(m.y - s.h + 2 + bob) - cy;
   if (m.kind === MK.BESTIA) sy += 6;
+  if (m.kind === MK.AHOGADO) sy += m.submerged ? 2 : 4;
   g.drawImage(cv(s), sx, sy);
   g.globalAlpha = 1;
-  if (m.kind === MK.JABALI && m.chargeT > 0) { g.fillStyle = '#ff3c28'; g.fillRect(Math.floor(m.x) - cx - 1, sy - 6, 2, 4); }
+  if (m.kind === MK.AHOGADO) { // ondas en el agua
+    g.strokeStyle = 'rgba(200,245,240,0.55)'; g.lineWidth = 1;
+    const r = 6 + (m.anim * 6) % 5;
+    g.beginPath(); g.ellipse(m.x - cx, m.y - cy + (m.submerged ? -10 : 0), r + 3, r * 0.35 + 1, 0, 0, Math.PI * 2); g.stroke();
+  }
+  // aviso: "!" encima mientras prepara el ataque
+  if (m.state === 'wind') {
+    const t = 1 - m.stT / m.st.wind, a = cv(Art.E.alert);
+    g.globalAlpha = 0.6 + 0.4 * Math.sin(this.clock * 30);
+    g.drawImage(a, Math.round(m.x - 3) - cx, sy - 13 - Math.round(t * 2));
+    g.globalAlpha = 1;
+    if (m.kind === MK.JABALI) { // marca la línea de embestida
+      g.strokeStyle = `rgba(255,70,40,${0.25 + 0.35 * t})`; g.lineWidth = 2; g.setLineDash([3, 3]);
+      g.beginPath(); g.moveTo(m.x - cx, m.y - cy - 3); g.lineTo(m.x - cx + m.ax * 90, m.y - cy - 3 + m.ay * 90); g.stroke(); g.setLineDash([]);
+    }
+    if (m.kind === MK.HUECO || m.kind === MK.SOMBRA) {
+      g.fillStyle = `rgba(255,60,40,${0.12 + 0.2 * t})`;
+      g.beginPath(); g.arc(m.x + m.ax * 13 - cx, m.y - 6 + m.ay * 13 - cy, 15, 0, Math.PI * 2); g.fill();
+    }
+  }
+  if (m.state === 'stun') { // aturdido: estrellitas
+    for (let i = 0; i < 3; i++) { const a = this.clock * 6 + i * 2.1; g.fillStyle = '#ffe080'; g.fillRect(Math.round(m.x - cx + Math.cos(a) * 7), Math.round(sy - 3 + Math.sin(a) * 2), 2, 2); }
+  }
   if (m.hp < m.maxHp && m.kind !== MK.BESTIA) {
-    const bw = 16, bx = Math.floor(m.x) - cx - 8, by = sy - 4;
+    const bw = Math.max(16, s.w - 8), bx = Math.floor(m.x) - cx - bw / 2, by = sy - 4;
     g.fillStyle = '#140a0a'; g.fillRect(bx - 1, by - 1, bw + 2, 4);
     g.fillStyle = '#be281e'; g.fillRect(bx, by, Math.floor(bw * Math.max(0, m.hp) / m.maxHp), 2);
   }
@@ -190,7 +215,7 @@ G.drawMonster = function (g, m, cx, cy) {
 G.drawPlayer = function (g, cx, cy) {
   const p = this.player;
   if (p.dead && this.deadT > 0.5) return;
-  if (p.invul > 0 && Math.floor(p.invul * 20) % 2 === 0 && !p.dead) return;
+  if (p.invul > 0 && !p.rolling && Math.floor(p.invul * 20) % 2 === 0 && !p.dead) return;
   const attacking = p.atkT > 0 && p.hasSword;
   const s = attacking ? Art.heroAtk[p.dir] : Art.hero[p.dir][p.moving ? 1 + Math.floor(p.anim * 7) % 2 : 0];
   const sx = Math.round(p.x - 8) - cx, sy = Math.round(p.y - 23) - cy;
@@ -199,7 +224,8 @@ G.drawPlayer = function (g, cx, cy) {
   const sw = cv(Art.sword);
   if (p.hasSword && !attacking && p.dir === 1) g.drawImage(sw, sx + 9, sy + 4);
   if (attacking && p.dir === 1) this.drawSwing(g, cx, cy);
-  g.drawImage(cv(p.flash > 0 ? white(s) : s), sx, sy);
+  if (p.rolling) { g.save(); g.translate(sx + 8, sy + 23); g.rotate((1 - p.rollT / 0.3) * Math.PI * 2 * (p.rollX < 0 ? -1 : 1)); g.drawImage(cv(s), -8, -16, 16, 18); g.restore(); }
+  else g.drawImage(cv(p.flash > 0 ? white(s) : s), sx, sy);
   if (attacking && p.dir !== 1) this.drawSwing(g, cx, cy);
   if (p.hasSword && !attacking && p.dir !== 1) {
     if (p.dir === 0) g.drawImage(sw, sx + 11, sy + 9, 5, 13);
@@ -219,9 +245,9 @@ G.drawSwing = function (g, cx, cy) {
 };
 G.nightOverlay = function (g, dk, cx, cy) {
   dctx.globalCompositeOperation = 'source-over';
-  dctx.clearRect(0, 0, VW, VH);
+  dctx.clearRect(0, 0, WW, WH);
   dctx.fillStyle = `rgba(8,12,36,${dk})`;
-  dctx.fillRect(0, 0, VW, VH);
+  dctx.fillRect(0, 0, WW, WH);
   dctx.globalCompositeOperation = 'destination-out';
   const light = (x, y, r) => {
     const gr = dctx.createRadialGradient(x, y, 0, x, y, r);
@@ -231,14 +257,14 @@ G.nightOverlay = function (g, dk, cx, cy) {
   light(this.player.x - cx, this.player.y - 10 - cy, 92);
   for (const pr of this.world.props) if (pr.anim === 1 || pr.img === Art.P.cruzluz) {
     const lx = pr.x - cx, ly = pr.y - 6 - cy;
-    if (lx > -90 && lx < VW + 90 && ly > -90 && ly < VH + 90) light(lx, ly, pr.anim === 1 ? 72 + Math.sin(this.clock * 9) * 3 : 55);
+    if (lx > -90 && lx < WW + 90 && ly > -90 && ly < WH + 90) light(lx, ly, pr.anim === 1 ? 72 + Math.sin(this.clock * 9) * 3 : 55);
   }
   for (const k of this.world.pickups) if (k.type === Pickup.RELIC) light(k.x - cx, k.y - 8 - cy, 20);
   dctx.globalCompositeOperation = 'source-over';
   g.drawImage(darkC, 0, 0);
   for (const pr of this.world.props) if (pr.anim === 1) {
     const lx = pr.x - cx, ly = pr.y - 6 - cy;
-    if (lx > -90 && lx < VW + 90 && ly > -90 && ly < VH + 90) this.glow(g, lx, ly, 46, `rgba(255,140,40,${0.24 * dk})`);
+    if (lx > -90 && lx < WW + 90 && ly > -90 && ly < WH + 90) this.glow(g, lx, ly, 46, `rgba(255,140,40,${0.24 * dk})`);
   }
 };
 G.renderTitleBg = function (g) {
@@ -247,28 +273,28 @@ G.renderTitleBg = function (g) {
   const fake = new Player();
   fake.x = (WG.rx + 2) * TS + Math.sin(this.titleT * 0.07) * 70; fake.y = 106 * TS;
   this.player = fake;
-  this.camX = fake.x - VW / 2; this.camY = fake.y - VH / 2 - 10; this.clampCam();
+  this.camX = fake.x - WW / 2; this.camY = fake.y - WH / 2 - 10; this.clampCam();
   const cx = Math.floor(this.camX), cy = Math.floor(this.camY), w = this.world, frame = Math.floor(this.titleT * 3);
-  for (let y = Math.floor(cy / TS); y <= Math.floor(cy / TS) + Math.ceil(VH / TS) + 1; y++) for (let x = Math.floor(cx / TS); x <= Math.floor(cx / TS) + Math.ceil(VW / TS) + 1; x++) {
+  for (let y = Math.floor(cy / TS); y <= Math.floor(cy / TS) + Math.ceil(WH / TS) + 1; y++) for (let x = Math.floor(cx / TS); x <= Math.floor(cx / TS) + Math.ceil(WW / TS) + 1; x++) {
     const t = w.get(x, y);
     g.drawImage(cv(Art.tile(t, x, y, frame)), x * TS - cx, y * TS - cy);
     this.edgeDetail(g, t, x, y, x * TS - cx, y * TS - cy);
   }
-  const ps = w.props.filter(pr => !pr.hidden && pr.x > cx - 60 && pr.x < cx + VW + 60 && pr.y > cy - 20 && pr.y < cy + VH + 80).sort((a, b) => a.y - b.y);
+  const ps = w.props.filter(pr => !pr.hidden && pr.x > cx - 60 && pr.x < cx + WW + 60 && pr.y > cy - 20 && pr.y < cy + WH + 80).sort((a, b) => a.y - b.y);
   for (const pr of ps) g.drawImage(cv(pr.img), pr.left() - cx, pr.top() - cy);
   for (const n of w.npcs) { const s = n.sprite(this.titleT); g.drawImage(cv(s), Math.floor(n.x - s.w / 2) - cx, Math.floor(n.y - s.h) - cy); }
   this.world = saved; this.player = sp;
-  const gr = g.createLinearGradient(0, 0, 0, VH);
+  const gr = g.createLinearGradient(0, 0, 0, WH);
   gr.addColorStop(0, 'rgba(10,8,6,0.82)'); gr.addColorStop(1, 'rgba(10,8,6,0.5)');
-  g.fillStyle = gr; g.fillRect(0, 0, VW, VH);
+  g.fillStyle = gr; g.fillRect(0, 0, WW, WH);
   this.embers(g);
 };
 G.embers = function (g) {
   const r = RNG(4);
   for (let i = 0; i < 40; i++) {
     const sp = 6 + r.next() * 14, rx = r.next(), ry = r.next(), gg = r.int(80);
-    const x = ((rx * VW + Math.sin(this.titleT * 0.7 + i) * 8) % VW + VW) % VW;
-    const y = VH - ((this.titleT * sp + ry * VH) % (VH + 20));
+    const x = ((rx * WW + Math.sin(this.titleT * 0.7 + i) * 8) % WW + WW) % WW;
+    const y = WH - ((this.titleT * sp + ry * WH) % (WH + 20));
     const a = Math.max(0, Math.min(1, (120 + 100 * Math.sin(this.titleT * 2 + i)) / 255));
     g.fillStyle = `rgba(255,${150 + gg},60,${a})`;
     g.fillRect(Math.floor(x), Math.floor(y), 1, 1);
@@ -312,7 +338,7 @@ G.uiHud = function (g) {
   const p = this.player;
   this.panel(g, 4, 4, 116, 40);
   g.font = FBB(7); this.text(g, 'Guardián  ·  Nv. ' + p.lvl, 9, 12.5, GOLD);
-  this.bar(g, 9, 16, 76, 5.2, p.hp / p.maxHp, '#c8402e', '#3a1410');
+  this.bar(g, 9, 16, 76, 5.2, p.hp / p.maxHp, p.poison > 0 ? '#6aa830' : '#c8402e', '#3a1410');
   this.bar(g, 9, 24, 76, 3.6, p.fe / p.maxFe, '#e8c050', '#3a2c10');
   this.bar(g, 9, 30.5, 76, 1.6, p.xp / p.xpNext(), '#8ac0e8', '#1a2430');
   g.font = FB(5.4); this.text(g, p.hp + '/' + p.maxHp, 88, 20.8, PAPER); this.text(g, 'Fe ' + p.fe, 88, 27.8, PAPER);
@@ -345,7 +371,7 @@ G.uiHud = function (g) {
   }
   if (this.clock < 70 && this.st === ST.PLAY && !G.touch) {
     g.font = FB(5.4);
-    const help = p.hasSword ? 'WASD/flechas: moverse · Espacio: espada · E: hablar/usar · K: orar · Q: hierbas · M: mapa · Esc: menú' : 'WASD/flechas: moverse · E: hablar/usar · M: mapa · Esc: menú';
+    const help = p.hasSword ? 'WASD: moverse · Espacio: espada · Mayús: rodar · E: usar · K: orar · Q: hierbas · M: mapa · Esc: menú' : 'WASD/flechas: moverse · E: hablar/usar · M: mapa · Esc: menú';
     this.panel(g, 4, VH - 13, VW - 8, 10);
     this.center(g, help, VH - 6, SOFT);
   }
@@ -385,7 +411,7 @@ G.uiDialog = function (g) {
 G.uiMap = function (g) {
   g.fillStyle = 'rgba(0,0,0,0.8)'; g.fillRect(0, 0, VW, VH);
   const mw = this.mapCanvas.width, mh = this.mapCanvas.height, s = Math.min((VW - 30) / mw, (VH - 26) / mh), ox = (VW - mw * s) / 2, oy = 16;
-  g.font = FT(8); this.center(g, 'Pozo Alcón y el barranco del Guadalentín', 11, GOLD);
+  g.font = FT(8); this.center(g, 'Pozo Alcón y el valle del Guadalentín', 11, GOLD);
   g.fillStyle = '#8a6a3a'; g.fillRect(ox - 2, oy - 2, mw * s + 4, mh * s + 4);
   g.imageSmoothingEnabled = false;
   g.drawImage(this.mapCanvas, ox, oy, mw * s, mh * s);
@@ -439,8 +465,8 @@ G.uiHelp = function (g) {
   this.panel(g, 30, 12, VW - 60, VH - 24);
   g.font = FT(11); this.center(g, 'Controles', 30, GOLD);
   const rows = G.touch
-    ? [['Joystick (izquierda)', 'Moverse'], ['Espada', 'Golpe de espada'], ['Usar', 'Hablar, abrir, examinar'], ['Orar', 'Recupera vida (25 de Fe)'], ['Luz', 'Onda sagrada (nivel 3, 40 de Fe)'], ['Hierba', 'Comer hierbas medicinales (+30 vida)'], ['Mapa / Menú', 'Botones de arriba'], ['Toca la pantalla', 'Pasar los diálogos']]
-    : [['WASD / Flechas', 'Moverse'], ['Espacio / J', 'Golpe de espada'], ['E / Enter', 'Hablar, usar, abrir, pasar texto'], ['K / 1', 'Orar: recupera vida (25 de Fe)'], ['L / 2', 'Luz: onda sagrada (nivel 3, 40 de Fe)'], ['Q / 3', 'Comer hierbas medicinales (+30 vida)'], ['M / Tab', 'Mapa de la comarca'], ['Esc / P', 'Pausa y guardar'], ['N', 'Activar o quitar la música']];
+    ? [['Joystick (izquierda)', 'Moverse'], ['Espada', 'Golpe de espada'], ['Rodar', 'Esquivar (eres invulnerable un instante)'], ['Usar', 'Hablar, abrir, examinar'], ['Orar', 'Recupera vida (25 de Fe)'], ['Luz', 'Onda sagrada (nivel 3, 40 de Fe)'], ['Hierba', 'Comer hierbas medicinales (+30 vida)'], ['Mapa / Menú', 'Botones de arriba'], ['Toca la pantalla', 'Pasar los diálogos']]
+    : [['WASD / Flechas', 'Moverse'], ['Espacio / J', 'Golpe de espada'], ['Mayús / X', 'Rodar para esquivar'], ['E / Enter', 'Hablar, usar, abrir, pasar texto'], ['K / 1', 'Orar: recupera vida (25 de Fe)'], ['L / 2', 'Luz: onda sagrada (nivel 3, 40 de Fe)'], ['Q / 3', 'Comer hierbas medicinales (+30 vida)'], ['M / Tab', 'Mapa de la comarca'], ['Esc / P', 'Pausa y guardar'], ['N', 'Activar o quitar la música']];
   g.font = FB(7);
   rows.forEach((r, i) => { this.text(g, r[0], 52, 48 + i * 14, GOLD); this.text(g, r[1], 150, 48 + i * 14, PAPER); });
   g.font = FB(5.8);

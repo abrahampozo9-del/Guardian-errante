@@ -12,6 +12,7 @@ const Touch = {
       { id: 'pray', x: cw - 138 * k, y: ch - 118 * k, r: 21 * k, label: 'Orar', code: 'KeyK' },
       { id: 'light', x: cw - 64 * k, y: ch - 150 * k, r: 21 * k, label: 'Luz', code: 'KeyL' },
       { id: 'herb', x: cw - 204 * k, y: ch - 82 * k, r: 21 * k, label: 'Hierba', code: 'KeyQ' },
+      { id: 'roll', x: cw - 214 * k, y: ch - 32 * k, r: 22 * k, label: 'Rodar', code: 'Roll' },
     ];
     const side = G.layout.ox;
     if (side > 44 * k) {

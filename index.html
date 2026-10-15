@@ -79,7 +79,7 @@
 <script>
 'use strict';
 // ====================================================================== utilidades de pixel art
-const TS = 16, VW = 400, VH = 225;
+const TS = 16, VW = 400, VH = 225, WW = 288, WH = 162; // VW×VH: interfaz · WW×WH: lo que ve la cámara del mundo (más cerca)
 
 function RNG(seed) {
   let s = (seed | 0) || 1;
@@ -960,6 +960,183 @@ const Art = { tiles: [], tileColor: [], P: {}, people: {} };
     return f[frame % f.length];
   };
 })();
+// ====================================================================== enemigos (sprites grandes, con fotogramas de aviso y ataque)
+// Cada enemigo tiene: andar (2), aviso (windup) y ataque. Lados: 0 izq, 1 der (los que se ven de lado)
+// o 4 direcciones (los que se ven desde arriba).
+Art.initEnemies = function () {
+  const { img, p, r, ov, ova, line, outline, shade, flipH, rot90, speck } = Px;
+  const R = RNG(4242);
+  const E = Art.E = {};
+
+  // ---------------------------------------------------------------- Jabalí podrido (32×24, de lado)
+  function boar(f, mode) {
+    const b = img(34, 24);
+    ova(b, 17, 21, 14, 2.6, 0x50000000);
+    const lift = mode === 'wind' ? -1 : 0, lean = mode === 'atk' ? 2 : 0;
+    // patas
+    const a = f % 2;
+    const legs = mode === 'atk' ? [[7, -2], [11, 2], [20, -2], [24, 2]] : mode === 'wind' ? [[6, 0], [10, 0], [21, 1], [25, 1]] : [[7 + a, 0], [11 - a, 0], [20 + a, 0], [24 - a, 0]];
+    for (const [x, d] of legs) { r(b, x + lean, 15, 3, 5, 0x2a1e18); r(b, x + lean + d * 0.5, 19, 3, 2, 0x1a120e); }
+    // cuerpo
+    ov(b, 15 + lean, 12 + lift, 12, 6.5, 0x4a382c);
+    ov(b, 15 + lean, 10 + lift, 11, 4.5, 0x5a4434);
+    ov(b, 13 + lean, 9 + lift, 7, 2.5, 0x6a5040);
+    // crin erizada
+    for (let x = 6; x < 22; x += 2) line(b, x + lean, 7 + lift, x + lean + 1, 3 + lift - (x % 4 === 0 ? 1 : 0), 0x241a14);
+    // carne podrida y costillas
+    ov(b, 11 + lean, 14 + lift, 3, 2, 0x8a3a30); for (let i = 0; i < 3; i++) line(b, 9 + i * 2 + lean, 13 + lift, 10 + i * 2 + lean, 16 + lift, 0xd8ccb0);
+    ov(b, 18 + lean, 9 + lift, 2, 1.4, 0x6a8a3a); ov(b, 22 + lean, 13 + lift, 1.6, 1.2, 0x7a9a44);
+    // cabeza
+    const hx = 26 + lean + (mode === 'wind' ? -1 : 0), hy = 12 + lift + (mode === 'wind' ? 1 : 0);
+    ov(b, hx, hy, 5, 4, 0x4a382c); ov(b, hx + 1, hy - 1, 4, 3, 0x5a4434);
+    r(b, hx + 4, hy, 3, 3, 0x7a5a4a); p(b, hx + 6, hy + 1, 0x2a1a14);
+    p(b, hx + 1, hy - 2, mode === 'wind' ? 0xffe060 : 0xff3020); p(b, hx + 2, hy - 2, 0xff7050);
+    line(b, hx + 4, hy + 3, hx + 7, hy, 0xf0e8d0); line(b, hx + 3, hy + 3, hx + 6, hy + 1, 0xd8d0b8);
+    p(b, hx - 2, hy - 4, 0x3a2c24); p(b, hx - 1, hy - 5, 0x3a2c24);
+    // cola
+    line(b, 3 + lean, 9 + lift, 1 + lean, 6 + lift, 0x3a2c24);
+    outline(b, 0x120c08);
+    return b;
+  }
+  E.boar = [[], []];
+  for (const [k, f, m] of [['w0', 0, 'walk'], ['w1', 1, 'walk'], ['wind', 0, 'wind'], ['atk', 0, 'atk']]) { const s = boar(f, m); E.boar[1][k] = s; E.boar[0][k] = flipH(s); }
+
+  // ---------------------------------------------------------------- Hueco (24×34, humano vaciado de brazos largos)
+  function hollow(dir, f, mode) {
+    const b = img(26, 36);
+    ova(b, 13, 33, 7, 2, 0x50000000);
+    const skin = 0x8a9a7a, dskin = 0x6a7a5e, rag = 0x4a4656, rag2 = 0x3a3644;
+    const a = f % 2 ? 1 : -1;
+    // piernas
+    r(b, 9, 24, 3, 9 + (mode === 'walk' ? a : 0), rag2); r(b, 14, 24, 3, 9 - (mode === 'walk' ? a : 0), rag2);
+    r(b, 9, 32 + (mode === 'walk' ? a : 0), 3, 1, 0x1a1a1a); r(b, 14, 32 - (mode === 'walk' ? a : 0), 3, 1, 0x1a1a1a);
+    // torso jorobado
+    r(b, 8, 12, 10, 13, rag); r(b, 8, 12, 10, 2, rag2);
+    for (let y = 15; y < 25; y += 3) p(b, 9 + (y % 2), y, 0x2a2834);
+    r(b, 11, 15, 4, 6, dskin); line(b, 11, 17, 14, 17, 0x5a6a4e); line(b, 11, 19, 14, 19, 0x5a6a4e);
+    // brazos (largos)
+    if (mode === 'wind') { r(b, 4, 3, 3, 12, dskin); r(b, 19, 3, 3, 12, dskin); for (const x of [3, 5, 7, 18, 20, 22]) line(b, x, 3, x, 0, 0xd8d8c0); }
+    else if (mode === 'atk') { r(b, 3, 14, 3, 14, dskin); r(b, 20, 14, 3, 14, dskin); for (const x of [2, 4, 6, 19, 21, 23]) line(b, x, 28, x, 33, 0xd8d8c0); }
+    else { r(b, 5, 13, 3, 13 + a, dskin); r(b, 18, 13, 3, 13 - a, dskin); for (const x of [5, 7, 18, 20]) line(b, x, 26 + (x < 10 ? a : -a), x, 28 + (x < 10 ? a : -a), 0xd8d8c0); }
+    // cabeza
+    ov(b, 13, 8, 5, 5.5, skin); ov(b, 13, 6, 4, 3, 0x9aaa8a);
+    if (dir !== 1) {
+      const glow = mode === 'wind' ? 0xff3020 : 0xe8d040;
+      ov(b, 10.5, 8, 1.6, 1.8, 0x14100c); ov(b, 15.5, 8, 1.6, 1.8, 0x14100c); p(b, 10, 8, glow); p(b, 15, 8, glow);
+      r(b, 11, 11, 4, 2, 0x2a1a14); for (let x = 11; x < 15; x += 1) p(b, x, 11, 0xd8d0b8);
+    } else { r(b, 9, 4, 8, 4, 0x3a3a30); }
+    r(b, 9, 3, 2, 2, 0x3a3a30); r(b, 15, 2, 3, 2, 0x3a3a30);
+    outline(b, 0x0e0c10);
+    return b;
+  }
+  E.hollow = [];
+  for (let d = 0; d < 4; d++) {
+    const set = {};
+    for (const [k, f, m] of [['w0', 0, 'walk'], ['w1', 1, 'walk'], ['wind', 0, 'wind'], ['atk', 0, 'atk']]) {
+      let s = hollow(d === 2 ? 3 : d, f, m);
+      if (d === 2 || d === 3) { // de lado: inclina un poco hacia el frente
+        const t = img(s.w, s.h); for (let y = 0; y < s.h; y++) for (let x = 0; x < s.w; x++) { const sx = x - Math.round((s.h - y) * 0.08) + 1; if (sx >= 0 && sx < s.w) t.d[y * s.w + x] = s.d[y * s.w + sx]; } s = t;
+        if (d === 2) s = flipH(s);
+      }
+      set[k] = s;
+    }
+    E.hollow.push(set);
+  }
+
+  // ---------------------------------------------------------------- Alacrán gigante (28×28, desde arriba)
+  function scorp(f, mode) {
+    const b = img(28, 28);
+    ova(b, 14, 17, 9, 7, 0x40000000);
+    const c1 = 0x6a4422, c2 = 0x8a5a2e, c3 = 0xa8743c;
+    for (let i = 0; i < 4; i++) {
+      const y = 12 + i * 3, o = (f + i) % 2 ? 1 : -1;
+      line(b, 10, y, 4, y + o + 1, 0x3a2410); line(b, 4, y + o + 1, 2, y + o + 4, 0x3a2410);
+      line(b, 17, y, 23, y - o + 1, 0x3a2410); line(b, 23, y - o + 1, 25, y - o + 4, 0x3a2410);
+    }
+    ov(b, 13.5, 15, 4.5, 6, c1); ov(b, 13.5, 14, 3.5, 4.5, c2); for (let y = 11; y < 20; y += 2) line(b, 10, y, 17, y, c1);
+    p(b, 12, 9, 0xff4020); p(b, 15, 9, 0xff4020);
+    // pinzas
+    const pz = mode === 'atk' ? -3 : mode === 'wind' ? -1 : 0;
+    line(b, 10, 10, 6, 5 + pz, c1); line(b, 17, 10, 21, 5 + pz, c1);
+    ov(b, 6, 4 + pz, 3, 2.2, c2); ov(b, 21, 4 + pz, 3, 2.2, c2); p(b, 5, 2 + pz, 0x2a1a0a); p(b, 22, 2 + pz, 0x2a1a0a);
+    // cola: de reposo cuelga detrás; en aviso se curva por encima
+    if (mode === 'wind' || mode === 'atk') {
+      const pts = [[13.5, 21], [14, 23], [15, 24], [16, 22], [16.5, 19], [16, 15]];
+      for (const [x, y] of pts) ov(b, x, y, 1.8, 1.8, c2);
+      ov(b, 15.5, 12, 2, 2, mode === 'atk' ? 0xff8030 : 0xffd040); p(b, 15, 10, 0xfff0a0);
+    } else {
+      for (let i = 0; i < 5; i++) ov(b, 13.5, 21 + i * 1.3, 1.7 - i * 0.1, 1.5, i % 2 ? c2 : c3);
+      ov(b, 13.5, 27, 1.5, 1, 0x4a2e16);
+    }
+    outline(b, 0x1e1208);
+    return b;
+  }
+  E.scorp = [[], [], [], []];
+  for (const [k, f, m] of [['w0', 0, 'walk'], ['w1', 1, 'walk'], ['wind', 0, 'wind'], ['atk', 0, 'atk']]) {
+    const up = scorp(f, m), right = rot90(up), down = rot90(right), left = rot90(down);
+    E.scorp[1][k] = up; E.scorp[3][k] = right; E.scorp[0][k] = down; E.scorp[2][k] = left;
+  }
+
+  // ---------------------------------------------------------------- Sombra del valle (26×34, flota)
+  function shadeSpr(f, mode) {
+    const b = img(26, 34);
+    const c = 0x2e2240, c2 = 0x45345e;
+    ov(b, 13, 11, 8, 9, c); ov(b, 13, 18, 8.5, 8, c);
+    for (let y = 24; y < 33; y++) { const off = Math.round(Math.sin((y + f * 2) * 0.8) * 2); r(b, 7 + off + ((y - 24) >> 1), y, Math.max(1, 12 - (y - 24) * 1.3), 1, c); }
+    ov(b, 13, 9, 6, 5, c2);
+    if (mode === 'atk') { line(b, 5, 16, 0, 22, c); line(b, 21, 16, 26, 22, c); for (const x of [0, 2, 24, 26]) line(b, x, 22, x, 25, 0xc8c0e0); }
+    const eye = mode === 'wind' || mode === 'atk' ? 0xff3a3a : 0xf0f0ff;
+    r(b, 9, 10, 2, 3, eye); r(b, 15, 10, 2, 3, eye);
+    if (mode === 'wind') { ov(b, 10, 11, 2.5, 2.5, 0x80ff3a3a | 0); ov(b, 16, 11, 2.5, 2.5, 0x80ff3a3a | 0); r(b, 9, 10, 2, 3, eye); r(b, 15, 10, 2, 3, eye); }
+    outline(b, 0x120c1a);
+    return b;
+  }
+  E.shade = {};
+  for (const [k, f, m] of [['w0', 0, 'walk'], ['w1', 1, 'walk'], ['w2', 2, 'walk'], ['wind', 0, 'wind'], ['atk', 1, 'atk']]) E.shade[k] = shadeSpr(f, m);
+
+  // ---------------------------------------------------------------- Ahogado del Guadalentín (24×32, sale del agua)
+  function drowned(f, mode, sub) {
+    const b = img(26, 34);
+    const skin = 0x9ab8b8, dsk = 0x6a8a90, weed = 0x3a6a3a;
+    if (!sub) { r(b, 9, 24, 3, 8, 0x3a4a52); r(b, 14, 24, 3, 8, 0x3a4a52); }
+    ov(b, 13, 19, 7, 8, dsk); ov(b, 13, 18, 6, 7, skin);
+    for (let i = 0; i < 6; i++) line(b, 7 + i * 2, 13 + (i % 3), 6 + i * 2 + (f % 2), 24 + (i % 2) * 2, weed);
+    const a = mode === 'wind' ? -4 : mode === 'atk' ? 2 : (f % 2);
+    r(b, 4, 15 + a, 3, 9, dsk); r(b, 19, 15 + a, 3, 9, dsk);
+    ov(b, 13, 8, 5.5, 6, skin); ov(b, 12, 6, 4, 3, 0xb8d0d0);
+    ov(b, 10.5, 8, 1.4, 1.6, 0x0e1a1e); ov(b, 15.5, 8, 1.4, 1.6, 0x0e1a1e);
+    if (mode === 'wind') { ov(b, 13, 12, 2.5, 2.2, 0x1a2a20); ov(b, 13, 12, 1.4, 1.2, 0x5a6a2a); }
+    else r(b, 11, 12, 4, 1, 0x2a3a3a);
+    for (let i = 0; i < 4; i++) line(b, 9 + i * 2, 2, 8 + i * 3, 9, weed);
+    outline(b, 0x0c1416);
+    if (sub) { // medio cuerpo bajo el agua
+      for (let y = 22; y < 34; y++) for (let x = 0; x < 26; x++) b.d[y * 26 + x] = 0;
+      for (let x = 3; x < 23; x++) if ((x + f) % 3 === 0) p(b, x, 22, 0xa8e4dc);
+    }
+    return b;
+  }
+  E.drown = {};
+  for (const [k, f, m, s] of [['w0', 0, 'walk', false], ['w1', 1, 'walk', false], ['wind', 0, 'wind', false], ['atk', 0, 'atk', false], ['s0', 0, 'walk', true], ['s1', 1, 'walk', true], ['swind', 0, 'wind', true]]) E.drown[k] = drowned(f, m, s);
+  const mud = img(10, 10); ov(mud, 5, 5, 4, 4, 0x4a5a2a); ov(mud, 4, 4, 2.5, 2.5, 0x6a7a3a); p(mud, 3, 3, 0xa8b870); E.mud = mud;
+
+  // ---------------------------------------------------------------- Nido de engendros (32×26)
+  E.nest = [];
+  for (let f = 0; f < 3; f++) {
+    const b = img(34, 28);
+    ova(b, 17, 23, 15, 4, 0x50000000);
+    const pulse = [0, 1, 2][f];
+    for (let i = 0; i < 9; i++) { const a = i / 9 * Math.PI * 2; line(b, 17, 18, 17 + Math.cos(a) * 15, 20 + Math.sin(a) * 6, 0x3a1e2a); }
+    ov(b, 17, 16, 11 + pulse * 0.5, 8 + pulse * 0.5, 0x5a2a3e); ov(b, 17, 14, 9 + pulse * 0.5, 6, 0x7a3a50);
+    for (let i = 0; i < 6; i++) ov(b, 10 + i * 3, 13 + (i % 2) * 3, 1.6, 1.6, 0xb85a70);
+    ov(b, 17, 12, 3, 2, 0xe8a0b0); p(b, 16, 11, 0xffe0e8);
+    for (let i = 0; i < 5; i++) line(b, 8 + i * 4, 9, 9 + i * 4, 5 - (i % 2) * 2, 0x2a141e);
+    outline(b, 0x14080e);
+    E.nest.push(b);
+  }
+
+  // icono de aviso "!"
+  const ex = img(7, 11); r(ex, 2, 0, 3, 7, 0xffd040); r(ex, 2, 8, 3, 3, 0xffd040); outline(ex, 0x3a1a00); E.alert = ex;
+};
 // ====================================================================== mapas
 class Prop {
   constructor(img, x, y) { this.img = img; this.x = x; this.y = y; this.id = null; this.wallDecor = false; this.anim = 0; this.hidden = false; }
@@ -1042,7 +1219,7 @@ const WG = (function () {
   function floorW(y) { return 4 + 2 * fbm(3, y, 50) + 13 * plateau(y, 109, 9, 6) + 5 * plateau(y, 57, 4, 4); }
   G.riverX = riverX; G.floorW = floorW;
 
-  const R_OLIV = A('Olivares de Pozo Alcón', 0, 0, 0, 0), R_BARR = A('Barranco del Guadalentín', 0, 0, 0, 0), R_CARC = A('Cárcavas del Guadalentín', 0, 0, 0, 0),
+  const R_OLIV = A('Olivares de Pozo Alcón', 0, 0, 0, 0), R_BARR = A('Valle del Guadalentín', 0, 0, 0, 0), R_CARC = A('Cárcavas del Guadalentín', 0, 0, 0, 0),
     R_LLAN = A('Los Llanos', 0, 0, 0, 0), R_SIER = A('Sierra del Pozo', 0, 0, 0, 0), R_NORTE = A('Tierras del norte', 0, 0, 0, 0), R_EMB = A('Embalse de La Bolera', 0, 0, 0, 0);
   R_CARC.tier = 1.2; R_LLAN.tier = 1.25; R_SIER.tier = 1.5; R_NORTE.tier = 1.5; R_EMB.tier = 1.6;
   function region(x, y) {
@@ -1216,8 +1393,38 @@ const WG = (function () {
     const hig = A('Bosque Encantado de Las Higueras', 135, 50, 40, 14); hig.tier = 1.4; w.areas.push(hig);
     const linde = A('La Linde Negra', 56, 63, 164, 4); linde.noSpawn = true; w.areas.push(linde);
     w.regionFn = region;
+    placeLairs(w);
     return w;
   };
+
+  // Guaridas fijas: cada grupo de engendros vive en un sitio concreto y vuelve allí.
+  function placeLairs(w) {
+    const rx = G.rx, L = G.lairs = [];
+    const add = (name, x, y, kinds, tier) => {
+      const water = kinds.includes(MK.AHOGADO);
+      // busca la casilla válida más cercana (agua para los ahogados)
+      for (let r = 0; r < 8; r++) for (let dy = -r; dy <= r; dy++) for (let dx = -r; dx <= r; dx++) {
+        const tx = Math.round(x) + dx, ty = Math.round(y) + dy;
+        if (water ? T.isWater(w.get(tx, ty)) && w.get(tx, ty) !== T.DEEP : !w.solid(tx, ty)) { L.push({ name, x: tx, y: ty, kinds, tier: tier || 1, active: false, cleared: false }); return; }
+      }
+    };
+    const rv = y => G.riverX(y);
+    add('Olivar de los jabalíes', rx + 24, 111, [MK.JABALI, MK.JABALI], 1);
+    add('Poza de los ahogados', rv(128), 128, [MK.AHOGADO], 1);
+    add('Majano de los huecos', rx - 12, 126, [MK.HUECO, MK.HUECO, MK.HUECO], 1);
+    add('Cárcavas de los alacranes', rx + 30, 140, [MK.ALACRAN, MK.ALACRAN, MK.ALACRAN], 1.1);
+    add('Nido del cañaveral', rv(152) + 3, 152, [MK.NIDO, MK.HUECO], 1.1);
+    add('Remanso río arriba', rv(86), 86, [MK.AHOGADO, MK.AHOGADO], 1.15);
+    add('Olivar de la carretera', 86, 118, [MK.JABALI, MK.HUECO], 1);
+    add('Calle de los huecos', 28, 120, [MK.HUECO, MK.HUECO], 1);
+    add('Corral abandonado', 56, 129, [MK.HUECO, MK.JABALI], 1);
+    add('Era de la ermita', 20, 106, [MK.NIDO], 1);
+    add('Cárcavas del sur', rx + 20, 175, [MK.ALACRAN, MK.JABALI, MK.ALACRAN], 1.2);
+    add('Pinar de la sierra', 40, 40, [MK.JABALI, MK.JABALI, MK.ALACRAN], 1.5);
+    add('Cruce del norte', 120, 50, [MK.SOMBRA, MK.HUECO], 1.5);
+    add('Higueras malditas', rv(55) - 3, 55, [MK.AHOGADO, MK.AHOGADO, MK.SOMBRA], 1.5);
+    add('Llanos de los almendros', rx + 45, 125, [MK.JABALI, MK.ALACRAN], 1.25);
+  }
 
   function buildTown(w) {
     const hs = [86, 95, 103, 111, 119, 127, 134], vs = [13, 23, 32, 41, 50, 59, 66];
@@ -1565,27 +1772,56 @@ class Player extends Entity {
     super();
     this.maxHp = this.hp = 100; this.maxFe = this.fe = 60; this.lvl = 1; this.xp = 0; this.atk = 12; this.herbs = 0; this.relics = 0;
     this.feAcc = 0; this.hasSword = false; this.atkT = 0; this.atkCool = 0; this.invul = 0; this.prayT = 0; this.hitSet = new Set();
+    this.rollT = 0; this.rollCool = 0; this.rollX = 0; this.rollY = 0; this.poison = 0; this.poisonAcc = 0;
   }
   xpNext() { return Math.floor(25 + 22 * Math.pow(this.lvl, 1.45)); }
   canLight() { return this.lvl >= 3; }
 }
 
-const MK = { JABALI: 'JABALI', HUECO: 'HUECO', ALACRAN: 'ALACRAN', SOMBRA: 'SOMBRA', BESTIA: 'BESTIA' };
-const MNAME = { JABALI: 'Jabalí podrido', HUECO: 'Hueco', ALACRAN: 'Alacrán gigante', SOMBRA: 'Sombra del barranco', BESTIA: 'La Bestia de La Bolera' };
+const MK = { JABALI: 'JABALI', HUECO: 'HUECO', ALACRAN: 'ALACRAN', SOMBRA: 'SOMBRA', AHOGADO: 'AHOGADO', NIDO: 'NIDO', BESTIA: 'BESTIA' };
+const MNAME = { JABALI: 'Jabalí podrido', HUECO: 'Hueco', ALACRAN: 'Alacrán gigante', SOMBRA: 'Sombra del valle', AHOGADO: 'Ahogado del Guadalentín', NIDO: 'Nido de engendros', BESTIA: 'La Bestia de La Bolera' };
 const MRand = RNG(Date.now() & 0xffff);
+// vida, daño, velocidad, xp, semiancho, semialto, alcance para empezar el ataque, aviso, ataque, recuperación
+const MSTAT = {
+  JABALI:  { hp: 34, dmg: 12, sp: 42, xp: 9,  hw: 8, hh: 3, range: 84, wind: 0.65, atk: 0.55, rec: 0.55 },
+  HUECO:   { hp: 46, dmg: 13, sp: 30, xp: 11, hw: 5, hh: 3, range: 24, wind: 0.55, atk: 0.22, rec: 0.75 },
+  ALACRAN: { hp: 28, dmg: 8,  sp: 52, xp: 10, hw: 6, hh: 4, range: 42, wind: 0.42, atk: 0.2,  rec: 0.55 },
+  SOMBRA:  { hp: 36, dmg: 14, sp: 40, xp: 15, hw: 5, hh: 3, range: 80, wind: 0.75, atk: 0.22, rec: 0.85 },
+  AHOGADO: { hp: 40, dmg: 10, sp: 32, xp: 13, hw: 5, hh: 3, range: 120, wind: 0.75, atk: 0.15, rec: 1.4 },
+  NIDO:    { hp: 110, dmg: 0, sp: 0,  xp: 30, hw: 12, hh: 5, range: 0, wind: 0, atk: 0, rec: 0 },
+  BESTIA:  { hp: 700, dmg: 18, sp: 30, xp: 400, hw: 16, hh: 7, range: 0, wind: 0, atk: 0, rec: 0 },
+};
 
 class Monster extends Entity {
   constructor(kind, x, y, tier) {
     super();
+    const st = MSTAT[kind];
     this.kind = kind; this.x = x; this.y = y; this.homeX = x; this.homeY = y;
-    const st = { JABALI: [30, 8, 46, 8, 7, 3], HUECO: [44, 10, 28, 10, 5, 3], ALACRAN: [26, 11, 40, 9, 5, 4], SOMBRA: [34, 12, 44, 14, 5, 3], BESTIA: [700, 18, 30, 400, 16, 7] }[kind];
-    this.maxHp = Math.round(st[0] * tier); this.dmg = Math.round(st[1] * (0.6 + 0.4 * tier)); this.speed = st[2]; this.xp = Math.round(st[3] * tier); this.hw = st[4]; this.hh = st[5];
+    this.maxHp = Math.round(st.hp * tier); this.dmg = Math.round(st.dmg * (0.6 + 0.4 * tier)); this.speed = st.sp; this.xp = Math.round(st.xp * tier);
+    this.hw = st.hw; this.hh = st.hh; this.st = st;
     this.hp = this.maxHp;
-    this.think = 0; this.wanderA = MRand.next() * Math.PI * 2; this.cool = 0; this.charge = 0; this.chargeT = 0; this.shootT = 2.5; this.summonT = 8; this.spawnFade = 0.6;
-    this.quest = false; this.aggro = false; this.lastH = 1;
+    this.state = 'idle'; this.stT = 0; this.ax = 0; this.ay = 0; this.hitDone = false;
+    this.think = 0; this.wanderA = MRand.next() * Math.PI * 2; this.cool = 0.5 + MRand.next();
+    this.shootT = 2.5; this.summonT = 8; this.chargeT = 0; this.charge = 0; this.spawnT = 3;
+    this.spawnFade = 0.6; this.quest = false; this.aggro = false; this.lastH = 1; this.lair = null;
+    this.submerged = kind === MK.AHOGADO;
   }
   name() { return MNAME[this.kind]; }
   faceTo(dx, dy) { super.faceTo(dx, dy); if (Math.abs(dx) > 0.01) this.lastH = dx < 0 ? 0 : 1; }
+  vulnerable() { return !(this.kind === MK.AHOGADO && this.submerged); }
+  setState(s, t) { this.state = s; this.stT = t; this.hitDone = false; }
+
+  // el ahogado solo se mueve por el agua
+  moveIn(w, dx, dy) {
+    if (this.kind !== MK.AHOGADO) return this.move(w, dx, dy);
+    const nx = this.x + dx, ny = this.y + dy;
+    const ok = (x, y) => T.isWater(w.get(Math.floor(x / TS), Math.floor(y / TS)));
+    let moved = false;
+    if (ok(nx, this.y)) { this.x = nx; moved = true; }
+    if (ok(this.x, ny)) { this.y = ny; moved = true; }
+    return moved;
+  }
+
   update(g, dt) {
     const w = g.world, p = g.player;
     if (this.spawnFade > 0) this.spawnFade -= dt;
@@ -1593,58 +1829,158 @@ class Monster extends Entity {
     if (this.cool > 0) this.cool -= dt;
     this.anim += dt;
     const dx = p.x - this.x, dy = (p.y - 4) - this.y, d = Math.hypot(dx, dy);
-    const sense = this.kind === MK.BESTIA ? 400 : (g.isNight() ? 120 : 92);
+    const sense = this.kind === MK.BESTIA ? 400 : (g.isNight() ? 130 : 105);
     if (p.dead || g.playerSafe()) this.aggro = false;
     else if (d < sense) this.aggro = true;
     else if (d > sense * 1.8) this.aggro = false;
+    // atado a su guarida: si se aleja demasiado, vuelve
+    if (this.lair && Math.hypot(this.x - this.homeX, this.y - this.homeY) > 13 * TS) this.aggro = false;
     this.moving = false;
+    if (this.kind === MK.BESTIA) { if (this.kbT <= 0) this.boss(g, dt, dx, dy, d); return; }
+    if (this.kind === MK.NIDO) { this.nest(g, dt, d); return; }
+
+    if (this.state !== 'idle' && this.state !== 'chase') {
+      this.stT -= dt;
+      this.attackStep(g, dt, dx, dy, d);
+      if (this.stT <= 0) this.nextState(g);
+      return;
+    }
     if (this.kbT > 0) return;
-    if (this.kind === MK.BESTIA) { this.boss(g, dt, dx, dy, d); return; }
     if (this.aggro) {
-      let sp = this.speed;
-      if (this.kind === MK.JABALI) {
-        if (this.chargeT > 0) {
-          this.chargeT -= dt; sp = 0;
-          if (this.chargeT <= 0) { this.charge = 0.55; this.faceTo(dx, dy); this.wanderA = Math.atan2(dy, dx); }
-          return;
-        } else if (this.charge > 0) {
-          this.charge -= dt;
-          const mx = Math.cos(this.wanderA) * 150 * dt, my = Math.sin(this.wanderA) * 150 * dt;
-          if (!this.move(w, mx, my)) this.charge = 0;
-          this.moving = true; return;
-        } else if (d < 70 && this.cool <= 0) { this.chargeT = 0.45; this.cool = 2.2; return; }
-      }
-      if (this.kind === MK.ALACRAN) {
-        this.think -= dt;
-        if (this.think <= 0) { this.think = 0.35; this.wanderA = Math.atan2(dy, dx) + (MRand.next() - 0.5) * 1.4; }
-        const mx = Math.cos(this.wanderA) * sp * dt, my = Math.sin(this.wanderA) * sp * dt;
-        if (this.move(w, mx, my)) this.moving = true;
-        this.faceTo(mx, my); return;
-      }
-      if (d > 2) {
-        const mx = dx / d * sp * dt, my = dy / d * sp * dt;
-        if (!this.move(w, mx, my)) { const a = Math.atan2(dy, dx) + (MRand.bool() ? 1.2 : -1.2); this.move(w, Math.cos(a) * sp * dt, Math.sin(a) * sp * dt); }
-        this.moving = true; this.faceTo(dx, dy);
-      }
+      this.state = 'chase';
+      if (d < this.st.range && this.cool <= 0) { this.startWind(g, dx, dy, d); return; }
+      this.chase(g, dt, dx, dy, d);
     } else {
-      this.think -= dt;
-      if (this.think <= 0) {
-        this.think = 1 + MRand.next() * 2.5;
-        this.wanderA = MRand.next() < 0.35 ? NaN : Math.atan2(this.homeY - this.y, this.homeX - this.x) + (MRand.next() - 0.5) * 2.6;
-      }
-      if (!Number.isNaN(this.wanderA)) {
-        const sp = this.speed * 0.4, mx = Math.cos(this.wanderA) * sp * dt, my = Math.sin(this.wanderA) * sp * dt;
-        if (this.move(w, mx, my)) { this.moving = true; this.faceTo(mx, my); } else this.think = 0;
-      }
+      this.state = 'idle';
+      this.wander(g, dt);
+      if (this.kind === MK.AHOGADO) this.submerged = true;
     }
   }
+
+  chase(g, dt, dx, dy, d) {
+    const w = g.world, sp = this.speed;
+    if (this.kind === MK.ALACRAN) {
+      // se mueve a saltos, rodeando
+      this.think -= dt;
+      if (this.think <= 0) { this.think = 0.4; this.wanderA = Math.atan2(dy, dx) + (MRand.bool() ? 1 : -1) * (0.6 + MRand.next() * 0.6); }
+      const mx = Math.cos(this.wanderA) * sp * dt, my = Math.sin(this.wanderA) * sp * dt;
+      if (this.moveIn(w, mx, my)) this.moving = true; else this.think = 0;
+      this.faceTo(dx, dy); return;
+    }
+    if (this.kind === MK.SOMBRA && d < 140) { // flota en círculo a media distancia
+      const a = Math.atan2(-dy, -dx) + 0.9 * dt * 2;
+      const tx = g.player.x + Math.cos(a) * 60, ty = g.player.y + Math.sin(a) * 60;
+      const ex = tx - this.x, ey = ty - this.y, el = Math.hypot(ex, ey) || 1;
+      this.x += ex / el * sp * dt; this.y += ey / el * sp * dt; this.moving = true; this.faceTo(dx, dy); return;
+    }
+    if (this.kind === MK.AHOGADO) { this.submerged = true; if (d > 60) { const l = d || 1; if (this.moveIn(w, dx / l * sp * dt, dy / l * sp * dt)) this.moving = true; } this.faceTo(dx, dy); return; }
+    if (d > 2) {
+      const mx = dx / d * sp * dt, my = dy / d * sp * dt;
+      if (!this.move(w, mx, my)) { const a = Math.atan2(dy, dx) + (MRand.bool() ? 1.2 : -1.2); this.move(w, Math.cos(a) * sp * dt, Math.sin(a) * sp * dt); }
+      this.moving = true; this.faceTo(dx, dy);
+    }
+  }
+
+  wander(g, dt) {
+    const w = g.world;
+    if (this.kind === MK.SOMBRA || this.kind === MK.AHOGADO) { this.anim += 0; }
+    this.think -= dt;
+    if (this.think <= 0) {
+      this.think = 1 + MRand.next() * 2.5;
+      const home = Math.hypot(this.homeX - this.x, this.homeY - this.y);
+      this.wanderA = (MRand.next() < 0.35 && home < 3 * TS) ? NaN : Math.atan2(this.homeY - this.y, this.homeX - this.x) + (MRand.next() - 0.5) * (home > 4 * TS ? 0.6 : 2.6);
+      if (home > 4 * TS && this.hp < this.maxHp) this.hp = Math.min(this.maxHp, this.hp + Math.ceil(this.maxHp * 0.25));
+    }
+    if (!Number.isNaN(this.wanderA)) {
+      const sp = this.speed * 0.45, mx = Math.cos(this.wanderA) * sp * dt, my = Math.sin(this.wanderA) * sp * dt;
+      if (this.moveIn(w, mx, my)) { this.moving = true; this.faceTo(mx, my); } else this.think = 0;
+    }
+  }
+
+  startWind(g, dx, dy, d) {
+    this.faceTo(dx, dy);
+    const l = d || 1; this.ax = dx / l; this.ay = dy / l;
+    if (this.kind === MK.SOMBRA) {
+      // aparece por detrás del Guardián
+      const p = g.player, back = [[0, -1], [0, 1], [1, 0], [-1, 0]][p.dir];
+      for (const [bx, by] of [back, [back[1], back[0]], [-back[1], -back[0]]]) {
+        const tx = p.x + bx * 22, ty = p.y + by * 22;
+        if (!g.world.blocked(tx, ty, 4, 3)) { this.x = tx; this.y = ty; break; }
+      }
+      const ex = p.x - this.x, ey = (p.y - 4) - this.y, el = Math.hypot(ex, ey) || 1; this.ax = ex / el; this.ay = ey / el; this.faceTo(ex, ey);
+      for (let i = 0; i < 8; i++) g.fx.push(Fx.spark(this.x, this.y - 12, MRand.gauss() * 30, MRand.gauss() * 30, 0x45345e, 0.4));
+    }
+    if (this.kind === MK.AHOGADO) { this.submerged = false; Sound.play('orb'); }
+    this.setState('wind', this.st.wind);
+  }
+
+  nextState(g) {
+    if (this.state === 'wind') {
+      this.setState('atk', this.st.atk);
+      if (this.kind === MK.AHOGADO) {
+        const p = g.player, ex = p.x - this.x, ey = (p.y - 8) - (this.y - 14), el = Math.hypot(ex, ey) || 1;
+        g.orbs.push({ x: this.x, y: this.y - 14, vx: ex / el * 125, vy: ey / el * 125, dmg: this.dmg, life: 2.2, mud: true });
+      }
+      if (this.kind === MK.JABALI) Sound.play('roar');
+      else Sound.play('swing');
+    } else if (this.state === 'atk') this.setState('rec', this.st.rec);
+    else if (this.state === 'stun') this.setState('rec', 0.2);
+    else { this.state = 'chase'; this.cool = 0.4 + MRand.next() * 0.7; if (this.kind === MK.AHOGADO) this.submerged = true; }
+  }
+
+  attackStep(g, dt, dx, dy, d) {
+    const w = g.world, p = g.player;
+    if (this.state === 'wind') {
+      // el alacrán y el hueco siguen girándose hacia ti durante el aviso; el jabalí escarba
+      if (this.kind !== MK.JABALI) { const l = d || 1; this.ax = dx / l; this.ay = dy / l; this.faceTo(dx, dy); }
+      else if (Math.floor(this.anim * 12) % 3 === 0) g.fx.push(Fx.spark(this.x - this.ax * 8, this.y, -this.ax * 20 + MRand.gauss() * 8, -10, 0xb8a888, 0.3));
+      return;
+    }
+    if (this.state !== 'atk') return;
+    let hit = false;
+    if (this.kind === MK.JABALI) {
+      const sp = 165;
+      if (!this.move(w, this.ax * sp * dt, this.ay * sp * dt)) { this.setState('stun', 1.1); g.shake(0.2); Sound.play('hit'); for (let i = 0; i < 8; i++) g.fx.push(Fx.spark(this.x + this.ax * 10, this.y - 6, MRand.gauss() * 40, -20 - MRand.next() * 30, 0xc8b898, 0.4)); return; }
+      this.moving = true;
+      hit = Math.hypot(p.x - this.x, p.y - this.y) < this.hw + 7;
+    } else if (this.kind === MK.ALACRAN) {
+      this.move(w, this.ax * 230 * dt, this.ay * 230 * dt);
+      hit = Math.hypot(p.x - this.x, p.y - this.y) < 13;
+    } else if (this.kind === MK.HUECO || this.kind === MK.SOMBRA) {
+      const cx = this.x + this.ax * 13, cy = this.y - 6 + this.ay * 13;
+      hit = Math.hypot(p.x - cx, p.y - 8 - cy) < 15;
+    }
+    if (hit && !this.hitDone && p.invul <= 0 && !p.dead) {
+      this.hitDone = true;
+      g.hurtPlayer(this.dmg, this.x, this.y, this.kind === MK.ALACRAN ? 4 : 0);
+      if (this.kind === MK.JABALI) this.setState('rec', this.st.rec);
+    }
+  }
+
+  nest(g, dt, d) {
+    this.anim += 0;
+    if (!this.aggro || d > 150) return;
+    this.spawnT -= dt;
+    if (this.spawnT > 0) return;
+    this.spawnT = 5.5;
+    const near = g.world.monsters.filter(m => !m.dead && m.fromNest === this).length;
+    if (near >= 3) return;
+    const k = MRand.next() < 0.6 ? MK.HUECO : MK.ALACRAN;
+    for (let i = 0; i < 8; i++) {
+      const a = MRand.next() * Math.PI * 2, x = this.x + Math.cos(a) * 22, y = this.y + Math.sin(a) * 14;
+      if (!g.world.blocked(x, y, 5, 3)) { const m = new Monster(k, x, y, 0.8); m.fromNest = this; m.lair = this.lair; m.homeX = this.x; m.homeY = this.y; m.aggro = true; g.world.monsters.push(m); for (let j = 0; j < 8; j++) g.fx.push(Fx.spark(x, y - 6, MRand.gauss() * 30, -20 - MRand.next() * 20, 0x7a3a50, 0.5)); break; }
+    }
+  }
+
   boss(g, dt, dx, dy, d) {
     const w = g.world, enraged = this.hp < this.maxHp / 2;
     if (this.charge > 0) {
       this.charge -= dt;
       const sp = enraged ? 190 : 160;
       if (!this.move(w, Math.cos(this.wanderA) * sp * dt, Math.sin(this.wanderA) * sp * dt)) { this.charge = 0; g.shake(0.3); }
-      this.moving = true; return;
+      this.moving = true;
+      if (Math.hypot(g.player.x - this.x, g.player.y - this.y) < 24 && g.player.invul <= 0) g.hurtPlayer(this.dmg, this.x, this.y);
+      return;
     }
     if (this.chargeT > 0) { this.chargeT -= dt; if (this.chargeT <= 0) { this.charge = 0.7; this.wanderA = Math.atan2(dy, dx); Sound.play('roar'); } return; }
     this.shootT -= dt; this.summonT -= dt;
@@ -1663,19 +1999,29 @@ class Monster extends Entity {
     }
     if (d > 30) { const sp = this.speed * (enraged ? 1.4 : 1); this.move(w, dx / d * sp * dt, dy / d * sp * dt); this.moving = true; this.faceTo(dx, dy); }
   }
+
+  frameKey() {
+    if (this.state === 'wind') return 'wind';
+    if (this.state === 'atk') return 'atk';
+    if (this.state === 'stun') return 'wind';
+    return this.moving ? (Math.floor(this.anim * 7) % 2 ? 'w1' : 'w0') : 'w0';
+  }
   sprite() {
-    const f2 = this.moving ? Math.floor(this.anim * 8) % 2 : 0, f3 = this.moving ? 1 + Math.floor(this.anim * 7) % 2 : 0;
+    const E = Art.E, k = this.frameKey();
     let s;
     switch (this.kind) {
-      case MK.JABALI: s = Art.boar[this.lastH][this.chargeT > 0 ? Math.floor(this.anim * 20) % 2 : f2]; break;
-      case MK.HUECO: s = Art.hollow[this.dir][f3]; break;
-      case MK.ALACRAN: s = Art.scorpion[this.dir][f2]; break;
-      case MK.SOMBRA: s = Art.shade[Math.floor(this.anim * 6) % 3]; break;
+      case MK.JABALI: s = E.boar[this.lastH][k]; break;
+      case MK.HUECO: s = E.hollow[this.dir][k]; break;
+      case MK.ALACRAN: s = E.scorp[this.dir][k]; break;
+      case MK.SOMBRA: s = E.shade[k === 'w0' || k === 'w1' ? 'w' + (Math.floor(this.anim * 6) % 3) : k]; break;
+      case MK.AHOGADO: s = this.submerged ? E.drown[Math.floor(this.anim * 3) % 2 ? 's1' : 's0'] : E.drown[k]; break;
+      case MK.NIDO: s = E.nest[Math.floor(this.anim * 3) % 3]; break;
       default: s = (this.flash > 0 ? Art.bossHurt : Art.boss)[(this.chargeT > 0 || this.shootT < 0.4) ? 1 : Math.floor(this.anim * 2) % 2];
     }
     if (this.flash > 0 && this.kind !== MK.BESTIA) s = white(s);
     return s;
   }
+  ownShadow() { return this.kind === MK.JABALI || this.kind === MK.HUECO || this.kind === MK.ALACRAN || this.kind === MK.NIDO; }
 }
 
 const Fx = {
@@ -1760,9 +2106,11 @@ const Sound = (function () {
       purify: chord([392, 587, 784, 1175], 2.2),
       talk: arp([660], 0.03, 0.05),
       die: arp([330, 262, 196, 131], 0.18, 0.8),
+      thunder: (() => { let l = 0, l2 = 0; return gen(3.2, t => { l += (R.next() * 2 - 1 - l) * 0.05; l2 += (l - l2) * 0.3; const env = t < 0.05 ? t / 0.05 : Math.exp(-(t - 0.05) * 1.3) * (0.7 + 0.3 * Math.sin(t * 9)); return l2 * 9 * env; }); })(),
       door: gen(0.14, t => (Math.sin(2 * Math.PI * (120 - t * 300) * t)) * Math.exp(-t * 30) * 0.5),
     };
     for (const k in raw) buf[k] = toBuffer(raw[k]);
+    { let a = 0, b2 = 0; const r = gen(4, () => { a += (R.next() * 2 - 1 - a) * 0.5; b2 += (a - b2) * 0.35; return b2 * 0.5 + (R.next() < 0.002 ? (R.next() - 0.5) * 0.6 : 0); }); const n = r.length, f = 2000; for (let i = 0; i < f; i++) { const k = i / f; r[i] = r[i] * k + r[n - f + i] * (1 - k); } buf.rain = toBuffer(r.subarray(0, n - f)); }
     buf.calma = toBuffer(guitarLoop(false));
     buf.batalla = toBuffer(guitarLoop(true));
   }
@@ -1798,6 +2146,12 @@ const Sound = (function () {
     try { localStorage.setItem('guardian_musica', S.musicOn ? 'si' : 'no'); } catch (e) { }
     S.music(S.wanted);
   };
+  let rainSrc = null, rainGain = null;
+  S.rain = function (v) {
+    if (!ready) return;
+    if (!rainSrc && v > 0.02) { rainGain = ctx.createGain(); rainGain.gain.value = 0; rainGain.connect(sfxGain); rainSrc = ctx.createBufferSource(); rainSrc.buffer = buf.rain; rainSrc.loop = true; rainSrc.connect(rainGain); rainSrc.start(); }
+    if (rainSrc) { rainGain.gain.value = Math.min(1, v) * 0.55; if (v <= 0.02) { try { rainSrc.stop(); } catch (e) { } rainSrc = null; } }
+  };
   S.suspend = function () { if (ctx && ctx.state === 'running') ctx.suspend(); };
   S.resume = function () { if (ctx && ctx.state === 'suspended') ctx.resume(); };
   return S;
@@ -1827,6 +2181,7 @@ G.confirm = function () { return this.pressed('Enter', 'KeyE', 'Space', 'KeyZ', 
 // --------------------------------------------------------------------- arranque
 G.boot = function () {
   Art.init();
+  Art.initEnemies();
   this.buildWorlds();
   this.hasSave = !!this.readSave();
 };
@@ -1943,6 +2298,7 @@ G.updatePlay = function (dt) {
   const p = this.player, w = this.world;
   this.clock += dt;
   if (w.outdoor) this.day = (this.day + dt / DAY_LEN) % 1;
+  this.updateWeather(dt);
   if (this.tableCool > 0) this.tableCool -= dt;
   if (this.pressed('Escape', 'KeyP')) { this.st = ST.PAUSE; this.menuIdx = 0; return; }
   if (this.pressed('KeyM', 'Tab')) { this.st = ST.MAP; return; }
@@ -1955,6 +2311,12 @@ G.updatePlay = function (dt) {
     if (!p.hasSword) this.toast('No llevas la espada. Está en el baúl del rellano.');
     else if (p.atkCool <= 0) { p.atkT = 0.24; p.atkCool = 0.36; p.hitSet.clear(); Sound.play('swing'); }
   }
+  if (this.pressed('ShiftLeft', 'ShiftRight', 'KeyX', 'Roll') && p.rollCool <= 0 && p.kbT <= 0) {
+    let rx = ix, ry = iy; const rl = Math.hypot(rx, ry);
+    if (rl < 0.25) { rx = [0, 0, -1, 1][p.dir]; ry = [1, -1, 0, 0][p.dir]; } else { rx /= rl; ry /= rl; }
+    p.rollT = 0.3; p.rollCool = 0.65; p.rollX = rx; p.rollY = ry; p.invul = Math.max(p.invul, 0.32); p.atkT = 0; p.rolling = true;
+    Sound.play('swing');
+  }
   if (this.pressed('KeyK', 'Digit1')) this.pray();
   if (this.pressed('KeyL', 'Digit2')) this.holyLight();
   if (this.pressed('KeyQ', 'Digit3')) this.eatHerb();
@@ -1963,10 +2325,21 @@ G.updatePlay = function (dt) {
   if (p.atkT > 0) p.atkT -= dt;
   if (p.invul > 0) p.invul -= dt;
   if (p.prayT > 0) p.prayT -= dt;
+  if (p.rollCool > 0) p.rollCool -= dt;
+  if (p.poison > 0) {
+    p.poison -= dt; p.poisonAcc += dt;
+    if (p.poisonAcc >= 1) { p.poisonAcc -= 1; if (p.hp > 1) { p.hp -= 3; this.fx.push(Fx.text(p.x, p.y - 26, '-3', 0x80d040)); } }
+  }
   p.applyKnock(w, dt);
   const len = Math.hypot(ix, iy);
-  p.moving = len > 0.25 && p.kbT <= 0;
-  if (p.moving) {
+  if (p.rollT > 0) {
+    p.rollT -= dt;
+    p.move(w, p.rollX * 175 * dt, p.rollY * 175 * dt);
+    if (this.rnd.next() < 0.5) this.fx.push(Fx.spark(p.x + this.rnd.gauss() * 3, p.y, this.rnd.gauss() * 10, -8, 0xc8b898, 0.35));
+    p.moving = true; p.anim += dt * 2;
+    if (p.rollT <= 0) p.rolling = false;
+  } else
+  if ((p.moving = len > 0.25 && p.kbT <= 0)) {
     const sp = 74 * (p.atkT > 0 ? 0.45 : 1) * Math.min(1, len);
     if (p.atkT <= 0) p.faceTo(ix, iy);
     p.move(w, ix / len * sp * dt, iy / len * sp * dt);
@@ -1995,17 +2368,15 @@ G.updatePlay = function (dt) {
   for (const m of w.monsters) {
     if (m.dead) continue;
     m.update(this, dt);
-    if (p.dead || p.invul > 0 || m.spawnFade > 0) continue;
-    const reach = m.kind === MK.BESTIA ? 22 : m.hw + 5;
-    if (Math.hypot(m.x - p.x, m.y - p.y) < reach) this.hurtPlayer(m.dmg, m.x, m.y);
+    if (m.kind === MK.BESTIA && !p.dead && p.invul <= 0 && Math.hypot(m.x - p.x, m.y - p.y) < 20) this.hurtPlayer(m.dmg, m.x, m.y);
   }
-  w.monsters = w.monsters.filter(m => !(m.dead || (!m.quest && m.kind !== MK.BESTIA && m.dist(p) > 36 * TS)));
+  w.monsters = w.monsters.filter(m => !(m.dead || (!m.quest && !m.lair && m.kind !== MK.BESTIA && m.dist(p) > 36 * TS)));
   this.orbs = this.orbs.filter(o => {
     o.x += o.vx * dt; o.y += o.vy * dt; o.life -= dt;
     const tx = Math.floor(o.x / TS), ty = Math.floor(o.y / TS);
     let gone = o.life <= 0 || (w.solid(tx, ty) && !T.isWater(w.get(tx, ty)));
     if (!gone && p.invul <= 0 && Math.hypot(o.x - p.x, o.y - (p.y - 8)) < 8) { this.hurtPlayer(o.dmg, o.x, o.y); gone = true; }
-    if (gone) for (let i = 0; i < 4; i++) this.fx.push(Fx.spark(o.x, o.y, this.rnd.gauss() * 30, this.rnd.gauss() * 30, 0x50d8c8, 0.3));
+    if (gone) for (let i = 0; i < 4; i++) this.fx.push(Fx.spark(o.x, o.y, this.rnd.gauss() * 30, this.rnd.gauss() * 30, o.mud ? 0x6a7a3a : 0x50d8c8, 0.3));
     return !gone;
   });
   this.spawnLogic(dt);
@@ -2019,8 +2390,13 @@ G.swordCenter = function () {
   return [[p.x, p.y + 6], [p.x, p.y - 22], [p.x - 15, p.y - 8], [p.x + 15, p.y - 8]][p.dir];
 };
 G.damageMonster = function (m, d, crit, kx, ky) {
+  if (!m.vulnerable()) { this.fx.push(Fx.text(m.x, m.y - 14, 'bajo el agua', 0x9ad8d0)); return; }
+  if (m.state === 'stun') { d = Math.round(d * 1.6); crit = true; }
   m.hp -= d; m.flash = 0.12;
-  if (m.kind !== MK.BESTIA) m.knock(kx, ky, crit ? 240 : 170); else if (crit) m.knock(kx, ky, 60);
+  const heavy = m.kind === MK.BESTIA || m.kind === MK.NIDO || (m.kind === MK.JABALI && m.state === 'atk') || (m.kind === MK.HUECO && m.state === 'wind');
+  if (!heavy) m.knock(kx, ky, crit ? 240 : 170); else if (crit && m.kind !== MK.NIDO) m.knock(kx, ky, 60);
+  // golpear durante el aviso interrumpe a los enemigos ligeros
+  if (m.state === 'wind' && (m.kind === MK.ALACRAN || m.kind === MK.SOMBRA || m.kind === MK.AHOGADO)) { m.setState('rec', 0.5); m.cool = 0.8; }
   this.fx.push(Fx.text(m.x, m.y - 22, crit ? '¡' + d + '!' : '' + d, crit ? 0xffe060 : 0xffffff));
   for (let i = 0; i < 5; i++) this.fx.push(Fx.spark(m.x, m.y - 8, this.rnd.gauss() * 50, this.rnd.gauss() * 50 - 20, m.kind === MK.SOMBRA ? 0x8a6ab0 : 0x7a1a14, 0.35));
   Sound.play('hit');
@@ -2037,6 +2413,10 @@ G.killMonster = function (m) {
     else this.toast('Engendros eliminados: ' + this.questKills + '/6');
   }
   if (m.kind === MK.BESTIA) this.bossDefeated();
+  if (m.lair) {
+    const left = this.world.monsters.filter(o => o.lair === m.lair && !o.dead && !o.fromNest).length;
+    if (left === 0) { m.lair.cleared = true; m.lair.active = false; this.toast('Guarida limpia: ' + m.lair.name); for (const o of this.world.monsters) if (o.lair === m.lair && !o.dead) { o.dead = true; } }
+  }
 };
 G.gainXp = function (amount, x, y) {
   const p = this.player;
@@ -2051,9 +2431,10 @@ G.gainXp = function (amount, x, y) {
     else this.toast('¡Nivel ' + p.lvl + '! Vida y Fe al máximo. Ataque +2');
   }
 };
-G.hurtPlayer = function (dmg, fx, fy) {
+G.hurtPlayer = function (dmg, fx, fy, poison) {
   const p = this.player;
   if (p.dead) return;
+  if (poison) { p.poison = Math.max(p.poison, poison); this.toast('¡Envenenado! Come hierbas para curarte.'); }
   p.hp -= dmg; p.invul = 0.9; p.flash = 0.2;
   p.knock(p.x - fx, p.y - fy, 160);
   this.shake(0.18);
@@ -2087,8 +2468,8 @@ G.holyLight = function () {
 G.eatHerb = function () {
   const p = this.player;
   if (p.herbs <= 0) { this.toast('No te quedan hierbas medicinales.'); return; }
-  if (p.hp >= p.maxHp) { this.toast('No estás herido.'); return; }
-  p.herbs--; p.hp = Math.min(p.maxHp, p.hp + 30);
+  if (p.hp >= p.maxHp && p.poison <= 0) { this.toast('No estás herido.'); return; }
+  p.herbs--; p.hp = Math.min(p.maxHp, p.hp + 30); p.poison = 0;
   this.fx.push(Fx.text(p.x, p.y - 30, '+30', 0x80ff90));
   Sound.play('heal');
 };
@@ -2106,34 +2487,42 @@ G.collect = function (k) {
 };
 G.spawnLogic = function (dt) {
   const w = this.world, p = this.player;
-  if (!w.outdoor) return;
+  if (!w.outdoor || this.stage < 2) return;
   this.spawnT -= dt;
   if (this.spawnT > 0) return;
-  this.spawnT = 1.1;
-  let near = 0;
-  for (const m of w.monsters) if (m.dist(p) < 26 * TS) near++;
-  let cap = this.isNight() ? 8 : 4;
-  if (this.stage < 2) cap = 0;
-  if (this.stage === 2) cap = 1;
-  if (near >= cap) return;
-  for (let tries = 0; tries < 12; tries++) {
-    const a = this.rnd.next() * Math.PI * 2, d = (13 + this.rnd.next() * 8) * TS;
+  this.spawnT = 0.8;
+  for (const L of WG.lairs) {
+    const d = Math.hypot(L.x * TS - p.x, L.y * TS - p.y) / TS;
+    if (!L.active && !L.cleared && d < 19) this.spawnLair(L);
+    else if (L.active && d > 30) { w.monsters = w.monsters.filter(m => m.lair !== L); L.active = false; }
+  }
+  // de noche (o con tormenta) rondan algunas sombras sueltas
+  if (!this.isNight() && !this.stormOn()) return;
+  const shades = w.monsters.filter(m => m.kind === MK.SOMBRA && !m.lair && !m.dead).length;
+  if (shades >= 2 || this.rnd.next() > 0.15) return;
+  for (let tries = 0; tries < 10; tries++) {
+    const a = this.rnd.next() * Math.PI * 2, d = (11 + this.rnd.next() * 6) * TS;
     const x = p.x + Math.cos(a) * d, y = p.y + Math.sin(a) * d, tx = Math.floor(x / TS), ty = Math.floor(y / TS);
     if (w.solid(tx, ty) || w.noSpawnAt(tx, ty) || w.blocked(x, y, 6, 4)) continue;
-    let tier = w.tierAt(tx, ty);
-    const ar = w.areaAt(tx, ty), an = ar ? ar.name : '', r = this.rnd.next();
-    let k;
-    if (this.isNight() && r < 0.4) k = MK.SOMBRA;
-    else if (an.startsWith('Pozo')) k = r < 0.8 ? MK.HUECO : MK.JABALI;
-    else if (an.startsWith('Cárcavas') || an.startsWith('Los Llanos')) k = r < 0.65 ? MK.ALACRAN : MK.JABALI;
-    else if (an.startsWith('Barranco')) k = r < 0.5 ? MK.JABALI : MK.HUECO;
-    else k = r < 0.55 ? MK.JABALI : (r < 0.8 ? MK.HUECO : MK.ALACRAN);
-    if (this.stage >= 8) tier *= 0.85;
-    if (this.isNight()) tier *= 1.15;
-    tier *= 1 + 0.05 * (p.lvl - 1);
-    w.monsters.push(new Monster(k, x, y, tier));
+    w.monsters.push(new Monster(MK.SOMBRA, x, y, w.tierAt(tx, ty) * (1 + 0.05 * (p.lvl - 1))));
     return;
   }
+};
+G.spawnLair = function (L) {
+  const w = this.world, p = this.player;
+  L.active = true;
+  const tier = L.tier * (1 + 0.05 * (p.lvl - 1)) * (this.stage >= 8 ? 0.9 : 1);
+  L.kinds.forEach((k, i) => {
+    for (let t = 0; t < 30; t++) {
+      const a = i * 2.1 + t * 0.7, r = t === 0 && i === 0 ? 0 : 1 + (t % 4) * 0.7;
+      const x = (L.x + 0.5 + Math.cos(a) * r) * TS, y = (L.y + 0.5 + Math.sin(a) * r) * TS;
+      const tx = Math.floor(x / TS), ty = Math.floor(y / TS);
+      if (k === MK.AHOGADO ? !T.isWater(w.get(tx, ty)) : w.blocked(x, y, 7, 4)) continue;
+      const m = new Monster(k, x, y, tier); m.lair = L; m.homeX = L.x * TS + 8; m.homeY = L.y * TS + 8;
+      w.monsters.push(m);
+      break;
+    }
+  });
 };
 G.spawnNear = function (k, x, y, tier) {
   for (let i = 0; i < 10; i++) { const xx = x + this.rnd.gauss() * 10, yy = y + this.rnd.gauss() * 10; if (!this.world.blocked(xx, yy, 6, 4)) { this.world.monsters.push(new Monster(k, xx, yy, tier)); return; } }
@@ -2230,10 +2619,10 @@ G.talk = function (n) {
   const p = this.player;
   switch (n.key) {
     case 'gato': this.say('Guardián', 'El gato atigrado duerme sobre el cojín, como siempre. Algunas cosas no cambian.'); break;
-    case 'perro': this.say('Guardián', 'El perrillo mueve la cola. Es el mejor centinela del barranco: ladra antes de que lleguen.'); break;
+    case 'perro': this.say('Guardián', 'El perrillo mueve la cola. Es el mejor centinela del valle: ladra antes de que lleguen.'); break;
     case 'cura':
       if (this.stage <= 4) {
-        this.sayAs(n, '¡Dios bendito! ¡Un hombre del barranco, vivo! Te oímos por la radio... bueno, oímos que alguien nos oía.',
+        this.sayAs(n, '¡Dios bendito! ¡Un hombre del valle, vivo! Te oímos por la radio... bueno, oímos que alguien nos oía.',
           'Soy Tomás. Somos once, resistiendo tras estas barricadas desde el Colapso.',
           'Todo empezó en La Bolera. Algo despertó en la cueva del nacimiento del Guadalentín, bajo el embalse. Desde entonces, el agua trae la muerte.',
           'Las zarzas negras de La Linde han cerrado el camino del norte. Pero la Cruz de San Gregorio, en la A-326 camino del pantano, aún guarda luz.',
@@ -2252,7 +2641,7 @@ G.talk = function (n) {
       else this.sayAs(n, 'Siéntate un poco, que te curo esas heridas. (Vida y Fe al máximo)');
       break;
     case 'guardia':
-      this.sayAs(n, this.stage < 6 ? 'Por la noche salen las Sombras del barranco. Si puedes, no andes a oscuras lejos de una hoguera.' : 'Antes conducía el autobús a Baza. Ahora vigilo esta barricada. La vida da muchas vueltas, ¿eh?',
+      this.sayAs(n, this.stage < 6 ? 'Por la noche salen las Sombras del valle. Si puedes, no andes a oscuras lejos de una hoguera.' : 'Antes conducía el autobús a Baza. Ahora vigilo esta barricada. La vida da muchas vueltas, ¿eh?',
         'Un consejo: cuando la Fe te lo permita, ora. Te salvará el pellejo.');
       break;
     case 'mecanica':
@@ -2275,7 +2664,7 @@ G.use = function (pr) {
       break;
     case 'pc': this.say('Guardián', 'El ordenador enciende sin problema: las placas dan de sobra. Lo que no hay es internet.', 'Encima del escritorio siguen mis apuntes de primeros auxilios. Me han servido más que nada en estos años.'); break;
     case 'libros': this.say('Guardián', 'Libros por todas partes: filosofía, teología, historia, primeros auxilios, novelas que he leído tres veces...', 'Cuando cayó el mundo, los libros siguieron hablando. Por eso los guardo.'); break;
-    case 'ventilador': this.say('Guardián', 'El ventilador zumba a toda potencia. En agosto, en este barranco, es casi un lujo.'); break;
+    case 'ventilador': this.say('Guardián', 'El ventilador zumba a toda potencia. En agosto, en este valle, es casi un lujo.'); break;
     case 'tele': this.say('Guardián', 'La tele enciende, pero todos los canales son nieve.', 'Por lo menos el reproductor aún lee las películas viejas. Alguna noche me pongo una.'); break;
     case 'nevera': this.say('Guardián', 'La nevera funciona gracias a las baterías. Agua fría, embutido de la matanza y poco más.'); break;
     case 'cocina': this.say('Guardián', 'La placa de la cocina tira de las baterías sin rechistar. Aquí se come caliente.'); break;
@@ -2319,7 +2708,9 @@ G.use = function (pr) {
 G.rest = function (msg) {
   const p = this.player;
   for (const m of this.world.monsters) if (!m.dead && m.dist(p) < 10 * TS && m.aggro) { this.toast('No puedes descansar con engendros cerca.'); return; }
-  p.hp = p.maxHp; p.fe = p.maxFe;
+  p.hp = p.maxHp; p.fe = p.maxFe; p.poison = 0;
+  for (const L of WG.lairs) { L.cleared = false; L.active = false; }
+  this.worlds.exterior.monsters = this.worlds.exterior.monsters.filter(m => !m.lair || m.kind === MK.BESTIA);
   if (this.world.id === 'casa_alta') { this.restWorld = 'casa_alta'; this.restX = WG.upStart[0]; this.restY = WG.upStart[1]; }
   if (this.isNight()) this.day = 0.02;
   this.save();
@@ -2376,6 +2767,7 @@ G.respawn = function () {
   p.dead = false; p.hp = p.maxHp; p.fe = p.maxFe; p.invul = 2; p.flash = 0;
   const ow = this.worlds.exterior;
   ow.monsters = ow.monsters.filter(m => m.quest);
+  for (const L of WG.lairs) L.active = false;
   this.orbs = [];
   this.enter(this.restWorld, this.restX, this.restY, 0);
   this.boss = null;
@@ -2392,11 +2784,11 @@ G.updateFx = function (dt) {
     return true;
   });
 };
-G.snapCamera = function () { this.camX = this.player.x - VW / 2; this.camY = this.player.y - 10 - VH / 2; this.clampCam(); };
+G.snapCamera = function () { this.camX = this.player.x - WW / 2; this.camY = this.player.y - 10 - WH / 2; this.clampCam(); };
 G.clampCam = function () {
   const mw = this.world.w * TS, mh = this.world.h * TS;
-  this.camX = mw <= VW ? (mw - VW) / 2 : Math.max(0, Math.min(mw - VW, this.camX));
-  this.camY = mh <= VH ? (mh - VH) / 2 : Math.max(0, Math.min(mh - VH, this.camY));
+  this.camX = mw <= WW ? (mw - WW) / 2 : Math.max(0, Math.min(mw - WW, this.camX));
+  this.camY = mh <= WH ? (mh - WH) / 2 : Math.max(0, Math.min(mh - WH, this.camY));
 };
 
 // --------------------------------------------------------------------- guardar
@@ -2431,10 +2823,118 @@ G.load = function () {
     return true;
   } catch (e) { console.error(e); return false; }
 };
+// ====================================================================== tormentas apocalípticas
+// De vez en cuando el cielo se rompe: lluvia oblicua, cielo verde-negro, rayos, un resplandor rojo
+// en el horizonte y, al amainar, un haz de luz que se abre paso entre las nubes.
+const Wx = {
+  s: 0,            // intensidad actual 0..1
+  target: 0,       // intensidad buscada
+  left: 0,         // segundos que le quedan a la tormenta
+  next: 150,       // segundos hasta la próxima tirada
+  flash: 0, boltT: 0, bolt: null, thunderIn: -1, beam: 0,
+  drops: [], splash: [],
+};
+
+G.stormOn = function () { return Wx.s > 0.05; };
+G.startStorm = function (dur) {
+  Wx.target = 1; Wx.left = dur || 70 + this.rnd.next() * 90;
+  if (this.world && this.world.outdoor) this.toast('El cielo se rompe. Tormenta.');
+};
+G.updateWeather = function (dt) {
+  // tiradas: solo cuando ya has salido al mundo
+  if (this.stage >= 2) {
+    if (Wx.target > 0) { Wx.left -= dt; if (Wx.left <= 0) { Wx.target = 0; Wx.beam = 1; Wx.next = 200 + this.rnd.next() * 260; } }
+    else if ((Wx.next -= dt) <= 0) { if (this.rnd.next() < 0.45) this.startStorm(); else Wx.next = 120 + this.rnd.next() * 160; }
+  }
+  Wx.s += (Wx.target - Wx.s) * Math.min(1, dt * 0.35);
+  if (Wx.beam > 0) Wx.beam = Math.max(0, Wx.beam - dt / 22);
+  if (Wx.flash > 0) Wx.flash = Math.max(0, Wx.flash - dt * 2.6);
+  if (Wx.boltT > 0) Wx.boltT -= dt;
+  // rayos
+  if (Wx.s > 0.6 && this.rnd.next() < dt * 0.11 * Wx.s) {
+    Wx.flash = 1; Wx.boltT = 0.22;
+    const pts = []; let x = 30 + this.rnd.next() * (WW - 60), y = -4;
+    while (y < WH * (0.35 + this.rnd.next() * 0.45)) { pts.push([x, y]); x += (this.rnd.next() - 0.5) * 22; y += 6 + this.rnd.next() * 10; }
+    pts.push([x, y]); Wx.bolt = pts;
+    Wx.thunderIn = 0.15 + this.rnd.next() * 0.9;
+  }
+  if (Wx.thunderIn >= 0 && (Wx.thunderIn -= dt) < 0) { Sound.play('thunder'); if (this.world && this.world.outdoor) this.shake(0.35); }
+  Sound.rain(this.world && this.world.outdoor ? Wx.s : Wx.s * 0.35);
+  // gotas en espacio de pantalla
+  const want = Math.floor(260 * Wx.s);
+  while (Wx.drops.length < want) Wx.drops.push({ x: this.rnd.next() * (WW + 80), y: this.rnd.next() * WH - WH, v: 300 + this.rnd.next() * 160, l: 6 + this.rnd.int(7), z: this.rnd.next() });
+  if (Wx.drops.length > want) Wx.drops.length = want;
+  for (const d of Wx.drops) {
+    d.x -= d.v * 0.42 * dt; d.y += d.v * dt;
+    const ground = WH * (0.25 + d.z * 0.8);
+    if (d.y > ground) {
+      if (Wx.splash.length < 80) Wx.splash.push({ x: d.x, y: d.y, t: 0.18 });
+      d.x = this.rnd.next() * (WW + 80); d.y = -10 - this.rnd.next() * 30;
+    }
+    if (d.x < -10) d.x += WW + 80;
+  }
+  for (const s of Wx.splash) s.t -= dt;
+  Wx.splash = Wx.splash.filter(s => s.t > 0);
+};
+/** Oscuridad extra que añade la tormenta (se suma a la de la noche). */
+G.stormDark = function () { return this.world && this.world.outdoor ? Wx.s * 0.5 : 0; };
+
+G.drawWeather = function (g) {
+  if (!this.world || Wx.s < 0.02 && Wx.beam <= 0 && Wx.flash <= 0) return;
+  const out = this.world.outdoor, s = Wx.s;
+  if (!out) {
+    // dentro de casa: solo el destello del rayo por las ventanas
+    if (Wx.flash > 0) { g.fillStyle = `rgba(220,230,255,${0.18 * Wx.flash})`; g.fillRect(0, 0, WW, WH); }
+    return;
+  }
+  // cielo enfermo: verde-negro arriba, ascuas rojas en el horizonte
+  let gr = g.createLinearGradient(0, 0, 0, WH);
+  gr.addColorStop(0, `rgba(10,16,12,${0.62 * s})`); gr.addColorStop(0.55, `rgba(26,32,26,${0.4 * s})`); gr.addColorStop(1, `rgba(20,16,12,${0.35 * s})`);
+  g.fillStyle = gr; g.fillRect(0, 0, WW, WH);
+  const ember = 0.5 + 0.5 * Math.sin(this.clock * 0.7);
+  gr = g.createRadialGradient(WW * 0.12, WH * 0.62, 4, WW * 0.12, WH * 0.62, WW * 0.45);
+  gr.addColorStop(0, `rgba(200,60,30,${(0.22 + 0.08 * ember) * s})`); gr.addColorStop(1, 'rgba(200,60,30,0)');
+  g.fillStyle = gr; g.fillRect(0, 0, WW, WH);
+  // cortinas de lluvia (bandas oscuras oblicuas que se desplazan)
+  g.save(); g.globalAlpha = 0.16 * s; g.fillStyle = '#9aa3a0';
+  for (let k = 0; k < 5; k++) {
+    const bx = ((k * 97 - this.clock * 26) % (WW + 160) + WW + 160) % (WW + 160) - 80;
+    g.beginPath(); g.moveTo(bx, 0); g.lineTo(bx + 26 + k * 4, 0); g.lineTo(bx + 26 + k * 4 - WH * 0.42, WH); g.lineTo(bx - WH * 0.42, WH); g.fill();
+  }
+  g.restore();
+  // gotas
+  g.lineWidth = 1;
+  for (const d of Wx.drops) {
+    g.strokeStyle = `rgba(190,205,215,${(0.25 + d.z * 0.45) * Math.min(1, s * 1.5)})`;
+    g.beginPath(); g.moveTo(d.x, d.y); g.lineTo(d.x + d.l * 0.42, d.y - d.l); g.stroke();
+  }
+  g.fillStyle = `rgba(200,215,225,${0.5 * s})`;
+  for (const p of Wx.splash) { const r = (0.18 - p.t) * 18; g.fillRect(Math.floor(p.x - r), Math.floor(p.y), 1, 1); g.fillRect(Math.floor(p.x + r), Math.floor(p.y), 1, 1); g.fillRect(Math.floor(p.x), Math.floor(p.y - r * 0.6), 1, 1); }
+  // rayo
+  if (Wx.boltT > 0 && Wx.bolt) {
+    for (const [w, c] of [[4, 'rgba(160,170,255,0.35)'], [1.5, 'rgba(255,255,255,0.95)']]) {
+      g.strokeStyle = c; g.lineWidth = w; g.beginPath();
+      Wx.bolt.forEach(([x, y], i) => i ? g.lineTo(x, y) : g.moveTo(x, y)); g.stroke();
+    }
+  }
+  if (Wx.flash > 0) { g.fillStyle = `rgba(235,240,255,${0.55 * Wx.flash * Wx.flash})`; g.fillRect(0, 0, WW, WH); }
+  // al amainar: un haz de luz rompe las nubes (arriba a la derecha)
+  const beam = Wx.beam * (1 - s);
+  if (beam > 0.01) {
+    g.save(); g.globalCompositeOperation = 'lighter';
+    for (let k = 0; k < 3; k++) {
+      const x0 = WW * (0.7 + k * 0.08), wd = 18 + k * 10;
+      gr = g.createLinearGradient(x0, 0, x0 - WH * 0.5, WH);
+      gr.addColorStop(0, `rgba(255,240,200,${0.22 * beam})`); gr.addColorStop(1, 'rgba(255,240,200,0)');
+      g.fillStyle = gr; g.beginPath(); g.moveTo(x0, -2); g.lineTo(x0 + wd, -2); g.lineTo(x0 + wd - WH * 0.55, WH); g.lineTo(x0 - WH * 0.55 - wd * 0.6, WH); g.fill();
+    }
+    g.restore();
+  }
+};
 // ====================================================================== dibujo
-const view = document.createElement('canvas'); view.width = VW; view.height = VH;
+const view = document.createElement('canvas'); view.width = WW; view.height = WH;
 const vctx = view.getContext('2d');
-const darkC = document.createElement('canvas'); darkC.width = VW; darkC.height = VH;
+const darkC = document.createElement('canvas'); darkC.width = WW; darkC.height = WH;
 const dctx = darkC.getContext('2d');
 vctx.imageSmoothingEnabled = false;
 G.layout = { ox: 0, oy: 0, sc: 1 };
@@ -2455,7 +2955,7 @@ G.buildMap = function (ow) {
 G.render = function (ctx, cw, ch, dpr) {
   vctx.imageSmoothingEnabled = false;
   if (this.st === ST.TITLE || (this.st === ST.HELP && this.helpBack !== ST.PAUSE)) this.renderTitleBg(vctx);
-  else if (this.st === ST.INTRO || this.st === ST.END) { vctx.fillStyle = '#08060a'; vctx.fillRect(0, 0, VW, VH); this.embers(vctx); }
+  else if (this.st === ST.INTRO || this.st === ST.END) { vctx.fillStyle = '#08060a'; vctx.fillRect(0, 0, WW, WH); this.embers(vctx); }
   else this.renderWorld(vctx);
 
   ctx.setTransform(1, 0, 0, 1, 0, 0);
@@ -2493,13 +2993,13 @@ G.render = function (ctx, cw, ch, dpr) {
 
 G.renderWorld = function (g) {
   const p = this.player, w = this.world;
-  this.camX += (p.x - VW / 2 - this.camX) * 0.18; this.camY += (p.y - 10 - VH / 2 - this.camY) * 0.18;
+  this.camX += (p.x - WW / 2 - this.camX) * 0.18; this.camY += (p.y - 10 - WH / 2 - this.camY) * 0.18;
   this.clampCam();
   let cx = Math.round(this.camX), cy = Math.round(this.camY);
   if (this.shakeT > 0) { cx += this.rnd.int(5) - 2; cy += this.rnd.int(5) - 2; }
-  g.fillStyle = '#0b0907'; g.fillRect(0, 0, VW, VH);
+  g.fillStyle = '#0b0907'; g.fillRect(0, 0, WW, WH);
   const frame = Math.floor(this.clock * 3), tx0 = Math.floor(cx / TS), ty0 = Math.floor(cy / TS);
-  for (let y = ty0; y <= ty0 + Math.ceil(VH / TS) + 1; y++) for (let x = tx0; x <= tx0 + Math.ceil(VW / TS) + 1; x++) {
+  for (let y = ty0; y <= ty0 + Math.ceil(WH / TS) + 1; y++) for (let x = tx0; x <= tx0 + Math.ceil(WW / TS) + 1; x++) {
     if (x < 0 || y < 0 || x >= w.w || y >= w.h) continue;
     const t = w.get(x, y), sx = x * TS - cx, sy = y * TS - cy;
     g.drawImage(cv(Art.tile(t, x, y, frame)), sx, sy);
@@ -2510,12 +3010,12 @@ G.renderWorld = function (g) {
   for (const pr of w.props) {
     if (pr.hidden) continue;
     const l = pr.left() - cx, tp = pr.top() - cy;
-    if (l > VW || tp > VH || l + pr.img.w < 0 || tp + pr.img.h < 0) continue;
+    if (l > WW || tp > WH || l + pr.img.w < 0 || tp + pr.img.h < 0) continue;
     list.push([pr.y, 0, pr]);
   }
-  for (const m of w.monsters) if (!m.dead && Math.abs(m.x - cx - VW / 2) < VW && Math.abs(m.y - cy - VH / 2) < VH) list.push([m.y, 1, m]);
+  for (const m of w.monsters) if (!m.dead && Math.abs(m.x - cx - WW / 2) < WW && Math.abs(m.y - cy - WH / 2) < WH) list.push([m.y, 1, m]);
   for (const n of w.npcs) list.push([n.y, 2, n]);
-  for (const k of w.pickups) if (Math.abs(k.x - cx - VW / 2) < VW && Math.abs(k.y - cy - VH / 2) < VH) list.push([k.y - 4, 3, k]);
+  for (const k of w.pickups) if (Math.abs(k.x - cx - WW / 2) < WW && Math.abs(k.y - cy - WH / 2) < WH) list.push([k.y - 4, 3, k]);
   list.push([p.y, 4, p]);
   list.sort((a, b) => a[0] - b[0]);
   for (const [, kind, e] of list) {
@@ -2529,7 +3029,7 @@ G.renderWorld = function (g) {
       g.drawImage(cv(s), Math.floor(e.x - s.w / 2) - cx, Math.floor(e.y - s.h - 2 + bob) - cy);
     } else this.drawPlayer(g, cx, cy);
   }
-  for (const o of this.orbs) g.drawImage(cv(Art.orb), Math.floor(o.x) - 4 - cx, Math.floor(o.y) - 4 - cy);
+  for (const o of this.orbs) { const im = o.mud ? Art.E.mud : Art.orb; g.drawImage(cv(im), Math.floor(o.x) - (im.w >> 1) - cx, Math.floor(o.y) - (im.h >> 1) - cy); }
   for (const f of this.fx) {
     const a = Math.max(0, Math.min(1, f.life / f.max));
     if (f.ring) {
@@ -2542,21 +3042,22 @@ G.renderWorld = function (g) {
       g.fillRect(Math.floor(f.x) - cx, Math.floor(f.y) - cy, s, s);
     }
   }
-  const dk = this.darkness();
+  const dk = Math.min(0.84, this.darkness() + this.stormDark());
   if (dk > 0.01) this.nightOverlay(g, dk, cx, cy);
+  this.drawWeather(g);
   if (w.outdoor && this.stage >= 6) {
     const gx = WG.crossX * TS + 8 - cx, gy = WG.crossY * TS - 8 - cy;
-    if (gx > -60 && gx < VW + 60 && gy > -60 && gy < VH + 60) this.glow(g, gx, gy, 26 + Math.sin(this.clock * 2) * 3, 'rgba(255,230,150,0.24)');
+    if (gx > -60 && gx < WW + 60 && gy > -60 && gy < WH + 60) this.glow(g, gx, gy, 26 + Math.sin(this.clock * 2) * 3, 'rgba(255,230,150,0.24)');
   }
-  if (p.invul > 0.6) { g.fillStyle = `rgba(160,20,10,${0.35 * (p.invul - 0.6) / 0.3})`; g.fillRect(0, 0, VW, VH); }
+  if (p.invul > 0.6) { g.fillStyle = `rgba(160,20,10,${0.35 * (p.invul - 0.6) / 0.3})`; g.fillRect(0, 0, WW, WH); }
   // flecha hacia el objetivo
   const tgt = this.objectiveTarget();
   if (tgt && w.outdoor && this.st === ST.PLAY) {
     const ox2 = tgt[0] * TS + 8 - cx, oy2 = tgt[1] * TS + 8 - cy;
-    if (ox2 < 8 || ox2 > VW - 8 || oy2 < 8 || oy2 > VH - 8) {
-      const ang = Math.atan2(oy2 - VH / 2, ox2 - VW / 2);
-      let ex = VW / 2 + Math.cos(ang) * (VW / 2 - 14), ey = VH / 2 + Math.sin(ang) * (VH / 2 - 14);
-      ex = Math.max(10, Math.min(VW - 10, ex)); ey = Math.max(30, Math.min(VH - 10, ey));
+    if (ox2 < 8 || ox2 > WW - 8 || oy2 < 8 || oy2 > WH - 8) {
+      const ang = Math.atan2(oy2 - WH / 2, ox2 - WW / 2);
+      let ex = WW / 2 + Math.cos(ang) * (WW / 2 - 14), ey = WH / 2 + Math.sin(ang) * (WH / 2 - 14);
+      ex = Math.max(10, Math.min(WW - 10, ex)); ey = Math.max(30, Math.min(WH - 10, ey));
       g.fillStyle = `rgba(255,214,110,${(140 + Math.sin(this.clock * 5) * 80) / 255})`;
       g.beginPath();
       g.moveTo(ex + Math.cos(ang) * 6, ey + Math.sin(ang) * 6);
@@ -2602,20 +3103,44 @@ G.glow = function (g, x, y, r, col) {
 };
 G.drawMonster = function (g, m, cx, cy) {
   const s = m.sprite();
-  if (m.kind !== MK.BESTIA) this.shadow(g, m.x - cx, m.y - cy, s.w / 2.6);
+  if (!m.ownShadow() && m.kind !== MK.BESTIA && !(m.kind === MK.AHOGADO && m.submerged)) this.shadow(g, m.x - cx, m.y - cy, s.w / 3);
   let alpha = 1;
-  if (m.kind === MK.SOMBRA) alpha = 0.78 + 0.12 * Math.sin(m.anim * 4);
+  if (m.kind === MK.SOMBRA) alpha = 0.72 + 0.14 * Math.sin(m.anim * 4) + (m.state === 'wind' || m.state === 'atk' ? 0.15 : 0);
   if (m.spawnFade > 0) alpha *= Math.max(0, 1 - m.spawnFade / 0.6);
-  g.globalAlpha = alpha;
-  const bob = m.kind === MK.SOMBRA ? Math.sin(m.anim * 3) * 2 - 3 : 0;
-  const sx = Math.round(m.x - s.w / 2) - cx;
+  g.globalAlpha = Math.max(0, Math.min(1, alpha));
+  const bob = m.kind === MK.SOMBRA ? Math.sin(m.anim * 3) * 2 - 4 : 0;
+  const shake = m.state === 'wind' && m.kind !== MK.SOMBRA ? Math.round(Math.sin(m.anim * 60)) : 0;
+  const sx = Math.round(m.x - s.w / 2) - cx + shake;
   let sy = Math.round(m.y - s.h + 2 + bob) - cy;
   if (m.kind === MK.BESTIA) sy += 6;
+  if (m.kind === MK.AHOGADO) sy += m.submerged ? 2 : 4;
   g.drawImage(cv(s), sx, sy);
   g.globalAlpha = 1;
-  if (m.kind === MK.JABALI && m.chargeT > 0) { g.fillStyle = '#ff3c28'; g.fillRect(Math.floor(m.x) - cx - 1, sy - 6, 2, 4); }
+  if (m.kind === MK.AHOGADO) { // ondas en el agua
+    g.strokeStyle = 'rgba(200,245,240,0.55)'; g.lineWidth = 1;
+    const r = 6 + (m.anim * 6) % 5;
+    g.beginPath(); g.ellipse(m.x - cx, m.y - cy + (m.submerged ? -10 : 0), r + 3, r * 0.35 + 1, 0, 0, Math.PI * 2); g.stroke();
+  }
+  // aviso: "!" encima mientras prepara el ataque
+  if (m.state === 'wind') {
+    const t = 1 - m.stT / m.st.wind, a = cv(Art.E.alert);
+    g.globalAlpha = 0.6 + 0.4 * Math.sin(this.clock * 30);
+    g.drawImage(a, Math.round(m.x - 3) - cx, sy - 13 - Math.round(t * 2));
+    g.globalAlpha = 1;
+    if (m.kind === MK.JABALI) { // marca la línea de embestida
+      g.strokeStyle = `rgba(255,70,40,${0.25 + 0.35 * t})`; g.lineWidth = 2; g.setLineDash([3, 3]);
+      g.beginPath(); g.moveTo(m.x - cx, m.y - cy - 3); g.lineTo(m.x - cx + m.ax * 90, m.y - cy - 3 + m.ay * 90); g.stroke(); g.setLineDash([]);
+    }
+    if (m.kind === MK.HUECO || m.kind === MK.SOMBRA) {
+      g.fillStyle = `rgba(255,60,40,${0.12 + 0.2 * t})`;
+      g.beginPath(); g.arc(m.x + m.ax * 13 - cx, m.y - 6 + m.ay * 13 - cy, 15, 0, Math.PI * 2); g.fill();
+    }
+  }
+  if (m.state === 'stun') { // aturdido: estrellitas
+    for (let i = 0; i < 3; i++) { const a = this.clock * 6 + i * 2.1; g.fillStyle = '#ffe080'; g.fillRect(Math.round(m.x - cx + Math.cos(a) * 7), Math.round(sy - 3 + Math.sin(a) * 2), 2, 2); }
+  }
   if (m.hp < m.maxHp && m.kind !== MK.BESTIA) {
-    const bw = 16, bx = Math.floor(m.x) - cx - 8, by = sy - 4;
+    const bw = Math.max(16, s.w - 8), bx = Math.floor(m.x) - cx - bw / 2, by = sy - 4;
     g.fillStyle = '#140a0a'; g.fillRect(bx - 1, by - 1, bw + 2, 4);
     g.fillStyle = '#be281e'; g.fillRect(bx, by, Math.floor(bw * Math.max(0, m.hp) / m.maxHp), 2);
   }
@@ -2623,7 +3148,7 @@ G.drawMonster = function (g, m, cx, cy) {
 G.drawPlayer = function (g, cx, cy) {
   const p = this.player;
   if (p.dead && this.deadT > 0.5) return;
-  if (p.invul > 0 && Math.floor(p.invul * 20) % 2 === 0 && !p.dead) return;
+  if (p.invul > 0 && !p.rolling && Math.floor(p.invul * 20) % 2 === 0 && !p.dead) return;
   const attacking = p.atkT > 0 && p.hasSword;
   const s = attacking ? Art.heroAtk[p.dir] : Art.hero[p.dir][p.moving ? 1 + Math.floor(p.anim * 7) % 2 : 0];
   const sx = Math.round(p.x - 8) - cx, sy = Math.round(p.y - 23) - cy;
@@ -2632,7 +3157,8 @@ G.drawPlayer = function (g, cx, cy) {
   const sw = cv(Art.sword);
   if (p.hasSword && !attacking && p.dir === 1) g.drawImage(sw, sx + 9, sy + 4);
   if (attacking && p.dir === 1) this.drawSwing(g, cx, cy);
-  g.drawImage(cv(p.flash > 0 ? white(s) : s), sx, sy);
+  if (p.rolling) { g.save(); g.translate(sx + 8, sy + 23); g.rotate((1 - p.rollT / 0.3) * Math.PI * 2 * (p.rollX < 0 ? -1 : 1)); g.drawImage(cv(s), -8, -16, 16, 18); g.restore(); }
+  else g.drawImage(cv(p.flash > 0 ? white(s) : s), sx, sy);
   if (attacking && p.dir !== 1) this.drawSwing(g, cx, cy);
   if (p.hasSword && !attacking && p.dir !== 1) {
     if (p.dir === 0) g.drawImage(sw, sx + 11, sy + 9, 5, 13);
@@ -2652,9 +3178,9 @@ G.drawSwing = function (g, cx, cy) {
 };
 G.nightOverlay = function (g, dk, cx, cy) {
   dctx.globalCompositeOperation = 'source-over';
-  dctx.clearRect(0, 0, VW, VH);
+  dctx.clearRect(0, 0, WW, WH);
   dctx.fillStyle = `rgba(8,12,36,${dk})`;
-  dctx.fillRect(0, 0, VW, VH);
+  dctx.fillRect(0, 0, WW, WH);
   dctx.globalCompositeOperation = 'destination-out';
   const light = (x, y, r) => {
     const gr = dctx.createRadialGradient(x, y, 0, x, y, r);
@@ -2664,14 +3190,14 @@ G.nightOverlay = function (g, dk, cx, cy) {
   light(this.player.x - cx, this.player.y - 10 - cy, 92);
   for (const pr of this.world.props) if (pr.anim === 1 || pr.img === Art.P.cruzluz) {
     const lx = pr.x - cx, ly = pr.y - 6 - cy;
-    if (lx > -90 && lx < VW + 90 && ly > -90 && ly < VH + 90) light(lx, ly, pr.anim === 1 ? 72 + Math.sin(this.clock * 9) * 3 : 55);
+    if (lx > -90 && lx < WW + 90 && ly > -90 && ly < WH + 90) light(lx, ly, pr.anim === 1 ? 72 + Math.sin(this.clock * 9) * 3 : 55);
   }
   for (const k of this.world.pickups) if (k.type === Pickup.RELIC) light(k.x - cx, k.y - 8 - cy, 20);
   dctx.globalCompositeOperation = 'source-over';
   g.drawImage(darkC, 0, 0);
   for (const pr of this.world.props) if (pr.anim === 1) {
     const lx = pr.x - cx, ly = pr.y - 6 - cy;
-    if (lx > -90 && lx < VW + 90 && ly > -90 && ly < VH + 90) this.glow(g, lx, ly, 46, `rgba(255,140,40,${0.24 * dk})`);
+    if (lx > -90 && lx < WW + 90 && ly > -90 && ly < WH + 90) this.glow(g, lx, ly, 46, `rgba(255,140,40,${0.24 * dk})`);
   }
 };
 G.renderTitleBg = function (g) {
@@ -2680,28 +3206,28 @@ G.renderTitleBg = function (g) {
   const fake = new Player();
   fake.x = (WG.rx + 2) * TS + Math.sin(this.titleT * 0.07) * 70; fake.y = 106 * TS;
   this.player = fake;
-  this.camX = fake.x - VW / 2; this.camY = fake.y - VH / 2 - 10; this.clampCam();
+  this.camX = fake.x - WW / 2; this.camY = fake.y - WH / 2 - 10; this.clampCam();
   const cx = Math.floor(this.camX), cy = Math.floor(this.camY), w = this.world, frame = Math.floor(this.titleT * 3);
-  for (let y = Math.floor(cy / TS); y <= Math.floor(cy / TS) + Math.ceil(VH / TS) + 1; y++) for (let x = Math.floor(cx / TS); x <= Math.floor(cx / TS) + Math.ceil(VW / TS) + 1; x++) {
+  for (let y = Math.floor(cy / TS); y <= Math.floor(cy / TS) + Math.ceil(WH / TS) + 1; y++) for (let x = Math.floor(cx / TS); x <= Math.floor(cx / TS) + Math.ceil(WW / TS) + 1; x++) {
     const t = w.get(x, y);
     g.drawImage(cv(Art.tile(t, x, y, frame)), x * TS - cx, y * TS - cy);
     this.edgeDetail(g, t, x, y, x * TS - cx, y * TS - cy);
   }
-  const ps = w.props.filter(pr => !pr.hidden && pr.x > cx - 60 && pr.x < cx + VW + 60 && pr.y > cy - 20 && pr.y < cy + VH + 80).sort((a, b) => a.y - b.y);
+  const ps = w.props.filter(pr => !pr.hidden && pr.x > cx - 60 && pr.x < cx + WW + 60 && pr.y > cy - 20 && pr.y < cy + WH + 80).sort((a, b) => a.y - b.y);
   for (const pr of ps) g.drawImage(cv(pr.img), pr.left() - cx, pr.top() - cy);
   for (const n of w.npcs) { const s = n.sprite(this.titleT); g.drawImage(cv(s), Math.floor(n.x - s.w / 2) - cx, Math.floor(n.y - s.h) - cy); }
   this.world = saved; this.player = sp;
-  const gr = g.createLinearGradient(0, 0, 0, VH);
+  const gr = g.createLinearGradient(0, 0, 0, WH);
   gr.addColorStop(0, 'rgba(10,8,6,0.82)'); gr.addColorStop(1, 'rgba(10,8,6,0.5)');
-  g.fillStyle = gr; g.fillRect(0, 0, VW, VH);
+  g.fillStyle = gr; g.fillRect(0, 0, WW, WH);
   this.embers(g);
 };
 G.embers = function (g) {
   const r = RNG(4);
   for (let i = 0; i < 40; i++) {
     const sp = 6 + r.next() * 14, rx = r.next(), ry = r.next(), gg = r.int(80);
-    const x = ((rx * VW + Math.sin(this.titleT * 0.7 + i) * 8) % VW + VW) % VW;
-    const y = VH - ((this.titleT * sp + ry * VH) % (VH + 20));
+    const x = ((rx * WW + Math.sin(this.titleT * 0.7 + i) * 8) % WW + WW) % WW;
+    const y = WH - ((this.titleT * sp + ry * WH) % (WH + 20));
     const a = Math.max(0, Math.min(1, (120 + 100 * Math.sin(this.titleT * 2 + i)) / 255));
     g.fillStyle = `rgba(255,${150 + gg},60,${a})`;
     g.fillRect(Math.floor(x), Math.floor(y), 1, 1);
@@ -2745,7 +3271,7 @@ G.uiHud = function (g) {
   const p = this.player;
   this.panel(g, 4, 4, 116, 40);
   g.font = FBB(7); this.text(g, 'Guardián  ·  Nv. ' + p.lvl, 9, 12.5, GOLD);
-  this.bar(g, 9, 16, 76, 5.2, p.hp / p.maxHp, '#c8402e', '#3a1410');
+  this.bar(g, 9, 16, 76, 5.2, p.hp / p.maxHp, p.poison > 0 ? '#6aa830' : '#c8402e', '#3a1410');
   this.bar(g, 9, 24, 76, 3.6, p.fe / p.maxFe, '#e8c050', '#3a2c10');
   this.bar(g, 9, 30.5, 76, 1.6, p.xp / p.xpNext(), '#8ac0e8', '#1a2430');
   g.font = FB(5.4); this.text(g, p.hp + '/' + p.maxHp, 88, 20.8, PAPER); this.text(g, 'Fe ' + p.fe, 88, 27.8, PAPER);
@@ -2778,7 +3304,7 @@ G.uiHud = function (g) {
   }
   if (this.clock < 70 && this.st === ST.PLAY && !G.touch) {
     g.font = FB(5.4);
-    const help = p.hasSword ? 'WASD/flechas: moverse · Espacio: espada · E: hablar/usar · K: orar · Q: hierbas · M: mapa · Esc: menú' : 'WASD/flechas: moverse · E: hablar/usar · M: mapa · Esc: menú';
+    const help = p.hasSword ? 'WASD: moverse · Espacio: espada · Mayús: rodar · E: usar · K: orar · Q: hierbas · M: mapa · Esc: menú' : 'WASD/flechas: moverse · E: hablar/usar · M: mapa · Esc: menú';
     this.panel(g, 4, VH - 13, VW - 8, 10);
     this.center(g, help, VH - 6, SOFT);
   }
@@ -2818,7 +3344,7 @@ G.uiDialog = function (g) {
 G.uiMap = function (g) {
   g.fillStyle = 'rgba(0,0,0,0.8)'; g.fillRect(0, 0, VW, VH);
   const mw = this.mapCanvas.width, mh = this.mapCanvas.height, s = Math.min((VW - 30) / mw, (VH - 26) / mh), ox = (VW - mw * s) / 2, oy = 16;
-  g.font = FT(8); this.center(g, 'Pozo Alcón y el barranco del Guadalentín', 11, GOLD);
+  g.font = FT(8); this.center(g, 'Pozo Alcón y el valle del Guadalentín', 11, GOLD);
   g.fillStyle = '#8a6a3a'; g.fillRect(ox - 2, oy - 2, mw * s + 4, mh * s + 4);
   g.imageSmoothingEnabled = false;
   g.drawImage(this.mapCanvas, ox, oy, mw * s, mh * s);
@@ -2872,8 +3398,8 @@ G.uiHelp = function (g) {
   this.panel(g, 30, 12, VW - 60, VH - 24);
   g.font = FT(11); this.center(g, 'Controles', 30, GOLD);
   const rows = G.touch
-    ? [['Joystick (izquierda)', 'Moverse'], ['Espada', 'Golpe de espada'], ['Usar', 'Hablar, abrir, examinar'], ['Orar', 'Recupera vida (25 de Fe)'], ['Luz', 'Onda sagrada (nivel 3, 40 de Fe)'], ['Hierba', 'Comer hierbas medicinales (+30 vida)'], ['Mapa / Menú', 'Botones de arriba'], ['Toca la pantalla', 'Pasar los diálogos']]
-    : [['WASD / Flechas', 'Moverse'], ['Espacio / J', 'Golpe de espada'], ['E / Enter', 'Hablar, usar, abrir, pasar texto'], ['K / 1', 'Orar: recupera vida (25 de Fe)'], ['L / 2', 'Luz: onda sagrada (nivel 3, 40 de Fe)'], ['Q / 3', 'Comer hierbas medicinales (+30 vida)'], ['M / Tab', 'Mapa de la comarca'], ['Esc / P', 'Pausa y guardar'], ['N', 'Activar o quitar la música']];
+    ? [['Joystick (izquierda)', 'Moverse'], ['Espada', 'Golpe de espada'], ['Rodar', 'Esquivar (eres invulnerable un instante)'], ['Usar', 'Hablar, abrir, examinar'], ['Orar', 'Recupera vida (25 de Fe)'], ['Luz', 'Onda sagrada (nivel 3, 40 de Fe)'], ['Hierba', 'Comer hierbas medicinales (+30 vida)'], ['Mapa / Menú', 'Botones de arriba'], ['Toca la pantalla', 'Pasar los diálogos']]
+    : [['WASD / Flechas', 'Moverse'], ['Espacio / J', 'Golpe de espada'], ['Mayús / X', 'Rodar para esquivar'], ['E / Enter', 'Hablar, usar, abrir, pasar texto'], ['K / 1', 'Orar: recupera vida (25 de Fe)'], ['L / 2', 'Luz: onda sagrada (nivel 3, 40 de Fe)'], ['Q / 3', 'Comer hierbas medicinales (+30 vida)'], ['M / Tab', 'Mapa de la comarca'], ['Esc / P', 'Pausa y guardar'], ['N', 'Activar o quitar la música']];
   g.font = FB(7);
   rows.forEach((r, i) => { this.text(g, r[0], 52, 48 + i * 14, GOLD); this.text(g, r[1], 150, 48 + i * 14, PAPER); });
   g.font = FB(5.8);
@@ -2900,6 +3426,7 @@ const Touch = {
       { id: 'pray', x: cw - 138 * k, y: ch - 118 * k, r: 21 * k, label: 'Orar', code: 'KeyK' },
       { id: 'light', x: cw - 64 * k, y: ch - 150 * k, r: 21 * k, label: 'Luz', code: 'KeyL' },
       { id: 'herb', x: cw - 204 * k, y: ch - 82 * k, r: 21 * k, label: 'Hierba', code: 'KeyQ' },
+      { id: 'roll', x: cw - 214 * k, y: ch - 32 * k, r: 22 * k, label: 'Rodar', code: 'Roll' },
     ];
     const side = G.layout.ox;
     if (side > 44 * k) {

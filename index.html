@@ -2543,14 +2543,17 @@ const WG = (function () {
     const rc64 = Math.round(riverX(64));
     const passes = [[37, 41], [101, 107], [rc64 + 2, rc64 + 5]];
     for (let x = 1; x < OW_W - 1; x++) {
-      const yl = lindeY(x), pass = passes.some(([a, b]) => x >= a && x <= b);
+      const yl = lindeY(x);
       for (let y = yl - 1; y <= yl + 1; y++) {
+        // el paso de la orilla sigue al río en cada fila (el río se mueve de una fila a otra)
+        const rcy = Math.round(riverX(y)), pass = passes.slice(0, 2).some(([a, b]) => x >= a && x <= b) || (x >= rcy + 2 && x <= rcy + 5 && Math.abs(x - rc64) < 12);
         const t = w.get(x, y);
         if (T.isWater(t)) continue;
         if (pass) { G.brambles.push([x, y, t === T.ASPHALT ? T.ASPHALT : T.DIRT]); w.set(x, y, T.BRAMBLE); }
         else w.set(x, y, x < 62 ? T.MOUNTAIN : T.CLIFF);
         reserved[y * OW_W + x] = 1;
       }
+      const rcl = Math.round(riverX(yl + 2)), pass = passes.slice(0, 2).some(([a, b]) => x >= a - 1 && x <= b + 1) || (x >= rcl + 1 && x <= rcl + 6);
       if (!pass && R.next() < 0.12) { const yy = yl + 2; if (!T.SOLID[w.get(x, yy)]) { w.prop(R.next() < 0.5 ? 'zarza' + R.int(2) : 'arbol_muerto' + R.int(2), x, yy); reserved[yy * OW_W + x] = 1; } }
     }
     for (const [a, b] of passes) { w.prop('zarza0', a - 1, lindeY(a) + 2); w.prop('zarza1', b + 1, lindeY(b) + 2); }
@@ -2559,12 +2562,13 @@ const WG = (function () {
     w.prop('cruz', G.crossX, G.crossY, G.crossX, G.crossY, 1, 1).id = 'cruz';
     for (let y = 74; y < 79; y++) for (let x = 102; x < 107; x++) reserved[y * OW_W + x] = 1;
     // Bosque Encantado de Las Higueras
+    const RH = RNG(5257); // generador propio: lo que se cambie en otras zonas no mueve estas higueras
     for (let y = 52; y < 63; y++) {
       const cx = riverX(y);
       for (let x = Math.floor(cx - floorW(y)); x <= cx + floorW(y); x++) {
         if (w.get(x, y) === T.GRASS_GREEN || w.get(x, y) === T.DIRT) {
-          if (R.next() < 0.16 && !T.isWater(w.get(x, y + 1)) && !T.isWater(w.get(x, y - 1))) { w.prop('higuera' + R.int(2), x, y, x, y, 1, 1); reserved[y * OW_W + x] = 1; }
-          else if (R.next() < 0.05) w.prop('higos', x, y);
+          if (RH.next() < 0.16 && !T.isWater(w.get(x, y + 1)) && !T.isWater(w.get(x, y - 1))) { w.prop('higuera' + RH.int(2), x, y, x, y, 1, 1); reserved[y * OW_W + x] = 1; }
+          else if (RH.next() < 0.05) w.prop('higos', x, y);
         }
       }
     }
@@ -2573,6 +2577,9 @@ const WG = (function () {
       w.fill(mx - 2, my - 1, 5, 3, T.GRASS_GREEN);
       w.unblock(mx - 3, my - 2, 7, 5);
       w.props = w.props.filter(p => !(Math.abs(p.x / 16 - mx) < 3.5 && Math.abs(p.y / 16 - my) < 3));
+      // senda despejada desde la orilla hasta el manantial
+      const rc = Math.round(riverX(my + 1));
+      for (let x = Math.min(rc + 2, mx); x <= Math.max(rc + 2, mx); x++) for (const yy of [my + 1, my + 2]) { w.props = w.props.filter(p => p.id || !(Math.floor(p.x / 16) === x && Math.floor((p.y - 1) / 16) === yy)); w.unblock(x, yy, 1, 1); if (T.SOLID[w.get(x, yy)] && !T.isWater(w.get(x, yy))) w.set(x, yy, T.GRASS_GREEN); reserved[yy * OW_W + x] = 1; }
       w.prop('manantial', mx, my, mx - 1, my, 3, 1).id = 'manantial';
       G.springX = mx; G.springY = my;
       w.pickups.push(new Pickup(Pickup.RELIC, (mx + 2) * 16 + 8, (my + 1) * 16 + 8, 'reliquia_higueras'));

@@ -55,7 +55,7 @@ const Q = {
       w.set(ex, w.h - 1, T.FLOOR);
       if (id === 'q_gris') { w.warps = [new Warp(ex, w.h - 1, 1, 1, 'q_casa_manuel', 12 * TS + 8, 9 * TS + 8, 0)]; continue; }
       const d = f(); if (!d) continue;
-      w.warps = [new Warp(ex, w.h - 1, 1, 1, 'exterior', d[0] * TS + 8, (d[1] + 1) * TS + 8, 0)];
+      w.warps = [new Warp(ex, w.h - 1, 1, 1, Q.exits[id][2] || 'exterior', d[0] * TS + 8, (d[1] + 1) * TS + 8, 0)];
     }
   },
   go(id) { const w = G.worlds[id], ex = Q.exits[id][0]; Sound.play('door'); G.enter(id, ex * TS + 8, (w.h - 2) * TS + 8, 1); },
@@ -905,7 +905,7 @@ G.updateQuests = function () {
   if (this.pressed('ArrowUp', 'KeyW')) this.qSel = Math.max(0, (this.qSel || 0) - 1);
   if (this.pressed('Enter', 'KeyE', 'Space') && list[this.qSel]) { this.q._track = list[this.qSel].id; this.toast('Siguiendo: ' + list[this.qSel].title); this.st = ST.PLAY; }
   for (let i = 0; i < list.length; i++) if (this.just.has('Pick' + i)) { this.just.delete('Pick' + i); if (this.qSel === i) { this.q._track = list[i].id; this.toast('Siguiendo: ' + list[i].title); this.st = ST.PLAY; } else this.qSel = i; }
-  if (this.just.has('Pick99')) { this.just.delete('Pick99'); this.st = ST.PAUSE; }
+  if (this.just.has('Pick99') || this.just.has('Tap')) { this.just.delete('Pick99'); this.just.delete('Tap'); this.st = ST.PAUSE; }
 };
 Q.list = () => Object.keys(Q.defs).filter(k => Q.st(k) > 0).map(k => ({ id: k, title: Q.defs[k].title, done: Q.done(k), step: Q.done(k) ? ({ verdad: 'Le contaste la verdad a Manuel.', mentira: 'Le dijiste a Manuel que no había nada.', tapado: 'El bujero está tapado. Doro vive con ello.', doro: 'Doro se asomó al bujero.', honrado: 'Ni un céntimo del maletín.', disparo: 'Le disparaste a Casimiro.', devuelto: 'Devolviste lo que no era tuyo.', justicia: 'Nolasco, encerrado en la sacristía.', destierro: 'Nolasco, desterrado al pantano.', salvada: 'Andrea está viva.', oscuro: 'Fue el día de Baldomero.', tarde: 'Llegaste tarde al Cortijo del Conde.', fallo: 'Perdiste a Javier.', abuela: 'La urna de la abuela.' }[Q.d(k).fin] || 'Cumplida.') : Q.defs[k].steps(Q.st(k)) }));
 G.uiQuests = function (g) {
@@ -922,8 +922,11 @@ G.uiQuests = function (g) {
     g.font = FB(6); this.text(g, q.step, 160, y, q.done ? '#7a6a5a' : PAPER);
     this.menuRects.push({ i, x: 32, y: y - 9, w: VW - 64, h: 16 });
   });
-  g.font = FB(5.6); this.center(g, G.touch ? 'Toca una misión para seguirla · toca aquí para volver' : 'Enter: seguir esta misión · Esc: volver', VH - 20, DIM);
-  this.menuRects.push({ i: 99, x: 40, y: VH - 30, w: VW - 80, h: 16 });
+  g.font = FB(5.6); this.center(g, G.touch ? 'Toca una misión para seguirla (dos toques)' : 'Enter: seguir esta misión · Esc o clic en Volver: salir', VH - 34, DIM);
+  // botón de volver
+  this.panel(g, VW / 2 - 34, VH - 30, 68, 15, false);
+  g.font = FT(7.4); this.center(g, '‹ Volver', VH - 19.5, PAPER);
+  this.menuRects.push({ i: 99, x: VW / 2 - 40, y: VH - 32, w: 80, h: 20 });
 };
 const _updQ = G.update;
 G.update = function (dt) { if (this.st === ST.PLAY && this.page) this.st = ST.DIALOG; if (this.st === ST.QUESTS) { this.updateQuests(); this.clock += dt; return; } _updQ.call(this, dt); };

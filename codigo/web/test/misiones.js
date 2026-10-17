@@ -140,6 +140,29 @@ const { chromium } = require('playwright');
       // cargar a mitad de la pelea
       fresh(ETAPA.CASETA); talk('guardia', 'exterior'); hour(23); use('q_ermita', 'exterior'); talk('leovieja', 'q_ermita', 1); G.enter('exterior', WG.doorX * TS + 8, (WG.doorY + 1) * TS + 8, 0); G.save(); G.load(); run();
       check('cargar: vuelve al paso de la viejecita', st('leomatilde') === 2 && G.worlds.q_ermita.npcs.some(n => n.key === 'leovieja'));
+      // ---------- 10 · Mala suerte (Campocámara)
+      fresh(ETAPA.IGLESIA); talk('mecanica', 'exterior'); check('mala suerte: Lucía', st('malasuerte') === 1);
+      { const ow = G.worlds.exterior, r = bfs(ow, WG.doorX, WG.doorY + 1); check('mala suerte: se llega andando al camino de Campocámara', near(ow, r, ow.w - 1, 114) || near(ow, r, ow.w - 2, 114)); }
+      G.enter('exterior', (G.worlds.exterior.w - 2) * TS + 8, 114 * TS + 8, 3); G.keys.add('ArrowRight'); for (let i = 0; i < 60 && G.world.id === 'exterior'; i++) { step(); run(); } G.keys.delete('ArrowRight'); run();
+      check('mala suerte: viaje a Campocámara', G.world.id === 'campocamara' && st('malasuerte') === 2);
+      { const w = G.worlds.campocamara, r = bfs(w, 3, 24); for (const pr of w.props) if (pr.q && pr.id) check('mala suerte: alcanza ' + pr.id, near(w, r, Math.floor(pr.x / TS), Math.floor(pr.y / TS) + 1) || near(w, r, Math.floor(pr.x / TS), Math.floor(pr.y / TS))); check('mala suerte: alcanza el pilón', near(w, r, 34, 19)); }
+      use('q_cc_pilon', 'campocamara'); use('q_cc_mujer', 'campocamara'); use('q_cc_bolsa', 'campocamara'); check('mala suerte: tres pistas', Object.keys(D('malasuerte').p).length === 3);
+      use('q_cc_puerta', 'campocamara'); check('mala suerte: dentro de la casa', G.world.id === 'q_casa_cc');
+      { const w = G.worlds.q_casa_cc, r = bfs(w, 8, w.h - 2); check('mala suerte: alcanza el vaso', near(w, r, 12, 3)); }
+      use('q_cc_escalera', 'q_casa_cc'); use('q_cc_vaso', 'q_casa_cc'); check('mala suerte: se levantan', st('malasuerte') === 3);
+      { const wp = G.worlds.q_casa_cc.warps[0]; check('mala suerte: la salida de la casa da a Campocámara', wp && wp.to === 'campocamara'); G.enter(wp.to, wp.tx, wp.ty, 0); }
+      check('mala suerte: vecinos levantados', G.world.monsters.filter(m => m.ccVecino && !m.dead).length === 4); kill(); check('mala suerte: rodadas', st('malasuerte') === 4);
+      use('q_cc_rodadas', 'campocamara');
+      G.getWorld('pantano'); Q.refresh(); { const [, j] = npc('juan', 'pantano'); check('mala suerte: Juan en la venta', !!j); G.enter('pantano', j.x, j.y + 20, 1); G.updatePlay(1 / 60); run(); }
+      check('mala suerte: «O cinco»', st('malasuerte') === 5);
+      b1 = G.balance; talk('juan', 'pantano', 2); check('mala suerte: pelea con Juan', !!G.boss && G.boss.customName.startsWith('Juan')); kill(0); check('mala suerte: final entregado', Q.done('malasuerte') && D('malasuerte').fin === 'entregado' && G.balance === b1 + 1);
+      Q.refresh(); check('mala suerte: Juan en la iglesia', G.worlds.exterior.npcs.some(n => n.key === 'juan'));
+      fresh(ETAPA.IGLESIA); G.getWorld('campocamara'); Q.go('q_casa_cc'); G.q.malasuerte = { s: 5, d: { oyo: true } }; G.getWorld('pantano'); Q.refresh(); b1 = G.balance || 0; talk('juan', 'pantano', 1); check('mala suerte: dejarle ir', Q.done('malasuerte') && D('malasuerte').fin === 'libre' && G.balance === b1 - 2);
+      fresh(ETAPA.IGLESIA); G.q.malasuerte = { s: 5, d: { oyo: true } }; G.getWorld('pantano'); Q.refresh(); talk('juan', 'pantano', 2); const atkJ = G.player.atk; kill(1); check('mala suerte: rematarlo', D('malasuerte').fin === 'muerto' && G.player.atk >= atkJ + 2);
+      // el diario se cierra con Esc y con el botón de volver
+      G.st = 'QUESTS'; G.queue.add('Escape'); step(); check('diario: Esc vuelve a la pausa', G.st === 'PAUSE');
+      G.st = 'QUESTS'; G.render(document.querySelector('canvas').getContext('2d'), 800, 450, 1); const vb = G.menuRects.find(r => r.i === 99); check('diario: hay botón de volver', !!vb);
+      G.queue.add('Pick99'); step(); check('diario: el botón vuelve a la pausa', G.st === 'PAUSE');
       // guardar y cargar conserva las misiones
       G.save(); const qs = JSON.stringify(G.q); G.load(); check('guardar/cargar misiones', JSON.stringify(G.q) === qs);
       // diario

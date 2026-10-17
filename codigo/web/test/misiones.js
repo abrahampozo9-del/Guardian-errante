@@ -100,11 +100,18 @@ const { chromium } = require('playwright');
       use('q_esc0', 'q_infierno'); check('infierno: vuelta arriba', G.world.id === 'exterior' && !G.world.solid(Math.floor(G.player.x / TS), Math.floor(G.player.y / TS)));
       // 9 · Epílogo
       fresh(ETAPA.GRECO); hour(23); use('cama', 'casa_alta'); check('pasillo: empieza', st('pasillo') === 1);
-      for (let i = 0; i < 3; i++) { hour(23); use('cama', 'casa_alta'); }
-      check('pasillo: se acerca', D('pasillo').paso === 3);
+      D('pasillo').acc = 0; D('pasillo').paso = 0;
+      for (let i = 0; i < 3; i++) { hour(23); G.fatigue = 50; use('cama', 'casa_alta'); }
+      check('pasillo: se acerca (5 h por noche)', D('pasillo').paso === 3);
       Q.set('puerta', QDONE); check('pasillo: misión la aleja', D('pasillo').paso === 1);
-      for (let i = 0; i < 6; i++) { hour(23); use('cama', 'casa_alta'); }
+      { const p0 = D('pasillo').paso; hour(23); G.fatigue = 5; use('cama', 'casa_alta'); check('pasillo: una cabezada apenas la mueve', D('pasillo').paso <= p0 + 1); }
+      for (let i = 0; i < 8 && st('pasillo') === 1; i++) { hour(23); G.fatigue = 100; use('cama', 'casa_alta'); }
       check('pasillo: pelea', st('pasillo') === 2 && !!G.boss); kill(); check('pasillo: final', Q.done('pasillo'));
+      // ---------- cansancio
+      fresh(ETAPA.GRECO); G.fatigue = 100; hour(22); use('cama', 'casa_alta'); check('cansancio: reventado duerme 9 h', Math.abs(G.hour() - 7) < 0.2 && G.fatigue < 10);
+      G.fatigue = 10; hour(22); use('cama', 'casa_alta'); check('cansancio: sin sueño, 1 h', Math.abs(G.hour() - 23) < 0.2);
+      G.fatigue = 0; G.enter('exterior', WG.doorX * TS + 8, (WG.doorY + 1) * TS + 8, 0); for (let i = 0; i < 60 * 60; i++) G.updatePlay(1 / 60); run(); check('cansancio: sube con las horas (3 h → ' + Math.round(G.fatigue) + ')', G.fatigue > 14 && G.fatigue < 25);
+      G.save(); G.fatigue = 0; G.load(); run(); check('cansancio: se guarda', G.fatigue > 14);
       // ---------- las otras ramas
       fresh(ETAPA.OBSERVATORIO); G.getWorld('pantano'); talk('manuel'); use('cochera', 'exterior'); use('q_puerta_casa', 'exterior'); use('q_puerta_gris', 'q_casa_manuel'); kill(); talk('victor', 'q_casa_manuel');
       let b1 = G.balance || 0; talk('manuel', null, 1); check('rama puerta: mentira', Q.done('puerta') && D('puerta').fin === 'mentira' && G.balance === b1 - 1);

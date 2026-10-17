@@ -204,12 +204,6 @@ G.updatePlay = function (dt) {
   if (!this._rested && this.day < before - 0.5) { this.dayN++; Q.newDay(); }
   if (Q.tick) Q.tick(dt);
 };
-const _rest = G.rest;
-G.rest = function (msg) {
-  const d0 = this.day;
-  _rest.call(this, msg);
-  if (this.day !== d0) { this._rested = true; this.dayN++; Q.newDay(true); }
-};
 Q.tick = function (dt) { for (const k in Q.defs) if (Q.defs[k].tick) Q.defs[k].tick(dt); };
 Q.newDay = function (slept) { for (const k in Q.defs) if (Q.defs[k].newDay) Q.defs[k].newDay(slept); Q.refresh(); };
 const _enterQ = G.enter;
@@ -855,7 +849,10 @@ Q.defs.pasillo = {
     const s = Q.st('pasillo'), d = Q.d('pasillo');
     if (s === 0) { G.q.pasillo = { s: 1, d: { paso: 0 }, t: G.clock }; G.say('Guardián', 'Tumbado en la cama, con la puerta abierta para que pase la corriente fresca de la noche, la veo en el pasillo.', 'Una mujer, ligeramente blanquecina, que me mira fijamente. No me puedo mover de ninguna forma.'); G.dlgEnd = () => { G.rest('Al final, el sueño te vence.'); Q.refresh(); }; return true; }
     if (s >= 1 && s < QDONE) {
-      d.paso = (d.paso || 0) + 1;
+      // se acerca mientras duermes: un paso por cada 4 horas de sueño (lo que sobra se guarda para otra noche)
+      const horas = G.sleepHours ? G.sleepHours() : 8, p0 = d.paso || 0;
+      d.acc = (d.acc || 0) + horas; const pasos = Math.floor(d.acc / 4); d.acc -= pasos * 4;
+      d.paso = p0 + pasos;
       if (d.paso >= 7) {
         G.say('Guardián', 'Esta noche, por fin, está a centímetros de mí. Puede que siempre haya estado ahí, desde mi mismo nacimiento, acercándose poco a poco.', 'La noche ya está aquí.');
         G.dlgEnd = () => {
@@ -870,7 +867,9 @@ Q.defs.pasillo = {
         };
         return true;
       }
-      G.dlgEnd = null; G.rest(['Duermes mal. Al abrir los ojos, la mujer del pasillo está un poco más cerca.', 'Ya está a la altura del baño.', 'Ya está a la puerta de la habitación 3.', 'Ya casi en tu puerta.', 'Está en tu puerta.', 'Está dentro.'][Math.min(5, d.paso - 1)]);
+      const donde = ['al fondo del pasillo, junto al baño', 'a la altura del baño', 'a la puerta de la habitación 3', 'casi en tu puerta', 'en tu puerta', 'dentro de la habitación', 'a los pies de la cama'][Math.min(6, d.paso)];
+      G.dlgEnd = null;
+      G.rest(pasos === 0 ? 'Abro los ojos de golpe. La mujer sigue ' + donde + '. No se ha movido. Creo.' : pasos === 1 ? 'Duermo mal. Al abrir los ojos, la mujer del pasillo está un poco más cerca: ' + donde + '.' : 'He dormido demasiado. Al abrir los ojos, la mujer ha avanzado mucho: ya está ' + donde + '.');
       Q.refresh();
       return true;
     }

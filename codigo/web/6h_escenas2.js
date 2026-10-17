@@ -3,7 +3,7 @@
   const { R, q, L, put, poly, ell, cyl, sky, clouds, range, olive, poplar, deadTree, pine, cypress, town, tower, crowd, outline, fbm, vn } = CP;
   const { def, lay, pan, glow, rays, rain, embers, ash, flash, bolt, flame, fade, cam } = CS;
   const W = CW + 48, H = CH + 24;
-  const scaled = (b, x, y, s, k = 1) => { if (!b.c) cv(b); cg.imageSmoothingEnabled = false; cg.drawImage(b.c, Math.round(x - cam.x * k), Math.round(y - cam.y * k), b.w * s, b.h * s); };
+  const scaled = (b, x, y, s, k = 1) => { cg.imageSmoothingEnabled = false; cg.drawImage(CS.img(b), Math.round(x - cam.x * k), Math.round(y - cam.y * k), b.w * s, b.h * s); };
   const pick = (arr, t, fps = 4) => arr[Math.floor(t * fps) % arr.length];
   const night = R([0x020308, 0x060a16, 0x0c1426, 0x142038, 0x1e2c4a, 0x2c3c5c]), nightCl = R([0x030409, 0x080c16, 0x101826, 0x1a2436, 0x2a364a, 0x3e4c62, 0x6a7a90]);
   function storm(o) {

@@ -69,11 +69,47 @@ G.renderWorld = function (g) {
   let cx = Math.round(this.camX), cy = Math.round(this.camY);
   if (this.shakeT > 0) { cx += this.rnd.int(5) - 2; cy += this.rnd.int(5) - 2; }
   g.fillStyle = '#0b0907'; g.fillRect(0, 0, WW, WH);
-  const frame = Math.floor(this.clock * 3), tx0 = Math.floor(cx / TS), ty0 = Math.floor(cy / TS);
-  for (let y = ty0; y <= ty0 + Math.ceil(WH / TS) + 1; y++) for (let x = tx0; x <= tx0 + Math.ceil(WW / TS) + 1; x++) {
-    if (x < 0 || y < 0 || x >= w.w || y >= w.h) continue;
-    const t = w.get(x, y), sx = x * TS - cx, sy = y * TS - cy;
-    if (Art.faces && Art.faces[t]) { this.drawHigh(g, t, x, y, sx, sy); this.edgeDetail(g, t, x, y, sx, sy); continue; }
+  // suelo: se dibuja por trozos de 16×16 casillas que se guardan ya pintados (el agua, en sus 4 fotogramas)
+  const frame = Math.floor(this.clock * 3) & 3, CHK = 16 * TS;
+  if (!w.chunks) { w.chunks = new Map(); w.waterChunk = new Map(); }
+  const k0x = Math.floor(cx / CHK), k0y = Math.floor(cy / CHK), k1x = Math.floor((cx + WW) / CHK), k1y = Math.floor((cy + WH) / CHK);
+  for (let ky = k0y; ky <= k1y; ky++) for (let kx = k0x; kx <= k1x; kx++) {
+    if (kx < 0 || ky < 0 || kx * 16 >= w.w || ky * 16 >= w.h) continue;
+    g.drawImage(this.chunk(w, kx, ky, frame), kx * CHK - cx, ky * CHK - cy);
+  }
+  // en los fotogramas libres, adelanta el trozo de al lado en la dirección en que se mueve el Guardián
+  if (!this._pre || this._pre-- <= 0) {
+    this._pre = 3;
+    const px = Math.floor((p.x + (p.vx || 0) * 40) / CHK), py = Math.floor((p.y + (p.vy || 0) * 40) / CHK);
+    for (const [dx, dy] of [[0, 0], [1, 0], [-1, 0], [0, 1], [0, -1]]) { const kx = px + dx, ky = py + dy; if (kx >= 0 && ky >= 0 && kx * 16 < w.w && ky * 16 < w.h && !w.chunks.has(((ky * 64 + kx) * 4) + (w.waterChunk.get(ky * 64 + kx) ? frame : 0))) { this.chunk(w, kx, ky, frame); break; } }
+  }
+  this.drawDecorAndEntities(g, w, p, cx, cy);
+};
+// pinta (o devuelve ya pintado) un trozo de suelo
+const CHUNK_MAX = 36;
+G.chunk = function (w, kx, ky, frame) {
+  const id = ky * 64 + kx;
+  let hasWater = w.waterChunk.get(id);
+  if (hasWater === undefined) { // ¿hay agua animada en este trozo?
+    hasWater = false;
+    for (let y = ky * 16; y < ky * 16 + 16 && y < w.h && !hasWater; y++) for (let x = kx * 16; x < kx * 16 + 16 && x < w.w; x++) { const t = w.get(x, y); if (t === T.WATER || t === T.DEEP) { hasWater = true; break; } }
+    w.waterChunk.set(id, hasWater);
+  }
+  const key = id * 4 + (hasWater ? frame : 0);
+  let c = w.chunks.get(key);
+  if (c) { w.chunks.delete(key); w.chunks.set(key, c); return c; } // recién usado: al final de la cola
+  if (w.chunks.size >= CHUNK_MAX) { const old = w.chunks.keys().next().value; const oc = w.chunks.get(old); w.chunks.delete(old); c = oc; } // reutiliza el lienzo más viejo
+  if (!c) { c = document.createElement('canvas'); c.width = c.height = 16 * TS; }
+  const g = c.getContext('2d'); g.imageSmoothingEnabled = false;
+  g.fillStyle = '#0b0907'; g.fillRect(0, 0, c.width, c.height);
+  const ox = kx * 16 * TS, oy = ky * 16 * TS;
+  for (let y = ky * 16; y < ky * 16 + 16 && y < w.h; y++) for (let x = kx * 16; x < kx * 16 + 16 && x < w.w; x++) this.drawTile(g, w, w.get(x, y), x, y, x * TS - ox, y * TS - oy, frame);
+  w.chunks.set(key, c);
+  return c;
+};
+G.drawTile = function (g, w, t, x, y, sx, sy, frame) {
+  {
+    if (Art.faces && Art.faces[t]) { this.drawHigh(g, t, x, y, sx, sy); this.edgeDetail(g, t, x, y, sx, sy); return; }
     g.drawImage(cv(Art.tile(t, x, y, frame)), sx, sy);
     const tp = Art.blendPri[t];
     if (tp !== undefined) { // fundido con los terrenos vecinos de más prioridad
@@ -89,9 +125,22 @@ G.renderWorld = function (g) {
     }
     this.edgeDetail(g, t, x, y, sx, sy);
   }
-  for (const d of w.decor) g.drawImage(cv(d.img), Math.floor(d.x) - cx, Math.floor(d.y) - cy);
+};
+// props agrupados por trozos de 16×16 casillas, para no recorrer los miles del mapa en cada fotograma
+G.propsNear = function (w, cx, cy, m) {
+  if (!w._pb || w._pbSrc !== w.props || w._pbLen !== w.props.length) {
+    w._pb = new Map(); w._pbSrc = w.props; w._pbLen = w.props.length;
+    for (const pr of w.props) { const k = (Math.floor(pr.y / 256) * 64) + Math.floor(pr.x / 256); let a = w._pb.get(k); if (!a) w._pb.set(k, a = []); a.push(pr); }
+  }
+  const out = this._near || (this._near = []); out.length = 0;
+  const x0 = Math.floor((cx - m - 64) / 256), x1 = Math.floor((cx + WW + m + 64) / 256), y0 = Math.floor((cy - m) / 256), y1 = Math.floor((cy + WH + m + 80) / 256);
+  for (let ky = y0; ky <= y1; ky++) for (let kx = x0; kx <= x1; kx++) { const a = w._pb.get(ky * 64 + kx); if (a) for (const pr of a) out.push(pr); }
+  return out;
+};
+G.drawDecorAndEntities = function (g, w, p, cx, cy) {
+  for (const d of w.decor) { const im = cv(d.img); const x = Math.floor(d.x) - cx, y = Math.floor(d.y) - cy; if (x < WW && y < WH && x + im.width > 0 && y + im.height > 0) g.drawImage(im, x, y); }
   const list = [];
-  for (const pr of w.props) {
+  for (const pr of this.propsNear(w, cx, cy, 0)) {
     if (pr.hidden) continue;
     const l = pr.left() - cx, tp = pr.top() - cy;
     if (l > WW || tp > WH || l + pr.img.w < 0 || tp + pr.img.h < 0) continue;
@@ -338,56 +387,6 @@ G.drawSwing = function (g, cx, cy) {
   g.beginPath(); g.arc(hx, hy, 15, Math.min(a0, ang), Math.max(a0, ang)); g.stroke();
   g.save(); g.translate(hx, hy); g.rotate(ang + Math.PI / 2); g.drawImage(cv(Art.sword), -3, -18); g.restore();
 };
-G.nightOverlay = function (g, dk, cx, cy) {
-  dctx.globalCompositeOperation = 'source-over';
-  dctx.clearRect(0, 0, WW, WH);
-  dctx.fillStyle = `rgba(10,8,22,${dk})`;
-  dctx.fillRect(0, 0, WW, WH);
-  dctx.globalCompositeOperation = 'destination-out';
-  const light = (x, y, r) => {
-    const gr = dctx.createRadialGradient(x, y, 0, x, y, r);
-    gr.addColorStop(0, 'rgba(0,0,0,1)'); gr.addColorStop(0.35, 'rgba(0,0,0,0.84)'); gr.addColorStop(0.7, 'rgba(0,0,0,0.35)'); gr.addColorStop(1, 'rgba(0,0,0,0)');
-    dctx.fillStyle = gr; dctx.beginPath(); dctx.arc(x, y, r, 0, Math.PI * 2); dctx.fill();
-  };
-  light(this.player.x - cx, this.player.y - 10 - cy, this.world.outdoor ? 110 : 120);
-  for (const pr of this.world.props) if (pr.anim === 1 || pr.img === Art.P.cruzluz || pr.light || pr.id === 'chimenea' || pr.id === 'tele' || pr.id === 'pc' || pr.id === 'radio') {
-    const lx = pr.x - cx, ly = pr.y - (pr.light ? 26 : 6) - cy;
-    if (lx > -90 && lx < WW + 90 && ly > -90 && ly < WH + 90) light(lx, ly, pr.light ? 58 + Math.sin(this.clock * 5 + pr.x) * 1.5 : pr.anim === 1 ? 72 + Math.sin(this.clock * 9) * 3 : 55);
-  }
-  for (const k of this.world.pickups) if (k.type === Pickup.RELIC) light(k.x - cx, k.y - 8 - cy, 20);
-  dctx.globalCompositeOperation = 'source-over';
-  g.drawImage(darkC, 0, 0);
-  for (const pr of this.world.props) if (pr.light) {
-    const lx = pr.x - cx, ly = pr.y - 26 - cy;
-    if (lx > -60 && lx < WW + 60 && ly > -60 && ly < WH + 60) { this.glow(g, lx, ly, 30, `rgba(255,200,90,${0.3 * dk})`); this.glow(g, lx, pr.y - cy, 22, `rgba(255,190,90,${0.18 * dk})`); }
-  }
-  for (const pr of this.world.props) if (pr.anim === 1) {
-    const lx = pr.x - cx, ly = pr.y - 6 - cy;
-    if (lx > -90 && lx < WW + 90 && ly > -90 && ly < WH + 90) this.glow(g, lx, ly, 46, `rgba(255,140,40,${0.24 * dk})`);
-  }
-};
-G.renderTitleBg = function (g) {
-  const saved = this.world, sp = this.player;
-  this.world = this.worlds.exterior;
-  const fake = new Player();
-  fake.x = (WG.rx + 2) * TS + Math.sin(this.titleT * 0.07) * 70; fake.y = 106 * TS;
-  this.player = fake;
-  this.camX = fake.x - WW / 2; this.camY = fake.y - WH / 2 - 10; this.clampCam();
-  const cx = Math.floor(this.camX), cy = Math.floor(this.camY), w = this.world, frame = Math.floor(this.titleT * 3);
-  for (let y = Math.floor(cy / TS); y <= Math.floor(cy / TS) + Math.ceil(WH / TS) + 1; y++) for (let x = Math.floor(cx / TS); x <= Math.floor(cx / TS) + Math.ceil(WW / TS) + 1; x++) {
-    const t = w.get(x, y);
-    g.drawImage(cv(Art.tile(t, x, y, frame)), x * TS - cx, y * TS - cy);
-    this.edgeDetail(g, t, x, y, x * TS - cx, y * TS - cy);
-  }
-  const ps = w.props.filter(pr => !pr.hidden && pr.x > cx - 60 && pr.x < cx + WW + 60 && pr.y > cy - 20 && pr.y < cy + WH + 80).sort((a, b) => a.y - b.y);
-  for (const pr of ps) g.drawImage(cv(pr.img), pr.left() - cx, pr.top() - cy);
-  for (const n of w.npcs) { const s = n.sprite(this.titleT); g.drawImage(cv(s), Math.floor(n.x - s.w / 2) - cx, Math.floor(n.y - s.h) - cy); }
-  this.world = saved; this.player = sp;
-  const gr = g.createLinearGradient(0, 0, 0, WH);
-  gr.addColorStop(0, 'rgba(10,8,6,0.82)'); gr.addColorStop(1, 'rgba(10,8,6,0.5)');
-  g.fillStyle = gr; g.fillRect(0, 0, WW, WH);
-  this.embers(g);
-};
 G.embers = function (g) {
   const r = RNG(4);
   for (let i = 0; i < 40; i++) {
@@ -433,11 +432,29 @@ G.star = function (g, x, y, r) {
   for (let i = 0; i < 10; i++) { const a = -Math.PI / 2 + i * Math.PI / 5, q = i % 2 === 0 ? r : r * 0.45; i ? g.lineTo(x + Math.cos(a) * q, y + Math.sin(a) * q) : g.moveTo(x + Math.cos(a) * q, y + Math.sin(a) * q); }
   g.closePath(); g.fillStyle = GOLD; g.fill(); g.strokeStyle = INK; g.lineWidth = 0.5; g.stroke();
 };
+// La parte de arriba del HUD (vida, fe, objetivo...) casi nunca cambia: se pinta en un lienzo aparte,
+// a la resolución real de la pantalla, y solo se repinta cuando cambia algún valor.
+const HUD_H = 60;
 G.uiHud = function (g) {
+  const p = this.player, S = g.getTransform().a;
+  const h = Math.floor(this.hour()), mi = Math.floor((this.hour() - h) * 6) * 10;
+  const sig = [S, p.lvl, p.pts > 0, p.hp, p.maxHp, p.fe, p.maxFe, p.xp, p.herbs, p.relics, p.poison > 0, this.world.outdoor, h, mi, this.isNight(), this.objective()].join('|');
+  if (!this.hudC || this.hudSig !== sig) {
+    this.hudSig = sig;
+    const c = this.hudC || (this.hudC = document.createElement('canvas'));
+    const W = Math.ceil(VW * S), H = Math.ceil(HUD_H * S);
+    if (c.width !== W || c.height !== H) { c.width = W; c.height = H; }
+    const hg = c.getContext('2d'); hg.setTransform(1, 0, 0, 1, 0, 0); hg.clearRect(0, 0, W, H); hg.setTransform(S, 0, 0, S, 0, 0); hg.imageSmoothingEnabled = false;
+    this.hudTop(hg);
+  }
+  g.drawImage(this.hudC, 0, 0, VW, HUD_H);
+  if (p.pts > 0) { g.font = FBB(5.6); this.text(g, '+' + p.pts + ' hab.', 88, 12.5, `rgba(255,230,140,${0.6 + 0.4 * Math.sin(this.clock * 4)})`); }
+  this.hudRest(g);
+};
+G.hudTop = function (g) {
   const p = this.player;
   this.panel(g, 4, 4, 116, 40);
   g.font = FBB(7); this.text(g, 'Guardián  ·  Nv. ' + p.lvl, 9, 12.5, GOLD);
-  if (p.pts > 0) { g.font = FBB(5.6); this.text(g, '+' + p.pts + ' hab.', 88, 12.5, `rgba(255,230,140,${0.6 + 0.4 * Math.sin(this.clock * 4)})`); }
   this.bar(g, 9, 16, 76, 5.2, p.hp / p.maxHp, p.poison > 0 ? '#6aa830' : '#c8402e', '#3a1410');
   this.bar(g, 9, 24, 76, 3.6, p.fe / p.maxFe, '#e8c050', '#3a2c10');
   this.bar(g, 9, 30.5, 76, 1.6, p.xp / p.xpNext(), '#8ac0e8', '#1a2430');
@@ -457,6 +474,9 @@ G.uiHud = function (g) {
   this.panel(g, VW - 144, 4, 140, oh);
   g.font = FBB(5.2); this.text(g, 'OBJETIVO', VW - 139, 11, GOLD);
   g.font = FB(6.2); ob.forEach((l, i) => this.text(g, l, VW - 139, 18 + i * 7, PAPER));
+};
+G.hudRest = function (g) {
+  const p = this.player;
   if (this.boss && !this.boss.dead) {
     g.font = FT(7); this.center(g, this.boss.name(), VH - 18, '#ffb0a0');
     this.bar(g, VW / 2 - 90, VH - 14, 180, 5, this.boss.hp / this.boss.maxHp, '#2aa8a0', '#0a2422');

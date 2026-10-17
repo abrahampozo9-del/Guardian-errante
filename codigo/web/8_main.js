@@ -192,9 +192,11 @@ const Touch = {
     const step = 1 / 60;
     function frame(now) {
       acc += Math.min(0.25, (now - last) / 1000); last = now;
-      if (canvas.clientWidth !== cw || canvas.clientHeight !== ch) resize();
-      while (acc >= step) { G.just = new Set(G.queue); G.queue.clear(); G.update(step); acc -= step; }
-      G.render(ctx, cw, ch, dpr);
+      if (canvas.clientWidth !== cw || canvas.clientHeight !== ch) { resize(); G.dirty = true; }
+      let steps = 0;
+      while (acc >= step) { const j = G.just; j.clear(); for (const k of G.queue) j.add(k); G.queue.clear(); G.update(step); acc -= step; steps++; }
+      // en pantallas de 120 Hz la lógica va a 60: no tiene sentido repintar si nada ha cambiado
+      if (steps > 0 || G.dirty) { G.dirty = false; G.render(ctx, cw, ch, dpr); }
       requestAnimationFrame(frame);
     }
     requestAnimationFrame(frame);

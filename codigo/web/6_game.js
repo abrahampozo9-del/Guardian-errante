@@ -50,7 +50,11 @@ G.update = function (dt) {
   if (this.bannerT > 0) this.bannerT -= dt;
   if (this.shakeT > 0) this.shakeT -= dt;
   this.titleT += dt;
-  if (this.world) for (const p of this.world.props) { if (p.anim === 1) p.img = Art.campfire[Math.floor(this.clock * 8 + p.x) % 3]; else if (p.anim === 2) p.img = Art.cascada[Math.floor(this.clock * 8) % 3]; }
+  const w0 = this.world;
+  if (w0) {
+    if (w0._animSrc !== w0.props || w0._animLen !== w0.props.length) { w0._anim = w0.props.filter(p => p.anim); w0._animSrc = w0.props; w0._animLen = w0.props.length; }
+    for (const p of w0._anim) { if (p.anim === 1) p.img = Art.campfire[Math.floor(this.clock * 8 + p.x) % 3]; else if (p.anim === 2) p.img = Art.cascada[Math.floor(this.clock * 8) % 3]; }
+  }
   switch (this.st) {
     case ST.TITLE: this.updateTitle(); break;
     case ST.HELP: if (this.confirm() || this.pressed('Escape')) this.st = this.helpBack || ST.TITLE; break;

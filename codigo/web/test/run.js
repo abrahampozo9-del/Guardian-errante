@@ -3,7 +3,7 @@ const { chromium } = require('playwright');
 (async () => {
   const b = await chromium.launch(); const page = await b.newPage();
   const errs = []; page.on('pageerror', e => errs.push(e.message));
-  await page.goto('file://' + process.cwd() + '/guardian.html');
+  await page.goto('file://' + process.cwd() + '/' + (process.env.PAGE || 'guardian.html'));
   await page.waitForFunction(() => typeof G !== 'undefined' && G.worlds && G.worlds.exterior, null, { timeout: 30000 });
   await page.evaluate(() => { const l = document.getElementById('cargando'); if (l) l.remove(); });
   const res = await page.evaluate(() => {

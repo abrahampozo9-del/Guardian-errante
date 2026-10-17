@@ -6,7 +6,7 @@
   const { R, q, L, put, poly, ell, cyl, sky, clouds, range, olive, poplar, deadTree, pine, cypress, town, tower, crowd, outline, rim, fbm, vn } = CP;
   const { def, lay, pan, glow, rays, rain, embers, ash, flash, bolt, flame, fade, cam } = CS;
   const W = CW + 48, H = CH + 24; // capas un poco mayores que la pantalla para mover la cámara
-  const scaled = (b, x, y, s, k = 1) => { if (!b.c) cv(b); cg.imageSmoothingEnabled = false; cg.drawImage(b.c, Math.round(x - cam.x * k), Math.round(y - cam.y * k), b.w * s, b.h * s); };
+  const scaled = (b, x, y, s, k = 1) => { cg.imageSmoothingEnabled = false; cg.drawImage(CS.img(b), Math.round(x - cam.x * k), Math.round(y - cam.y * k), b.w * s, b.h * s); };
   const guardFrames = (o) => [0, 1, 2, 3].map(f => FIG.guardian(f, o));
   const pick = (arr, t, fps = 4) => arr[Math.floor(t * fps) % arr.length];
 

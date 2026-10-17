@@ -16,7 +16,13 @@ class World {
     this.props = []; this.decor = []; this.warps = []; this.npcs = []; this.monsters = []; this.pickups = []; this.areas = []; this.regionFn = null;
   }
   get(x, y) { if (x < 0 || y < 0 || x >= this.w || y >= this.h) return T.VOID; return this.t[y * this.w + x]; }
-  set(x, y, v) { if (x >= 0 && y >= 0 && x < this.w && y < this.h) this.t[y * this.w + x] = v; }
+  set(x, y, v) {
+    if (x < 0 || y < 0 || x >= this.w || y >= this.h) return;
+    const i = y * this.w + x; if (this.t[i] === v) return;
+    this.t[i] = v;
+    if (this.chunks) this.invalidate(x, y); // el suelo ya dibujado de ese trozo (y los vecinos) hay que repintarlo
+  }
+  invalidate(x, y) { const cx = x >> 4, cy = y >> 4; for (let j = cy - 1; j <= cy + 1; j++) for (let i = cx - 1; i <= cx + 1; i++) { this.waterChunk.delete(j * 64 + i); for (let f = 0; f < 4; f++) this.chunks.delete((j * 64 + i) * 4 + f); } }
   fill(x, y, ww, hh, v) { for (let j = y; j < y + hh; j++) for (let i = x; i < x + ww; i++) this.set(i, j, v); }
   block(x, y, ww, hh) { for (let j = y; j < y + hh; j++) for (let i = x; i < x + ww; i++) if (i >= 0 && j >= 0 && i < this.w && j < this.h) this.blk[j * this.w + i] = 1; }
   unblock(x, y, ww, hh) { for (let j = y; j < y + hh; j++) for (let i = x; i < x + ww; i++) if (i >= 0 && j >= 0 && i < this.w && j < this.h) this.blk[j * this.w + i] = 0; }

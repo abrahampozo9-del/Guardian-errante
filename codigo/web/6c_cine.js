@@ -465,11 +465,21 @@ const CS = (function () {
   function def(name, build, draw) { defs[name] = { build, draw }; SCENES[name] = t => run(name, t); }
   function prepare(name) { if (!defs[name] || built[name]) return; built[name] = defs[name].build(); }
   function prepareSoon(name) { if (!defs[name] || built[name] || pending.has(name)) return; pending.add(name); setTimeout(() => { prepare(name); pending.delete(name); }, 30); }
-  function run(name, t) { prepare(name); defs[name].draw(t, built[name]); }
+  // solo se quedan en memoria las últimas escenas usadas (cada una ocupa varios MB de capas)
+  const recent = [];
+  function run(name, t) {
+    prepare(name);
+    if (recent[recent.length - 1] !== name) {
+      const i = recent.indexOf(name); if (i >= 0) recent.splice(i, 1); recent.push(name);
+      while (recent.length > 4) { const idx = recent.findIndex(n => n !== 'titulo'); delete built[recent.splice(idx, 1)[0]]; } // el título se queda siempre
+    }
+    defs[name].draw(t, built[name]);
+  }
   // capa: dibuja con paralaje (k) y desplazamiento de cámara
   const cam = { x: 0, y: 0 };
-  function blit(b, x, y, k = 1) { if (!b) return; cg.drawImage(CP.cv(b) === b.c ? b.c : cv(b), Math.round(x - cam.x * k), Math.round(y - cam.y * k)); }
-  function lay(b, x, y, k = 1) { if (!b) return; if (!b.c) cv(b); cg.drawImage(b.c, Math.round(x - cam.x * k), Math.round(y - cam.y * k)); }
+  // capa ya convertida en imagen: los píxeles en bruto ya no hacen falta y se liberan
+  function img(b) { if (!b.c) { cv(b); b.d = null; } return b.c; }
+  function lay(b, x, y, k = 1) { if (!b) return; cg.drawImage(img(b), Math.round(x - cam.x * k), Math.round(y - cam.y * k)); }
   function pan(t, x0, y0, x1, y1, dur = 10) { const k = Math.min(1, t / dur), e = k * k * (3 - 2 * k); cam.x = x0 + (x1 - x0) * e; cam.y = y0 + (y1 - y0) * e; }
   // efectos por fotograma
   function glow(x, y, r, col, a = 1) { const g = cg.createRadialGradient(x, y, 0, x, y, r); g.addColorStop(0, col); g.addColorStop(1, 'rgba(0,0,0,0)'); cg.save(); cg.globalAlpha = a; cg.globalCompositeOperation = 'screen'; cg.fillStyle = g; cg.fillRect(x - r, y - r, r * 2, r * 2); cg.restore(); }
@@ -506,7 +516,7 @@ const CS = (function () {
     }
   }
   function fade(a, col = '0,0,0') { if (a > 0) { cg.fillStyle = `rgba(${col},${Math.min(1, a)})`; cg.fillRect(0, 0, CW, CH); } }
-  return { def, prepare, prepareSoon, run, cam, lay, pan, glow, rays, rain, embers, ash, flash, bolt, flame, fade };
+  return { def, prepare, prepareSoon, run, cam, lay, img, pan, glow, rays, rain, embers, ash, flash, bolt, flame, fade };
 })();
 const SCENES = {};
 

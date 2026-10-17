@@ -36,8 +36,22 @@ G.lightColor = function (dk) {
   const n = this.world.outdoor ? NIGHT_OUT : NIGHT_IN;
   return n.map(c => Math.round(255 - dk * (255 - c)));
 };
+// manchas de luz ya pintadas (un degradado radial por radio y color), en vez de crearlas en cada fotograma
+const LIGHTS = new Map();
+function lightSprite(r, c) {
+  const key = r + ',' + c.join(',');
+  let s = LIGHTS.get(key);
+  if (!s) {
+    if (LIGHTS.size > 160) LIGHTS.clear();
+    s = document.createElement('canvas'); s.width = s.height = r * 2;
+    const x = s.getContext('2d'), gr = x.createRadialGradient(r, r, 0, r, r, r);
+    gr.addColorStop(0, `rgb(${c[0]},${c[1]},${c[2]})`); gr.addColorStop(0.45, `rgba(${c[0]},${c[1]},${c[2]},0.6)`); gr.addColorStop(1, `rgba(${c[0]},${c[1]},${c[2]},0)`);
+    x.fillStyle = gr; x.fillRect(0, 0, r * 2, r * 2); LIGHTS.set(key, s);
+  }
+  return s;
+}
 G.nightOverlay = function (g, dk, cx, cy) {
-  const base = this.lightColor(dk);
+  const base = this.lightColor(Math.round(dk * 40) / 40);
   dctx.globalCompositeOperation = 'source-over';
   dctx.fillStyle = `rgb(${base[0]},${base[1]},${base[2]})`;
   dctx.fillRect(0, 0, WW, WH);
@@ -45,19 +59,15 @@ G.nightOverlay = function (g, dk, cx, cy) {
   const lights = [];
   const light = (x, y, r, col, k = 1) => {
     if (x < -r || y < -r || x > WW + r || y > WH + r) return;
-    const gr = dctx.createRadialGradient(x, y, 0, x, y, r);
-    const c = col.map((v, i) => Math.round(base[i] + (v - base[i]) * k));
-    gr.addColorStop(0, `rgb(${c[0]},${c[1]},${c[2]})`);
-    gr.addColorStop(0.45, `rgba(${c[0]},${c[1]},${c[2]},0.6)`);
-    gr.addColorStop(1, `rgba(${c[0]},${c[1]},${c[2]},0)`);
-    dctx.fillStyle = gr; dctx.fillRect(x - r, y - r, r * 2, r * 2);
+    const c = col.map((v, i) => Math.round(base[i] + (v - base[i]) * Math.round(k * 20) / 20));
+    dctx.drawImage(lightSprite(r, c), Math.round(x - r), Math.round(y - r));
     lights.push([x, y, r, col]);
   };
   const fl = Math.sin(this.clock * 9) * 0.04 + Math.sin(this.clock * 23) * 0.03;
   const out = this.world.outdoor;
   // alrededor del Guardián: la vista acostumbrada a la oscuridad (luz de luna fría)
   light(this.player.x - cx, this.player.y - 10 - cy, out ? 78 : 100, out ? [150, 165, 205] : [205, 180, 150], Math.min(1, dk * 1.2));
-  for (const pr of this.world.props) {
+  for (const pr of this.propsNear(this.world, cx, cy, 100).slice()) {
     let r = 0, col = null, oy = 6, k = 1;
     if (pr.anim === 1) { r = 84; col = [255, 170, 90]; k = 1 + fl * 3; }
     else if (pr.light) { r = 66; col = [255, 205, 130]; oy = 26; }

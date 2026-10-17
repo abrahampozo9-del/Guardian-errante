@@ -25,7 +25,7 @@ const { chromium } = require('playwright');
     const npc = (key, wid) => { const ids = wid ? [wid] : Object.keys(G.worlds); for (const id of ids) { const n = G.worlds[id].npcs.find(n => n.key === key && n.q) || G.worlds[id].npcs.find(n => n.key === key); if (n) return [id, n]; } return [null, null]; };
     const talk = (key, wid, ...ch) => { const [id, n] = npc(key, wid); if (!n) { check('encuentra a ' + key + (wid ? ' en ' + wid : ''), false); return; } if (G.world.id !== id) G.enter(id, n.x, n.y + 14, 1); G.talk(n); run(...ch); };
     const use = (pid, wid, ...ch) => { const w = G.worlds[wid]; const pr = w.props.find(p => p.id === pid) || w.decor.find(p => p.id === pid); if (!pr) { check('encuentra ' + pid + ' en ' + wid, false); return; } if (G.world.id !== wid) G.enter(wid, pr.x, pr.y + 14, 1); G.use(pr); run(...ch); };
-    const kill = () => { for (let i = 0; i < 6; i++) { const ms = G.world.monsters.filter(m => !m.dead); if (!ms.length) break; for (const m of ms) G.killMonster(m); run(); } };
+    const kill = (...ch) => { for (let i = 0; i < 6; i++) { const ms = G.world.monsters.filter(m => !m.dead); if (!ms.length) break; for (const m of ms) G.killMonster(m); run(...ch); ch = []; } };
     const st = id => Q.st(id), D = id => Q.d(id);
     const day = () => { G.dayN++; Q.newDay(); };
     const fresh = stage => { G.newGame(); run(); G.player.hasSword = true; G.stage = stage; Q.refresh(); };
@@ -105,10 +105,45 @@ const { chromium } = require('playwright');
       Q.set('puerta', QDONE); check('pasillo: misión la aleja', D('pasillo').paso === 1);
       for (let i = 0; i < 6; i++) { hour(23); use('cama', 'casa_alta'); }
       check('pasillo: pelea', st('pasillo') === 2 && !!G.boss); kill(); check('pasillo: final', Q.done('pasillo'));
+      // ---------- las otras ramas
+      fresh(ETAPA.OBSERVATORIO); G.getWorld('pantano'); talk('manuel'); use('cochera', 'exterior'); use('q_puerta_casa', 'exterior'); use('q_puerta_gris', 'q_casa_manuel'); kill(); talk('victor', 'q_casa_manuel');
+      let b1 = G.balance || 0; talk('manuel', null, 1); check('rama puerta: mentira', Q.done('puerta') && D('puerta').fin === 'mentira' && G.balance === b1 - 1);
+      fresh(ETAPA.GRECO); talk('doro', 'exterior'); use('casablanca', 'exterior'); kill(); use('q_saco', 'exterior'); use('casablanca', 'exterior');
+      b1 = G.balance || 0; use('q_bujero', 'q_sotano', 0); check('rama bujero: tapado con Doro fuera', Q.done('bujero') && D('bujero').fin === 'tapado' && G.balance === b1 + 1);
+      Q.refresh(); check('rama bujero: el bujero queda como grieta', G.worlds.q_sotano.props.some(p => p.id === 'q_bujero' && p.img === Art.P.bujero0));
+      fresh(ETAPA.IGLESIA); day(); use('q_maletin', 'exterior', 1); check('rama obsequios: dejas el maletín', st('obsequios') === 1 && !D('obsequios').robo);
+      day(); day(); check('rama obsequios: aún no', !Q.done('obsequios')); day(); check('rama obsequios: honrado a los tres días', Q.done('obsequios') && D('obsequios').fin === 'honrado');
+      fresh(ETAPA.IGLESIA); day(); use('q_maletin', 'exterior', 0); day(); use('q_moneda', 'exterior'); day(); talk('ursula', 'exterior');
+      b1 = G.balance; day(); talk('malpario', 'exterior', 1); check('rama obsequios: perdonas al Malparío', st('obsequios') === 5 && G.balance === b1 + 1 && !G.world.monsters.some(m => m.qfoe && !m.dead));
+      day(); talk('huevo', 'exterior'); use('q_pistola', 'exterior'); day(); use('q_ursula_casa', 'exterior');
+      const hpA = G.player.maxHp; b1 = G.balance; talk('casimiro', 'q_casa_ursula', 1); check('rama obsequios: devuelves la pistola', Q.done('obsequios') && D('obsequios').fin === 'devuelto' && G.balance === b1 + 2 && G.player.maxHp >= hpA + 15);
+      check('rama obsequios: Casimiro se va', !G.worlds.q_casa_ursula.npcs.some(n => n.key === 'casimiro'));
+      hour(22); G.enter('exterior', WG.doorX * TS + 8, (WG.doorY + 1) * TS + 8, 0); check('rama obsequios: sin pelea de noche', !G.boss);
+      fresh(ETAPA.GRECO); talk('curandera', 'exterior'); talk('abuelo', 'exterior'); use('q_olla', 'exterior'); use('q_maletin_n', 'exterior'); talk('nolasco', 'exterior'); talk('sancho', 'exterior'); talk('nolasco', 'exterior'); kill(1);
+      check('rama nolasco: destierro', Q.done('nolasco') && D('nolasco').fin === 'destierro'); Q.refresh(); check('rama nolasco: ya no está en el pueblo', !G.worlds.exterior.npcs.some(n => n.key === 'nolasco'));
+      fresh(ETAPA.CASETA); talk('guardia', 'exterior'); hour(23); use('q_ermita', 'exterior'); G.player.fe = 60; const hpL = G.player.maxHp;
+      talk('leovieja', 'q_ermita', 1); check('rama leomatilde: rezar no quita vida', G.player.maxHp === hpL && G.player.fe === 35 && !!G.boss);
+      G.enter('exterior', G.player.x, G.player.y, 0); Q.go('q_ermita'); check('rama leomatilde: si sales, sigue ahí', G.world.monsters.some(m => m.qfoe && !m.dead));
+      kill(); check('rama leomatilde: final', Q.done('leomatilde'));
+      fresh(ETAPA.CASETA); talk('kevin', 'exterior'); day(); hour(13); { const c = WG.ruins.conde; G.enter('exterior', c[0] * TS + 8, (c[1] + 1) * TS + 8, 0); }
+      G.updatePlay(1 / 60); const atk0 = G.player.atk; b1 = G.balance || 0; run(1); check('rama baldomero: mirar a otro lado', Q.done('baldomero') && D('baldomero').fin === 'oscuro' && G.balance === b1 - 3 && G.player.atk >= atk0 + 2 && !G.boss);
+      Q.refresh(); check('rama baldomero: Andrea ya no está', !G.worlds.exterior.npcs.some(n => n.key === 'andrea'));
+      fresh(ETAPA.CASETA); talk('kevin', 'exterior'); day(); hour(13); { const c = WG.ruins.conde; G.enter('exterior', c[0] * TS + 8, (c[1] + 1) * TS + 8, 0); }
+      G.updatePlay(1 / 60); run(0); b1 = G.balance; kill(1); check('rama baldomero: matarle', Q.done('baldomero') && D('baldomero').muerto && G.balance === b1 - 1);
+      Q.refresh(); check('rama baldomero: Andrea vuelve al pueblo', G.worlds.exterior.npcs.some(n => n.key === 'andrea'));
+      fresh(ETAPA.CASETA); talk('kevin', 'exterior'); hour(13); { const c = WG.ruins.conde; G.enter('exterior', c[0] * TS + 8, (c[1] + 1) * TS + 8, 0); } G.updatePlay(1 / 60); check('rama baldomero: el mismo día no pasa nada', st('baldomero') === 1);
+      fresh(ETAPA.IGLESIA); talk('javier', 'exterior'); hour(21); use('q_casa_madre', 'exterior'); talk('madre_falsa', 'q_casa_madre', 1);
+      check('rama alia: te equivocas de madre', Q.done('alia') && D('alia').fin === 'fallo' && !G.boss); Q.refresh(); check('rama alia: casa vacía', !G.worlds.q_casa_madre.npcs.length);
+      // morir a mitad de un jefe y volver
+      fresh(ETAPA.IGLESIA); talk('javier', 'exterior'); hour(21); use('q_casa_madre', 'exterior'); talk('madre_falsa', 'q_casa_madre', 0); G.respawn(); run();
+      use('q_casa_madre', 'exterior'); check('morir: el jefe sigue en la casa', G.world.monsters.some(m => m.qfoe && !m.dead)); kill(); check('morir: luego se termina', st('alia') === 3);
+      // cargar a mitad de la pelea
+      fresh(ETAPA.CASETA); talk('guardia', 'exterior'); hour(23); use('q_ermita', 'exterior'); talk('leovieja', 'q_ermita', 1); G.enter('exterior', WG.doorX * TS + 8, (WG.doorY + 1) * TS + 8, 0); G.save(); G.load(); run();
+      check('cargar: vuelve al paso de la viejecita', st('leomatilde') === 2 && G.worlds.q_ermita.npcs.some(n => n.key === 'leovieja'));
       // guardar y cargar conserva las misiones
       G.save(); const qs = JSON.stringify(G.q); G.load(); check('guardar/cargar misiones', JSON.stringify(G.q) === qs);
       // diario
-      G.st = 'PAUSE'; G.menuIdx = 1; G.queue.add('Enter'); step(); check('diario se abre', G.st === 'QUESTS'); G.render(G.ctx || document.querySelector('canvas').getContext('2d'), 800, 450, 1); check('lista del diario', Q.list().length >= 2);
+      G.st = 'PAUSE'; G.menuIdx = 1; G.queue.add('Enter'); step(); check('diario se abre', G.st === 'QUESTS'); G.render(G.ctx || document.querySelector('canvas').getContext('2d'), 800, 450, 1); check('lista del diario', Q.list().length >= 1);
     } catch (e) { check('excepción: ' + e.message + ' ' + (e.stack || '').split('\n')[1], false); }
     return { log, fails };
   });

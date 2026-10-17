@@ -244,6 +244,7 @@ G.save = function () {
 };
 const _loadQ = G.load;
 G.load = function () {
+  this.clearDlg();
   const ok = _loadQ.call(this);
   if (ok) { const d = this.readSave(); this.q = (d && d.q) || {}; this.dayN = (d && d.dayN) || 0; Q.refresh(); if (Q.afterLoad) Q.afterLoad(); }
   return ok;
@@ -264,7 +265,8 @@ G.ask = function (who, text, options, cb) {
   _askQ.call(this, who, text, options, cb);
 };
 const _newQ = G.newGame;
-G.newGame = function () { this.q = {}; this.dayN = 0; Q.pending = {}; _newQ.call(this); Q.refresh(); };
+G.clearDlg = function () { this.dlg = []; this.page = null; this.dlgEnd = null; this.choice = null; };
+G.newGame = function () { this.clearDlg(); this.q = {}; this.dayN = 0; Q.pending = {}; _newQ.call(this); Q.refresh(); };
 const _gw = G.getWorld;
 G.getWorld = function (id) { const had = !!this.worlds[id]; const w = _gw.call(this, id); if (w && !had) Q.refresh(); return w; };
 
@@ -924,4 +926,4 @@ G.uiQuests = function (g) {
   this.menuRects.push({ i: 99, x: 40, y: VH - 30, w: VW - 80, h: 16 });
 };
 const _updQ = G.update;
-G.update = function (dt) { if (this.st === ST.QUESTS) { this.updateQuests(); this.clock += dt; return; } _updQ.call(this, dt); };
+G.update = function (dt) { if (this.st === ST.PLAY && this.page) this.st = ST.DIALOG; if (this.st === ST.QUESTS) { this.updateQuests(); this.clock += dt; return; } _updQ.call(this, dt); };

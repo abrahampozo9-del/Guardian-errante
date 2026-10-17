@@ -26,7 +26,7 @@ class Player extends Entity {
   canLight() { return this.lvl >= 3; }
 }
 
-const MK = { JABALI: 'JABALI', HUECO: 'HUECO', ALACRAN: 'ALACRAN', SOMBRA: 'SOMBRA', AHOGADO: 'AHOGADO', NIDO: 'NIDO', BESTIA: 'BESTIA', DEMONIO: 'DEMONIO' };
+const MK = { JABALI: 'JABALI', HUECO: 'HUECO', ALACRAN: 'ALACRAN', SOMBRA: 'SOMBRA', AHOGADO: 'AHOGADO', NIDO: 'NIDO', BESTIA: 'BESTIA', DEMONIO: 'DEMONIO', HUMANO: 'HUMANO' };
 const MNAME = { JABALI: 'Jabalí podrido', HUECO: 'Hueco', ALACRAN: 'Alacrán gigante', SOMBRA: 'Sombra del valle', AHOGADO: 'Ahogado del Guadalentín', NIDO: 'Nido de engendros', BESTIA: 'La Bestia de La Bolera', DEMONIO: 'Demonio' };
 const MRand = RNG(Date.now() & 0xffff);
 // vida, daño, velocidad, xp, semiancho, semialto, alcance para empezar el ataque, aviso, ataque, recuperación
@@ -39,6 +39,8 @@ const MSTAT = {
   NIDO:    { hp: 110, dmg: 0, sp: 0,  xp: 30, hw: 12, hh: 5, range: 0, wind: 0, atk: 0, rec: 0 },
   DEMONIO: { hp: 560, dmg: 22, sp: 70, xp: 260, hw: 10, hh: 4, range: 130, wind: 0.8, atk: 0.9, rec: 0.8 },
   BESTIA:  { hp: 700, dmg: 18, sp: 30, xp: 400, hw: 16, hh: 7, range: 0, wind: 0, atk: 0, rec: 0 },
+  // personas y apariciones de las misiones (las estadísticas se ajustan en cada encuentro)
+  HUMANO:  { hp: 160, dmg: 14, sp: 46, xp: 120, hw: 5, hh: 3, range: 26, wind: 0.5, atk: 0.22, rec: 0.6 },
 };
 
 class Monster extends Entity {
@@ -55,7 +57,7 @@ class Monster extends Entity {
     this.spawnFade = 0.6; this.quest = false; this.aggro = false; this.lastH = 1; this.lair = null;
     this.submerged = kind === MK.AHOGADO;
   }
-  name() { return MNAME[this.kind]; }
+  name() { return this.customName || MNAME[this.kind]; }
   faceTo(dx, dy) { super.faceTo(dx, dy); if (Math.abs(dx) > 0.01) this.lastH = dx < 0 ? 0 : 1; }
   vulnerable() { return !(this.kind === MK.AHOGADO && this.submerged); }
   setState(s, t) { this.state = s; this.stT = t; this.hitDone = false; }
@@ -150,7 +152,7 @@ class Monster extends Entity {
   startWind(g, dx, dy, d) {
     this.faceTo(dx, dy);
     const l = d || 1; this.ax = dx / l; this.ay = dy / l;
-    if (this.kind === MK.SOMBRA) {
+    if (this.kind === MK.SOMBRA || (this.kind === MK.HUMANO && this.blink && MRand.next() < 0.5)) {
       // aparece por detrás del Guardián
       const p = g.player, back = [[0, -1], [0, 1], [1, 0], [-1, 0]][p.dir];
       for (const [bx, by] of [back, [back[1], back[0]], [-back[1], -back[0]]]) {
@@ -196,14 +198,18 @@ class Monster extends Entity {
     } else if (this.kind === MK.ALACRAN) {
       this.move(w, this.ax * 230 * dt, this.ay * 230 * dt);
       hit = Math.hypot(p.x - this.x, p.y - this.y) < 13;
-    } else if (this.kind === MK.HUECO || this.kind === MK.SOMBRA) {
+    } else if (this.kind === MK.HUMANO && this.dash) { // embestida con cuchillo (Baldomero)
+      this.move(w, this.ax * this.dash * dt, this.ay * this.dash * dt);
+      hit = Math.hypot(p.x - this.x, p.y - this.y) < 14;
+    } else if (this.kind === MK.HUECO || this.kind === MK.SOMBRA || this.kind === MK.HUMANO) {
       const cx = this.x + this.ax * 13, cy = this.y - 6 + this.ay * 13;
       hit = Math.hypot(p.x - cx, p.y - 8 - cy) < 15;
     }
     if (hit && !this.hitDone && p.rolling && !p.dead) { this.hitDone = true; g.perfectDodge(); }
     if (hit && !this.hitDone && p.invul <= 0 && !p.dead) {
       this.hitDone = true;
-      g.hurtPlayer(this.dmg, this.x, this.y, this.kind === MK.ALACRAN ? 4 : 0);
+      g.hurtPlayer(this.dmg, this.x, this.y, this.kind === MK.ALACRAN || this.poisons ? 4 : 0);
+      if (this.drain) { this.hp = Math.min(this.maxHp, this.hp + this.drain); g.fx.push(Fx.text(this.x, this.y - 26, '+' + this.drain, 0xc060ff)); if (this.onDrain) this.onDrain(this); }
       if (this.kind === MK.JABALI) this.setState('rec', this.st.rec);
     }
   }
@@ -319,6 +325,7 @@ class Monster extends Entity {
       case MK.AHOGADO: s = this.submerged ? E.drown[Math.floor(this.anim * 3) % 2 ? 's1' : 's0'] : E.drown[k]; break;
       case MK.NIDO: s = E.nest[Math.floor(this.anim * 3) % 3]; break;
       case MK.DEMONIO: s = E.demon[this.lastH][k === 'w0' || k === 'w1' ? 'w' + (Math.floor(this.anim * 8) % 3) : k]; break;
+      case MK.HUMANO: { const set = this.set || Art.people.malpario; s = set[this.dir][k === 'w1' ? 1 + (Math.floor(this.anim * 7) % 2) : 0]; break; }
       default: s = (this.flash > 0 ? Art.bossHurt : Art.boss)[(this.chargeT > 0 || this.shootT < 0.4) ? 1 : Math.floor(this.anim * 2) % 2];
     }
     if (this.flash > 0 && this.kind !== MK.BESTIA) s = white(s);

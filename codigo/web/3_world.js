@@ -581,9 +581,26 @@ const WG = (function () {
       const a = A(name, x0 - 2, y0 - 1, wd + 9, ht + 6); w.areas.push(a);
       return [x0 + (wd >> 1), y0 + (ht >> 1)];
     };
+    // el Cortijo del Conde (El día de Baldomero): casita encalada, entera, donde vive sola la maestra nueva
+    const conde = (x0, y0) => {
+      for (let y = y0 - 2; y <= y0 + 9; y++) for (let x = x0 - 3; x <= x0 + 11; x++) { if (!T.isWater(w.get(x, y))) w.set(x, y, (x + y) % 5 ? T.DIRT : T.GRASS); reserved[y * OW_W + x] = 1; }
+      for (let y = y0; y <= y0 + 1; y++) for (let x = x0; x <= x0 + 7; x++) w.set(x, y, T.ROOF);
+      if (!w.roofMeta) w.roofMeta = new Map();
+      const meta = { x0, x1: x0 + 7, y0, yb: y0 + 1, ridge: y0, tone: 1 };
+      for (let y = y0; y <= y0 + 1; y++) for (let x = x0; x <= x0 + 7; x++) w.roofMeta.set(y * w.w + x, meta);
+      for (let x = x0; x <= x0 + 7; x++) { w.set(x, y0 + 2, x === x0 + 1 || x === x0 + 6 ? T.WINDOW : T.WALL_WHITE); w.set(x, y0 + 3, x === x0 + 6 ? T.WINDOW : T.WALL_WHITE); }
+      w.set(x0 + 3, y0 + 3, T.DOOR); w.block(x0 + 3, y0 + 3, 1, 1);
+      w.fill(x0, y0 + 4, 8, 1, T.PORCH);
+      w.prop('chimenea_t', x0 + 6, y0 + 1);
+      w.prop('pozo', x0 + 10, y0 + 1, x0 + 10, y0 + 1, 1, 1); w.prop('higuera0', x0 - 2, y0 + 6, x0 - 2, y0 + 6, 1, 1); w.prop('tendedero', x0 + 9, y0 + 6);
+      w.prop('maceta', x0 + 1, y0 + 5, x0 + 1, y0 + 5, 1, 1); w.prop('maceta', x0 + 5, y0 + 5, x0 + 5, y0 + 5, 1, 1);
+      w.areas.push(A('Cortijo del Conde', x0 - 3, y0 - 2, 15, 12));
+      G.condeDoor = [x0 + 3, y0 + 3];
+      return [x0 + 3, y0 + 6];
+    };
     G.ruins = {
       llanos: ruin('Cortijo de los Llanos', 192, 100, 6, 5),
-      moro: ruin('Cortijo del Moro', 84, 150, 6, 5),
+      conde: conde(84, 150),
       quemado: ruin('Cortijo Quemado', 76, 40, 6, 5),
     };
     // la gran encina seca, en mitad de Los Llanos (se ve desde todas partes)

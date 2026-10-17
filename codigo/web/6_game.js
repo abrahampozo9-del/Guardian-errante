@@ -31,6 +31,7 @@ G.boot = function () {
   Art.initPlaces();
   Art.initLandmarks();
   Art.initRoofProps();
+  Art.initQuests();
   Art.initEnemies();
   this.buildWorlds();
   this.hasSave = !!this.readSave();

@@ -155,7 +155,15 @@ G.drawDecorAndEntities = function (g, w, p, cx, cy) {
     if (kind === 0) g.drawImage(cv(e.img), e.left() - cx, e.top() - cy);
     else if (kind === 1) this.drawMonster(g, e, cx, cy);
     else if (kind === 2 && (e.key === 'angel' || e.key === 'miguel')) { const s = e.sprite(this.clock), hov = Math.sin(this.clock * 2) * 2 - 6; this.glow(g, e.x - cx, e.y - 20 - cy, 34, 'rgba(255,245,200,0.35)'); this.shadow(g, e.x - cx, e.y - cy, 7); g.drawImage(cv(s), Math.round(e.x - s.w / 2) - cx, Math.round(e.y - s.h + hov) - cy); }
-    else if (kind === 2) { const s = e.sprite(this.clock); this.shadow(g, e.x - cx, e.y - cy, s.w / 2.5); g.drawImage(cv(s), Math.round(e.x - s.w / 2) - cx, Math.round(e.y - s.h) - cy); }
+    else if (kind === 2) {
+      const s = e.sprite(this.clock); this.shadow(g, e.x - cx, e.y - cy, s.w / 2.5);
+      if (e.alpha !== undefined) g.globalAlpha = e.alpha;
+      g.drawImage(cv(s), Math.round(e.x - s.w / 2) - cx, Math.round(e.y - s.h) - cy); g.globalAlpha = 1;
+      if (e.mark) { // tiene algo que contarte: un rombo dorado que flota
+        const bx = Math.round(e.x) - cx, by = Math.round(e.y - s.h - 6 + Math.sin(this.clock * 4) * 1.5) - cy;
+        g.fillStyle = '#1a1008'; g.fillRect(bx - 3, by - 3, 7, 7); g.fillStyle = '#f0c850'; g.fillRect(bx - 2, by - 2, 5, 5); g.fillStyle = '#fff4c0'; g.fillRect(bx - 1, by - 2, 2, 1);
+      }
+    }
     else if (kind === 3) {
       const s = e.type === Pickup.RELIC ? Art.relic : Art.herb, bob = Math.sin(e.t * 3 + e.x) * 2;
       this.shadow(g, e.x - cx, e.y - cy, 4);
@@ -434,11 +442,11 @@ G.star = function (g, x, y, r) {
 };
 // La parte de arriba del HUD (vida, fe, objetivo...) casi nunca cambia: se pinta en un lienzo aparte,
 // a la resolución real de la pantalla, y solo se repinta cuando cambia algún valor.
-const HUD_H = 60;
+const HUD_H = 84;
 G.uiHud = function (g) {
   const p = this.player, S = g.getTransform().a;
   const h = Math.floor(this.hour()), mi = Math.floor((this.hour() - h) * 6) * 10;
-  const sig = [S, p.lvl, p.pts > 0, p.hp, p.maxHp, p.fe, p.maxFe, p.xp, p.herbs, p.relics, p.poison > 0, this.world.outdoor, h, mi, this.isNight(), this.objective()].join('|');
+  const sig = [S, p.lvl, p.pts > 0, p.hp, p.maxHp, p.fe, p.maxFe, p.xp, p.herbs, p.relics, p.poison > 0, this.world.outdoor, h, mi, this.isNight(), this.objective(), this.sideObjective ? this.sideObjective() : ''].join('|');
   if (!this.hudC || this.hudSig !== sig) {
     this.hudSig = sig;
     const c = this.hudC || (this.hudC = document.createElement('canvas'));
@@ -470,10 +478,12 @@ G.hudTop = function (g) {
     this.text(g, String(h).padStart(2, '0') + ':' + String(mi).padStart(2, '0'), 83, 40.3, cc);
   }
   g.font = FB(6.2);
-  const ob = this.wrap(g, this.objective(), 132), oh = 11 + ob.length * 7;
+  const ob = this.wrap(g, this.objective(), 132), side = this.sideObjective ? this.sideObjective() : null;
+  const sl = side ? this.wrap(g, side, 132).slice(0, 2) : [], oh = 11 + ob.length * 7 + (sl.length ? 3 + sl.length * 7 : 0);
   this.panel(g, VW - 144, 4, 140, oh);
   g.font = FBB(5.2); this.text(g, 'OBJETIVO', VW - 139, 11, GOLD);
   g.font = FB(6.2); ob.forEach((l, i) => this.text(g, l, VW - 139, 18 + i * 7, PAPER));
+  if (sl.length) { const y0 = 21 + ob.length * 7; g.fillStyle = 'rgba(200,160,90,0.35)'; g.fillRect(VW - 139, y0 - 5, 130, 0.6); sl.forEach((l, i) => this.text(g, l, VW - 139, y0 + 2 + i * 7, '#d8b878')); }
 };
 G.hudRest = function (g) {
   const p = this.player;

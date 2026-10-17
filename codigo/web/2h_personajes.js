@@ -129,4 +129,5 @@ Art.initCharacters2 = function () {
   // el Anticristo: traje blanco, pelo dorado peinado, sonrisa amable; ojos dorados
   Art.people.anticristo = personSet(Look(0xe0bc9c, 0xd8b050, 0xf2efe8, 0xe8e4dc, 0xf0ece4, { eyes: 0xc89a20, scarf: 0x8a1a14 }));
   Art.people.abuelo = personSet(Look(0xc09070, 0xe0e0dc, 0x5a4a3a, 0x3a3630, 0x262220, { bald: true, vest: 0x3a3226 }));
+  Art.makePerson = (skin, hair, shirt, pants, shoes, o) => personSet(Look(skin, hair, shirt, pants, shoes, o));
 };

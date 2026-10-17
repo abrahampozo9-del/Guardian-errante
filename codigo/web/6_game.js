@@ -29,6 +29,7 @@ G.boot = function () {
   Art.initProps2();
   Art.initCharacters2();
   Art.initPlaces();
+  Art.initLandmarks();
   Art.initEnemies();
   this.buildWorlds();
   this.hasSave = !!this.readSave();
@@ -144,8 +145,8 @@ G.hour = function () { return (this.day * 24 + 6) % 24; };
 G.isNight = function () { const h = this.hour(); return h >= 20.5 || h < 5.5; };
 // El mundo tras el Colapso nunca está del todo iluminado: de día el cielo sigue cubierto.
 G.darkness = function () {
-  if (!this.world.outdoor) return 0.46;
-  const h = this.hour(), DAY = 0.3, NIGHT = 0.88;
+  if (!this.world.outdoor) return 0.42;
+  const h = this.hour(), DAY = 0.22, NIGHT = 0.86;
   if (h >= 7 && h < 18.5) return DAY;
   if (h >= 18.5 && h < 21) return DAY + (h - 18.5) / 2.5 * (NIGHT - DAY);
   if (h >= 21 || h < 4.5) return NIGHT;

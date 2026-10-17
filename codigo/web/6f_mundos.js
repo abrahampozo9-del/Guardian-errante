@@ -53,7 +53,7 @@ G.renderLoad = function (g) {
   g.fillStyle = '#000'; g.fillRect(0, 0, VW, VH);
   cg.save(); (SCENES[L.info.scene] || SCENES.valle)(L.t + 3); cg.restore(); cinePost();
   const a = Math.min(1, L.t / 0.4);
-  g.globalAlpha = a; g.imageSmoothingEnabled = false; g.drawImage(cineC, 0, 0, CW * 2, CH * 2); g.globalAlpha = 1;
+  g.globalAlpha = a; g.imageSmoothingEnabled = false; g.drawImage(cineC, 0, 0, VW, VH); g.globalAlpha = 1;
   g.fillStyle = 'rgba(0,0,0,0.55)'; g.fillRect(0, 0, VW, VH);
   g.font = FB(6.5); this.center(g, 'SECCIÓN ' + ((L.info.orden || 0) + 1), 70, UI.bronzeHi);
   g.font = FT(18); this.center(g, L.info.name, 92, '#efe2c8');
@@ -92,22 +92,3 @@ G.drawBirds = function (g, cx, cy) {
   }
 };
 
-// escena de carga de la carretera: el cañón con la carretera y los buitres
-SCENES.carretera = function (t) {
-  C.sky(['#1a1820', '#2a2630', '#3a3238', '#4a3a3a']);
-  C.ridge(46, 12, 0.03, 301, '#2a2428');
-  // paredes del cañón
-  cg.fillStyle = '#4a3a30'; cg.beginPath(); cg.moveTo(110, CH); cg.lineTo(118, 50); cg.lineTo(132, 40); cg.lineTo(150, 44); cg.lineTo(160, CH); cg.fill();
-  cg.fillStyle = '#5a4838'; cg.beginPath(); cg.moveTo(160, CH); cg.lineTo(170, 36); cg.lineTo(200, 30); cg.lineTo(200, CH); cg.fill();
-  for (let y = 50; y < CH; y += 6) { C.r(118 + (y - 50) * 0.1, y, 30, 1, 'rgba(30,20,16,0.5)'); C.r(172, y - 8, 28, 1, 'rgba(30,20,16,0.5)'); }
-  C.water(96, CH, '#1e3a3e', '#3a6066', t);
-  // carretera con curva y quitamiedos
-  cg.fillStyle = '#2a2a2e'; cg.beginPath(); cg.moveTo(0, 80); cg.quadraticCurveTo(60, 60, 104, 56); cg.lineTo(106, 62); cg.quadraticCurveTo(60, 70, 0, 96); cg.fill();
-  for (let i = 0; i < 9; i++) C.r(8 + i * 11, 82 - i * 2.6, 6, 1, '#c8c0a0');
-  C.ridge(100, 4, 0.08, 302, '#1a1614');
-  // hotel a lo lejos con una luz encendida
-  C.r(70, 44, 18, 8, '#6a5a4a'); C.r(68, 41, 22, 3, '#4a2a20'); C.r(76, 47, 2, 2, '#ffc060'); C.glow(77, 48, 6, 'rgba(255,180,80,0.5)');
-  // buitres
-  for (let i = 0; i < 5; i++) { const a = t * 0.4 + i * 1.3, x = 140 + Math.cos(a) * 26, y = 26 + Math.sin(a) * 8; C.r(x - 4, y, 9, 1, '#120e0c'); C.r(x - 1, y - 1, 3, 2, '#120e0c'); }
-  C.rain(t, 30, 0.12, 0.2);
-};

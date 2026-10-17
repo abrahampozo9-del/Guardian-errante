@@ -61,39 +61,11 @@ G.menuList = function (g, items, y0, step, left) {
   });
 };
 
-// ---------------------------------------------------------------- pantalla de título: luna de sangre sobre Pozo Alcón
-SCENES.titulo = function (t) {
-  C.sky(['#0c0406', '#2a0608', '#5a0c0c', '#8a1a12']);
-  // nubes rojas que pasan
-  for (let i = 0; i < 7; i++) { const x = ((i * 47 + t * (2 + i % 3)) % (CW + 80)) - 40, y = 14 + (i % 4) * 9; C.glow(x, y, 26, 'rgba(20,4,6,0.55)'); C.r(x - 16, y, 34, 2, 'rgba(150,24,18,0.5)'); }
-  // luna de sangre en creciente
-  C.glow(140, 34, 46, 'rgba(255,60,40,0.35)');
-  cg.fillStyle = '#c83a26'; cg.beginPath(); cg.arc(140, 34, 22, 0, Math.PI * 2); cg.fill();
-  cg.fillStyle = 'rgba(120,20,14,0.6)'; for (const [x, y, r] of [[134, 28, 4], [146, 40, 3], [138, 44, 2.5], [148, 26, 2]]) { cg.beginPath(); cg.arc(x, y, r, 0, Math.PI * 2); cg.fill(); }
-  cg.fillStyle = '#2a0608'; cg.beginPath(); cg.arc(131, 30, 20, 0, Math.PI * 2); cg.fill();
-  // sierra y cerro con el pueblo y la torre de la Encarnación en silueta
-  C.ridge(70, 12, 0.03, 201, '#24080a');
-  C.ridge(82, 8, 0.045, 202, '#160506');
-  C.r(92, 46, 8, 34, '#0c0304'); C.r(93, 40, 6, 6, '#0c0304'); C.r(95, 34, 2, 6, '#0c0304'); C.r(94, 36, 4, 1, '#0c0304'); C.r(95, 50, 2, 4, '#ff6a20'); C.glow(96, 52, 6, 'rgba(255,100,30,0.5)');
-  for (const [x, w, h] of [[70, 9, 10], [79, 8, 14], [100, 10, 12], [110, 7, 9], [60, 8, 7], [118, 9, 6]]) { C.r(x, 80 - h, w, h, '#0c0304'); if ((x * 7) % 3 === 0) C.r(x + 3, 80 - h + 3, 1, 2, '#c84a1a'); }
-  // primer plano: rocas, el ángel de piedra llorando a la derecha y la cruz caída
-  cg.fillStyle = '#070203'; cg.beginPath(); cg.moveTo(0, CH); cg.lineTo(0, 80); cg.lineTo(14, 74); cg.lineTo(30, 86); cg.lineTo(48, 92); cg.lineTo(60, CH); cg.fill();
-  cg.beginPath(); cg.moveTo(CW, CH); cg.lineTo(CW, 70); cg.lineTo(184, 66); cg.lineTo(168, 84); cg.lineTo(150, 96); cg.lineTo(140, CH); cg.fill();
-  // ángel de piedra (alas plegadas, cabeza gacha)
-  cg.fillStyle = '#2a2224'; cg.beginPath(); cg.moveTo(170, 98); cg.lineTo(166, 72); cg.lineTo(174, 62); cg.lineTo(182, 70); cg.lineTo(184, 98); cg.fill();
-  cg.fillStyle = '#3a3034'; C.r(173, 64, 5, 6, '#3a3034'); C.r(172, 70, 7, 22, '#342a2e'); C.r(174, 64, 1, 4, '#4a4044');
-  C.r(0, 100, CW, 13, '#050102');
-  // flores blancas entre las rocas
-  const R = RNG(203); for (let i = 0; i < 60; i++) { const x = R.int(CW), y = 100 + R.int(12); C.r(x, y, 1, 1, i % 4 ? '#8a7a70' : '#c8b8a8'); }
-  // ceniza
-  for (let i = 0; i < 40; i++) { const ph = (t * 0.06 + i * 0.071) % 1, x = (i * 53 + Math.sin(t + i) * 6) % CW, y = ph * CH; C.r(x, y, 1, 1, `rgba(220,200,200,${0.6 * (1 - ph)})`); }
-};
-G.renderTitleBg = function (g) {
+G.renderTitleBg = function (g) { g.fillStyle = '#000'; g.fillRect(0, 0, WW, WH); };
+G.uiTitle = function (g) {
   cg.save(); SCENES.titulo(this.titleT); cg.restore();
   cinePost();
-  g.imageSmoothingEnabled = false; g.drawImage(cineC, 0, 0, WW, WH);
-};
-G.uiTitle = function (g) {
+  g.imageSmoothingEnabled = false; g.drawImage(cineC, 0, 0, VW, VH);
   // título con sombra roja y subrayado de bronce
   g.font = FT(22);
   const tt = 'El Guardián Errante', tw = g.measureText(tt).width, tx = 28;

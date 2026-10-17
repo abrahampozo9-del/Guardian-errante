@@ -127,51 +127,84 @@ const WG = (function () {
     const w = new World('exterior', OW_W, OW_H, T.GRASS);
     w.outdoor = true;
     reserved = new Uint8Array(OW_W * OW_H);
+    // ---------------------------------------------------------------- parcelas (fincas)
+    // El campo de Jaén es un mosaico de fincas: olivares, almendrales, barbechos y monte, separados
+    // por caminos y muros de piedra seca. Las fincas dan estructura (caminos, bordes, rincones).
+    const PS = 13, pid = new Int32Array(OW_W * OW_H), seeds = [];
+    const gw = Math.ceil(OW_W / PS) + 1, gh = Math.ceil(OW_H / PS) + 1;
+    for (let gy = 0; gy < gh; gy++) for (let gx = 0; gx < gw; gx++) seeds.push([gx * PS + (hash(gx, gy, 5) - 0.5) * PS * 0.8, gy * PS + (hash(gx, gy, 6) - 0.5) * PS * 0.8]);
+    for (let y = 0; y < OW_H; y++) for (let x = 0; x < OW_W; x++) {
+      const gx = Math.round(x / PS), gy = Math.round(y / PS); let best = 1e9, bi = 0;
+      for (let j = gy - 1; j <= gy + 1; j++) for (let i = gx - 1; i <= gx + 1; i++) {
+        if (i < 0 || j < 0 || i >= gw || j >= gh) continue;
+        const k = j * gw + i, dx = x - seeds[k][0], dy = (y - seeds[k][1]) * 1.2, d = dx * dx + dy * dy;
+        if (d < best) { best = d; bi = k; }
+      }
+      pid[y * OW_W + x] = bi;
+    }
+    G.pid = pid; G.seeds = seeds;
+    const ptype = (id, reg) => {
+      const h = hash(id, 1, 77);
+      if (reg === R_LLAN) return h < 0.38 ? 'esparto' : h < 0.62 ? 'almendral' : h < 0.84 ? 'cereal' : 'olivar';
+      if (reg === R_NORTE) return h < 0.5 ? 'quemado' : h < 0.75 ? 'esparto' : 'monte';
+      return h < 0.5 ? 'olivar' : h < 0.7 ? 'olivar_hierba' : h < 0.82 ? 'barbecho' : 'monte';
+    };
+    G.ptype = ptype;
+    const isBorder = (x, y) => { const k = pid[y * OW_W + x]; return (x + 1 < OW_W && pid[y * OW_W + x + 1] !== k) || (y + 1 < OW_H && pid[(y + 1) * OW_W + x] !== k); };
+    const borderKind = (x, y) => { const k = pid[y * OW_W + x], o = x + 1 < OW_W && pid[y * OW_W + x + 1] !== k ? pid[y * OW_W + x + 1] : pid[(y + 1) * OW_W + x]; const h = hash(Math.min(k, o), Math.max(k, o), 31); return h < 0.33 ? 'camino' : h < 0.62 ? 'muro' : 'nada'; };
+    const sierraAt = (x, y) => (x < 62 && y < 84) || (x < 112 && y < 28);
     // relieve
     for (let y = 0; y < OW_H; y++) for (let x = 0; x < OW_W; x++) {
       const n = fbm(x, y, 1);
-      let t = n > 0.62 ? T.DIRT : T.GRASS;
-      if (y >= 1) {
-        const cx = riverX(y), fw = floorW(y), d = x - cx, g = gentleK(y) > 0.5, wall = g ? SLOPE : 3 + fbm(x, y, 9) * 1.6;
-        if (Math.abs(d) <= fw) {
-          t = Math.abs(d) < 3.5 || g ? (n > 0.66 ? T.GRASS : T.GRASS_GREEN) : (n > 0.55 ? T.DIRT : T.GRASS_GREEN);
-          if (g && Math.abs(d) > 6 && fbm(x * 1.4, y * 1.4, 91) > 0.66) t = T.FIELD; // huertas en el fondo del valle
-        }
-        else if (g && Math.abs(d) <= fw + wall) {
-          // ladera en bancales: muros de piedra seca siguiendo el valle, con pasos cada pocas casillas
-          const k = Math.floor(Math.abs(d) - fw);
-          t = n > 0.56 ? T.DIRT : T.GRASS;
-          if (k % 5 === 2 && k < SLOPE - 1 && (y + k * 3) % 9 > 1) t = T.DRYWALL;
-        }
-        else if (Math.abs(d) <= fw + wall) t = T.CLIFF;
-        else if (d > 0) {
-          const bw = 22 + fbm(1, y, 3) * 8;
-          if (d <= fw + wall + bw) t = fbm(x, y, 7) > 0.6 ? T.CLIFF : (n > 0.45 ? T.DIRT : T.GRASS);
-          else t = fbm(x * 0.6, y * 0.6, 4) > 0.42 ? T.FIELD : T.GRASS;
-        }
+      let t = T.GRASS;
+      const cx = riverX(y), fw = floorW(y), d = x - cx, g = gentleK(y) > 0.5, wall = g ? SLOPE : 3 + fbm(x, y, 9) * 1.6;
+      const reg = region(x, y);
+      if (sierraAt(x, y)) {
+        // Sierra del Pozo: pinar sobre tierra parda; crestas calizas finas que hacen de muros naturales
+        const rr = 1 - Math.abs(2 * fbm(x * 1.3, y * 1.3, 21) - 1);
+        const edge = Math.min(y < 84 && x < 62 ? Math.min(62 - x, 84 - y) : 99, (x < 112 && y < 28) ? Math.min(112 - x, 28 - y) : 99, x, y);
+        t = n > 0.6 ? T.DIRT : T.GRASS;
+        if (rr > 0.86 || (edge < 3 && x < 3) || y < 2) t = T.MOUNTAIN;
+        if (fbm(x, y, 23) > 0.68 && edge > 4) t = T.MOUNTAIN; // peñones
+      } else if (Math.abs(d) <= fw) {
+        t = Math.abs(d) < 3.5 || g ? (n > 0.66 ? T.GRASS : T.GRASS_GREEN) : (n > 0.55 ? T.DIRT : T.GRASS_GREEN);
+        if (g && Math.abs(d) > 6 && fbm(x * 1.4, y * 1.4, 91) > 0.66) t = T.FIELD; // huertas en el fondo del valle
+      } else if (g && Math.abs(d) <= fw + wall) {
+        // ladera en bancales: muros de piedra seca siguiendo el valle, con pasos cada pocas casillas
+        const k = Math.floor(Math.abs(d) - fw);
+        t = n > 0.5 ? T.OLIVAR : T.GRASS;
+        if (k % 5 === 2 && k < SLOPE - 1 && (y + k * 3) % 9 > 1) t = T.DRYWALL;
+      } else if (Math.abs(d) <= fw + wall) t = T.CLIFF;
+      else if (d > 0 && reg === R_CARC) {
+        // cárcavas: mesas de arcilla con ramblas de arena entre ellas (laberinto)
+        const m = fbm(x * 0.9, y * 0.9, 7);
+        t = m > 0.52 ? T.CLIFF : (fbm(x, y, 8) > 0.55 ? T.SAND : T.SCRUB);
+      } else {
+        const ty = ptype(pid[y * OW_W + x], reg);
+        t = ty === 'olivar' || ty === 'quemado' ? T.OLIVAR : ty === 'barbecho' || ty === 'cereal' ? T.FIELD : ty === 'esparto' ? T.SCRUB : T.GRASS;
+        if (ty === 'monte' && n > 0.62) t = T.DIRT;
+        if (isBorder(x, y)) { const bk = borderKind(x, y); if (bk === 'camino') t = T.TRACK; else if (bk === 'muro' && (x * 3 + y * 5) % 9 > 1) t = T.DRYWALL; }
       }
       w.set(x, y, t);
     }
-    // Sierra del Pozo
-    for (let y = 0; y < OW_H; y++) for (let x = 0; x < OW_W; x++) {
-      const sierra = (x < 62 && y < 84) || (x < 112 && y < 28);
-      if (!sierra) continue;
-      const n = fbm(x, y, 21);
-      const edge = Math.min(y < 84 && x < 62 ? Math.min(62 - x, 84 - y) : 99, (x < 112 && y < 28) ? Math.min(112 - x, 28 - y) : 99);
-      if (n > 0.47 - Math.min(edge, 10) * 0.012 || (x <= 60 && y >= 56 && y <= 72)) w.set(x, y, T.MOUNTAIN);
-      else w.set(x, y, n > 0.4 ? T.DIRT : T.GRASS);
-    }
+    for (let x = 0; x < OW_W; x++) w.set(x, 0, T.MOUNTAIN);
     // río
     for (let y = 1; y < OW_H; y++) {
-      const cx = riverX(y), x0 = Math.round(cx) - 1, ww = 2 + (fbm(0, y, 13) > 0.6 ? 1 : 0);
-      for (let x = x0; x < x0 + ww; x++) w.set(x, y, T.WATER);
-      if (w.get(x0 - 1, y) === T.GRASS_GREEN && R.next() < 0.4) w.set(x0 - 1, y, T.SAND);
-      if (w.get(x0 + ww, y) === T.GRASS_GREEN && R.next() < 0.4) w.set(x0 + ww, y, T.SAND);
+      // río turquesa: 3 casillas, con pozas más anchas y hondas de vez en cuando
+      const cx = riverX(y), pool = fbm(0, y, 13), ww = 3 + (pool > 0.62 ? 1 : 0) + (pool > 0.72 ? 1 : 0), x0 = Math.round(cx) - 1 - (ww > 3 ? 1 : 0);
+      for (let x = x0; x < x0 + ww; x++) w.set(x, y, pool > 0.7 && x > x0 && x < x0 + ww - 1 ? T.DEEP : T.WATER);
+      // playas de grava en las curvas
+      const bar = fbm(5, y, 14) > 0.6;
+      if (bar && w.get(x0 - 1, y) === T.GRASS_GREEN) w.set(x0 - 1, y, T.SAND);
+      if (!bar && fbm(9, y, 15) > 0.6 && w.get(x0 + ww, y) === T.GRASS_GREEN) w.set(x0 + ww, y, T.SAND);
     }
     // carreteras
     road(w, [[60, 112], [66, 110], [80, 108], [95, 104], [100, 96], [101, 84], [101, 72], [104, 64], [110, 54], [118, 46], [130, 41], [141, 37], [150, 24], [156, 10], [158, 0]], 3, T.ASPHALT);
     road(w, [[60, 135], [64, 150], [70, 170], [74, 199]], 3, T.ASPHALT);
     road(w, [[16, 130], [8, 146], [0, 166]], 3, T.ASPHALT);
+    // camino forestal que sube a la sierra, pasa La Linde por el paso de la sierra y baja al Cortijo Quemado
+    road(w, [[30, 86], [33, 77], [39, 67], [40, 58], [37, 48], [44, 40], [56, 42], [66, 45], [74, 44]], 2, T.TRACK);
+    road(w, [[44, 40], [40, 30], [48, 18], [70, 12], [96, 16], [110, 24]], 2, T.TRACK);
     const rx = G.rx = Math.round(riverX(109));
     const brY = 99;
     road(w, [[100, 101], [112, 102], [124, 100], [136, 99], [rx - 2, 99]], 2, T.TRACK);
@@ -200,12 +233,24 @@ const WG = (function () {
     buildCortijo(w);
     buildCasaBlanca(w);
 
-    // La Linde Negra
-    for (let y = 64; y <= 65; y++) for (let x = 56; x < OW_W; x++) {
-      const t = w.get(x, y);
-      if (T.isWater(t) || t === T.CLIFF || t === T.MOUNTAIN) continue;
-      G.brambles.push([x, y, t]); w.set(x, y, T.BRAMBLE); reserved[y * OW_W + x] = 1;
+    // La Linde Negra: una muralla de cortados de punta a punta del mapa. Solo hay tres pasos (el de la
+    // sierra, el de la A-326 y el de la orilla del río), y los tres están cerrados por zarzas negras.
+    const lindeY = x => 64 + Math.round(1.6 * Math.sin(x * 0.045) + (fbm(x, 3, 77) - 0.5) * 3);
+    G.lindeY = lindeY;
+    const rc64 = Math.round(riverX(64));
+    const passes = [[37, 41], [101, 107], [rc64 + 2, rc64 + 5]];
+    for (let x = 1; x < OW_W - 1; x++) {
+      const yl = lindeY(x), pass = passes.some(([a, b]) => x >= a && x <= b);
+      for (let y = yl - 1; y <= yl + 1; y++) {
+        const t = w.get(x, y);
+        if (T.isWater(t)) continue;
+        if (pass) { G.brambles.push([x, y, t === T.ASPHALT ? T.ASPHALT : T.DIRT]); w.set(x, y, T.BRAMBLE); }
+        else w.set(x, y, x < 62 ? T.MOUNTAIN : T.CLIFF);
+        reserved[y * OW_W + x] = 1;
+      }
+      if (!pass && R.next() < 0.12) { const yy = yl + 2; if (!T.SOLID[w.get(x, yy)]) { w.prop(R.next() < 0.5 ? 'zarza' + R.int(2) : 'arbol_muerto' + R.int(2), x, yy); reserved[yy * OW_W + x] = 1; } }
     }
+    for (const [a, b] of passes) { w.prop('zarza0', a - 1, lindeY(a) + 2); w.prop('zarza1', b + 1, lindeY(b) + 2); }
     G.crossX = 104; G.crossY = 76;
     w.fill(103, 75, 3, 3, T.DIRT);
     w.prop('cruz', G.crossX, G.crossY, G.crossX, G.crossY, 1, 1).id = 'cruz';
@@ -238,6 +283,7 @@ const WG = (function () {
     w.pickups.push(new Pickup(Pickup.RELIC, 182 * 16 + 8, 152 * 16 + 8, 'reliquia_carcavas'));
     w.pickups.push(new Pickup(Pickup.RELIC, 74 * 16 + 8, 44 * 16 + 8, 'reliquia_sierra'));
     clearAround(w, 182, 152, 1); clearAround(w, 74, 44, 1);
+    landmarks(w);
     scatter(w);
     // siempre queda una senda libre por la orilla este, para que ningún árbol cierre el valle
     for (let y = 44; y < OW_H - 1; y++) {
@@ -295,7 +341,7 @@ const WG = (function () {
     add('Corral abandonado', 56, 129, [MK.HUECO, MK.JABALI], 1);
     add('Era de la ermita', 20, 106, [MK.NIDO], 1);
     add('Cárcavas del sur', rx + 20, 175, [MK.ALACRAN, MK.JABALI, MK.ALACRAN], 1.2);
-    add('Pinar de la sierra', 40, 40, [MK.JABALI, MK.JABALI, MK.ALACRAN], 1.5);
+    add('Pinar de la sierra', 40, 44, [MK.JABALI, MK.JABALI, MK.ALACRAN], 1.5);
     add('Cruce del norte', 120, 50, [MK.SOMBRA, MK.HUECO], 1.5);
     add('Higueras malditas', rv(55) - 3, 55, [MK.AHOGADO, MK.AHOGADO, MK.SOMBRA], 1.5);
     add('Llanos de los almendros', rx + 45, 125, [MK.JABALI, MK.ALACRAN], 1.25);
@@ -429,7 +475,7 @@ const WG = (function () {
       const dx = (x - (rx - 1.5)) / 3.4, dy = (y - 108.5) / 3.9;
       if (dx * dx + dy * dy < 1) w.set(x, y, dx * dx + dy * dy < 0.35 ? T.DEEP : T.WATER);
     }
-    w.fill(hx0 - 2, 108, hx1 - hx0 + 8, 9, T.CONCRETE);
+    w.fill(hx0 - 2, 108, hx1 - hx0 + 8, 9, T.TRACK); // explanada de tierra apisonada (como en las fotos)
     w.fill(rx + 2, 99, 2, 9, T.TRACK);
     for (let y = 101; y <= 104; y++) for (let x = hx0; x <= hx1; x++) w.set(x, y, T.ROOF);
     w.set(hx0 + 5, 102, T.ROOF_SOLAR); w.set(hx0 + 6, 102, T.ROOF_SOLAR); w.set(hx0 + 2, 103, T.ROOF_SOLAR);
@@ -500,61 +546,102 @@ const WG = (function () {
     w.prop('chatarra' + 2, x1 + 0.5, y0 + 6, x1, y0 + 6, 2, 1);
   }
 
+  // hitos y nodos: cortijos en ruinas con su era y su pozo, torres de la luz, la encina seca, coches
+  function landmarks(w) {
+    const free = (x, y) => !reserved[y * OW_W + x] && !T.SOLID[w.get(x, y)] && !w.blk[y * OW_W + x];
+    const ruin = (name, x0, y0, wd, ht) => {
+      for (let y = y0 - 1; y <= y0 + ht + 4; y++) for (let x = x0 - 2; x <= x0 + wd + 6; x++) { if (!T.isWater(w.get(x, y)) && w.get(x, y) !== T.ASPHALT) { w.set(x, y, T.DIRT); } reserved[y * OW_W + x] = 1; }
+      // planta de la casa: muros caídos en el perímetro, con huecos (puerta y ventanas rotas)
+      for (let x = x0; x < x0 + wd; x++) for (const y of [y0, y0 + ht - 1]) if (R.next() < 0.75 && !(y === y0 + ht - 1 && x === x0 + (wd >> 1))) w.prop('ruina' + R.int(3), x, y, x, y, 1, 1);
+      for (let y = y0 + 1; y < y0 + ht - 1; y++) for (const x of [x0, x0 + wd - 1]) if (R.next() < 0.7) w.prop('ruina' + R.int(3), x, y, x, y, 1, 1);
+      for (let y = y0 + 1; y < y0 + ht - 1; y++) for (let x = x0 + 1; x < x0 + wd - 1; x++) if (R.next() < 0.25) w.set(x, y, T.PAVING);
+      w.prop('pozo', x0 + wd + 2, y0 + 1, x0 + wd + 2, y0 + 1, 1, 1);
+      const era = new Prop(Art.P.era, (x0 + wd + 4) * 16, (y0 + ht + 3) * 16); w.decor.push({ img: Art.P.era, x: (x0 + wd + 1) * 16, y: (y0 + ht) * 16 });
+      w.prop('tocon', x0 - 1, y0 + ht + 2); w.prop('chatarra' + R.int(5), x0 + 1.5, y0 + ht + 2, x0 + 1, y0 + ht + 2, 2, 1);
+      const a = A(name, x0 - 2, y0 - 1, wd + 9, ht + 6); w.areas.push(a);
+      return [x0 + (wd >> 1), y0 + (ht >> 1)];
+    };
+    G.ruins = {
+      llanos: ruin('Cortijo de los Llanos', 192, 100, 6, 5),
+      moro: ruin('Cortijo del Moro', 84, 150, 6, 5),
+      quemado: ruin('Cortijo Quemado', 76, 40, 6, 5),
+    };
+    // la gran encina seca, en mitad de Los Llanos (se ve desde todas partes)
+    { const x = 204, y = 132; for (let j = y - 3; j <= y + 2; j++) for (let i = x - 3; i <= x + 3; i++) { w.set(i, j, T.SCRUB); reserved[j * OW_W + i] = 1; } w.prop('encina_seca', x, y, x - 1, y, 3, 1); G.encina = [x, y]; w.areas.push(A('La Encina Seca', x - 4, y - 5, 9, 8)); }
+    // torres de la luz siguiendo la A-326 (y una línea que cruza Los Llanos)
+    const line2 = [[66, 106], [84, 100], [96, 92], [97, 78], [99, 68], [108, 56], [122, 48], [138, 42], [148, 30], [152, 16]];
+    for (const [x, y] of line2) { for (let k = 0; k < 6; k++) { const xx = x + 4 + k % 3, yy = y + (k >> 1); if (free(xx, yy) && free(xx - 1, yy)) { w.prop('torre_luz', xx, yy, xx - 1, yy, 2, 1); reserved[yy * OW_W + xx] = 1; break; } } }
+    for (let x = 170; x < 218; x += 14) { const y = 116 + Math.round(Math.sin(x * 0.1) * 2); if (free(x, y)) { w.prop('torre_luz', x, y, x - 1, y, 2, 1); reserved[y * OW_W + x] = 1; } }
+    // atasco de coches abandonados en la A-326, justo antes de La Linde, y alguno a la entrada del pueblo
+    for (const [x, y, k] of [[103, 70, 0], [106, 67, 2], [100, 74, 1], [111, 56, 2], [118, 50, 0], [74, 109, 1], [90, 104, 2]]) w.prop('coche' + k, x, y, x - 1, y, 2, 1);
+  }
+
   function scatter(w) {
     const r = RNG(77);
+    const tree = (k, x, y) => w.prop(k, x, y, x, y, 1, 1);
     for (let y = 1; y < OW_H - 1; y++) for (let x = 1; x < OW_W - 1; x++) {
       if (reserved[y * OW_W + x] || w.blk[y * OW_W + x]) continue;
       const t = w.get(x, y);
-      if (T.SOLID[t]) continue;
+      if (T.SOLID[t] || t === T.TRACK || t === T.ASPHALT) continue;
       const sierra = (x < 62 && y < 84) || (x < 112 && y < 28);
       const reg = region(x, y), n = fbm(x, y, 41);
-      if (sierra) { if (r.next() < 0.22) w.prop('pino' + r.int(3), x, y, x, y, 1, 1); continue; }
+      if (sierra) {
+        // pinar espeso (muro verde) con claros; en los claros, rocas y retamas
+        const clear = fbm(x, y, 44) > 0.6;
+        if (!clear && r.next() < 0.34) tree('pino' + r.int(3), x, y);
+        else if (clear && r.next() < 0.04) tree('roca_musgo' + r.int(2), x, y);
+        else if (r.next() < 0.03) tree('retama' + r.int(3), x, y);
+        else if (r.next() < 0.01) w.prop('setas' + r.int(2), x, y);
+        continue;
+      }
       if (reg === R_BARR && gentleK(y) > 0.5) {
         const dr = Math.abs(x - riverX(y)), k = dr - floorW(y);
         if (k > 0) { // ladera: olivos y almendros en hileras entre bancales
           const kk = Math.floor(k) % 5;
-          if ((kk === 0 || kk === 4) && y % 2 === 0 && r.next() < 0.8) w.prop(fbm(x, y, 70) > 0.55 ? 'almendro' + r.int(2) : 'olivo' + r.int(3), x, y, x, y, 1, 1);
-          else if (r.next() < 0.03) w.prop('retama' + r.int(3), x, y, x, y, 1, 1);
-          else if (r.next() < 0.008) w.prop('roca_musgo' + r.int(2), x, y, x, y, 1, 1);
+          if ((kk === 0 || kk === 4) && y % 3 === 0 && r.next() < 0.85) tree(fbm(x, y, 70) > 0.55 ? 'almendro' + r.int(2) : 'olivo' + r.int(3), x, y);
+          else if (r.next() < 0.03) tree('retama' + r.int(3), x, y);
           continue;
         }
-        // fondo del valle: chopos y sauces junto al agua, hierba abierta
+        // fondo del valle (como en las fotos): galería de chopos y sauces junto al agua, cañas en la orilla
         if (dr < 7 && dr > 2 && r.next() < 0.012) { w.prop('setas' + r.int(2), x, y); continue; }
         if (t === T.FIELD) { if (x % 2 === 0 && y % 2 === 1 && r.next() < 0.5) w.prop('canas', x, y); continue; }
-        if (dr > 6 && fbm(x * 1.2, y * 1.2, 90) > 0.62) { if (x % 3 === 0 && y % 3 === 0 && r.next() < 0.9) w.prop('chopo' + r.int(2), x, y, x, y, 1, 1); continue; } // chopera
-        if (dr < 4.5 && !nearWater(w, x, y) && r.next() < 0.16) w.prop('chopo' + r.int(2), x, y, x, y, 1, 1);
-        else if (dr < 3 && r.next() < 0.1) w.prop('canas', x, y);
-        else if (dr < 7 && r.next() < 0.03) w.prop('sauce', x, y, x, y, 1, 1);
-        else if (r.next() < 0.012) w.prop('retama' + r.int(3), x, y, x, y, 1, 1);
+        if (dr > 6 && fbm(x * 1.2, y * 1.2, 90) > 0.62) { if (x % 2 === 0 && y % 3 === 0 && r.next() < 0.9) tree('chopo' + r.int(2), x, y); continue; } // chopera
+        if (dr < 4.5 && !nearWater(w, x, y) && r.next() < 0.2) tree('chopo' + r.int(2), x, y);
+        else if (nearWater(w, x, y) && r.next() < 0.25) w.prop('canas', x, y);
+        else if (dr < 7 && r.next() < 0.04) tree('sauce', x, y);
+        else if (r.next() < 0.012) tree('retama' + r.int(3), x, y);
         else if (r.next() < 0.006) w.pickups.push(new Pickup(Pickup.HERB, x * 16 + 8, y * 16 + 10, null));
         continue;
       }
       if (reg === R_BARR || (reg === R_NORTE && Math.abs(x - riverX(y)) <= floorW(y))) {
         const dr = Math.abs(x - riverX(y));
-        if (dr < 4 && r.next() < 0.07 && !nearWater(w, x, y)) w.prop('chopo' + r.int(2), x, y, x, y, 1, 1);
-        else if (dr < 3 && r.next() < 0.08) w.prop('canas', x, y);
-        else if (r.next() < 0.025) w.prop('sauce', x, y, x, y, 1, 1);
-        else if (r.next() < 0.03) w.prop('retama' + r.int(3), x, y, x, y, 1, 1);
+        if (dr < 4 && r.next() < 0.12 && !nearWater(w, x, y)) tree('chopo' + r.int(2), x, y);
+        else if (nearWater(w, x, y) && r.next() < 0.22) w.prop('canas', x, y);
+        else if (r.next() < 0.04) tree('sauce', x, y);
+        else if (r.next() < 0.03) tree('retama' + r.int(3), x, y);
         continue;
       }
       if (reg === R_CARC) {
-        if (r.next() < 0.012) w.prop('arbol_muerto' + r.int(2), x, y, x, y, 1, 1);
-        else if (r.next() < 0.006) w.prop('huesos', x, y);
-        else if (r.next() < 0.07) w.prop('retama' + r.int(3), x, y, x, y, 1, 1);
-        else if (r.next() < 0.03) w.prop('roca' + r.int(2), x, y, x, y, 1, 1);
-        else if (r.next() < 0.015) w.prop('pino' + r.int(3), x, y, x, y, 1, 1);
+        if (t === T.SAND) { if (r.next() < 0.01) w.prop('huesos', x, y); continue; }
+        if (r.next() < 0.015) tree('arbol_muerto' + r.int(2), x, y);
+        else if (r.next() < 0.07) tree('retama' + r.int(3), x, y);
+        else if (r.next() < 0.03) tree('roca' + r.int(2), x, y);
+        else if (r.next() < 0.012) tree('pino' + r.int(3), x, y);
         continue;
       }
-      if (reg === R_LLAN) {
-        if (t === T.GRASS && x % 4 === 0 && y % 4 === 2 && fbm(x, y, 8) > 0.45 && r.next() < 0.8) w.prop('almendro' + r.int(2), x, y, x, y, 1, 1);
-        else if (r.next() < 0.01) w.prop('retama' + r.int(3), x, y, x, y, 1, 1);
-        continue;
-      }
-      const grove = fbm(x * 0.7, y * 0.7, 12) > 0.36;
-      if (grove && x % 3 === 0 && y % 3 === 1) { if (r.next() < 0.92) w.prop('olivo' + r.int(3), x, y, x, y, 1, 1); }
-      else if (!grove && n > 0.62 && r.next() < 0.12) w.prop('pino' + r.int(3), x, y, x, y, 1, 1);
-      else if (!grove && r.next() < 0.02) w.prop('retama' + r.int(3), x, y, x, y, 1, 1);
-      else if (r.next() < 0.004) w.pickups.push(new Pickup(Pickup.HERB, x * 16 + 8, y * 16 + 10, null));
+      // fincas
+      const pk = G.pid[y * OW_W + x], ty = G.ptype(pk, reg), sd = G.seeds[pk];
+      const ph = (Math.floor(sd[0]) % 3 + 3) % 3, rowOk = (x + ph) % 3 === 0 && (y + ph) % 3 === 1;
+      if (ty === 'olivar' || ty === 'olivar_hierba') { if (rowOk && r.next() < 0.93) tree('olivo' + r.int(3), x, y); else if (r.next() < 0.003) w.pickups.push(new Pickup(Pickup.HERB, x * 16 + 8, y * 16 + 10, null)); continue; }
+      if (ty === 'quemado') { if (rowOk && r.next() < 0.8) tree(r.next() < 0.75 ? 'olivo_quemado' + r.int(2) : 'tocon', x, y); else if (r.next() < 0.004) w.prop('huesos', x, y); continue; }
+      if (ty === 'almendral') { if ((x + ph) % 4 === 0 && (y + ph) % 4 === 2 && r.next() < 0.9) tree('almendro' + r.int(2), x, y); continue; }
+      if (ty === 'cereal' || ty === 'barbecho') { if (r.next() < 0.004) tree('retama' + r.int(3), x, y); continue; }
+      if (ty === 'esparto') { if (r.next() < 0.012) tree('retama' + r.int(3), x, y); else if (r.next() < 0.006) tree('roca' + r.int(2), x, y); else if (r.next() < 0.002) tree('arbol_muerto' + r.int(2), x, y); continue; }
+      // monte: pinos y matorral en corros
+      const grove = fbm(x * 0.8, y * 0.8, 12) > 0.55;
+      if (grove && r.next() < 0.3) tree(reg === R_NORTE ? 'arbol_muerto' + r.int(2) : 'pino' + r.int(3), x, y);
+      else if (r.next() < 0.05) tree('retama' + r.int(3), x, y);
+      else if (r.next() < 0.01) tree('roca' + r.int(2), x, y);
     }
   }
 

@@ -73,6 +73,7 @@ G.renderWorld = function (g) {
   for (let y = ty0; y <= ty0 + Math.ceil(WH / TS) + 1; y++) for (let x = tx0; x <= tx0 + Math.ceil(WW / TS) + 1; x++) {
     if (x < 0 || y < 0 || x >= w.w || y >= w.h) continue;
     const t = w.get(x, y), sx = x * TS - cx, sy = y * TS - cy;
+    if (Art.faces && Art.faces[t]) { this.drawHigh(g, t, x, y, sx, sy); this.edgeDetail(g, t, x, y, sx, sy); continue; }
     g.drawImage(cv(Art.tile(t, x, y, frame)), sx, sy);
     const tp = Art.blendPri[t];
     if (tp !== undefined) { // fundido con los terrenos vecinos de más prioridad
@@ -166,11 +167,11 @@ G.edgeDetail = function (g, t, x, y, sx, sy) {
   if (T.isWater(t) && t !== T.POOL) {
     const sh = n => T.isWater(n) || n === T.BRIDGE || Art.blendPri[n] !== undefined;
     const up = w.get(x, y - 1);
-    if (!sh(up)) { g.fillStyle = '#2a6a66'; g.fillRect(sx, sy, TS, 2); g.fillStyle = '#a8e4dc'; g.fillRect(sx, sy + 2, TS, 1); }
-    g.fillStyle = '#9ad8d0';
+    if (!sh(up)) { g.fillStyle = 'rgba(6,16,24,0.55)'; g.fillRect(sx, sy, TS, 4); g.fillStyle = 'rgba(6,16,24,0.25)'; g.fillRect(sx, sy + 4, TS, 3); }
+    g.fillStyle = 'rgba(170,230,220,0.55)';
     if (!sh(w.get(x - 1, y))) g.fillRect(sx, sy, 1, TS);
     if (!sh(w.get(x + 1, y))) g.fillRect(sx + TS - 1, sy, 1, TS);
-    if (!sh(w.get(x, y + 1))) { g.fillStyle = '#b8ece4'; g.fillRect(sx, sy + TS - 1, TS, 1); }
+    if (!sh(w.get(x, y + 1))) { g.fillStyle = '#c8f0e8'; g.fillRect(sx, sy + TS - 1, TS, 1); }
   } else if (t === T.POOL) {
     const up = w.get(x, y - 1);
     if (!T.isWater(up) && up !== T.BRIDGE) { g.fillStyle = '#2a6a66'; g.fillRect(sx, sy, TS, 2); g.fillStyle = '#a8e4dc'; g.fillRect(sx, sy + 2, TS, 1); }
@@ -179,20 +180,42 @@ G.edgeDetail = function (g, t, x, y, sx, sy) {
     if (!T.isWater(w.get(x + 1, y))) g.fillRect(sx + TS - 1, sy, 1, TS);
     if (!T.isWater(w.get(x, y + 1))) { g.fillStyle = '#b8ece4'; g.fillRect(sx, sy + TS - 1, TS, 1); }
   } else if (t === T.CLIFF || t === T.MOUNTAIN) {
-    const below = w.get(x, y + 1);
-    if (below !== t && !T.isWater(below)) { g.fillStyle = 'rgba(0,0,0,0.27)'; g.fillRect(sx, sy + TS - 4, TS, 4); g.fillStyle = 'rgba(0,0,0,0.16)'; g.fillRect(sx, sy + TS, TS, 3); }
-    const above = w.get(x, y - 1);
-    if (above !== t && above !== T.VOID) { g.fillStyle = 'rgba(255,255,240,0.2)'; g.fillRect(sx, sy, TS, 2); }
+    // nada: el relieve lo pinta drawHigh
   } else if (ROOFS.has(t)) {
     if (!ROOFS.has(w.get(x, y - 1))) { g.fillStyle = '#e89a74'; g.fillRect(sx, sy, TS, 1); g.fillStyle = '#7a3220'; g.fillRect(sx, sy + 1, TS, 1); }
     if (!ROOFS.has(w.get(x, y + 1))) { g.fillStyle = '#5a2416'; g.fillRect(sx, sy + TS - 2, TS, 2); }
-  } else if (!T.SOLID[t]) {
-    if (FACES.has(w.get(x, y - 1))) { g.fillStyle = 'rgba(0,0,0,0.22)'; g.fillRect(sx, sy, TS, 4); }
+  } else if (!T.SOLID[t] || T.isWater(t)) {
+    const up = w.get(x, y - 1);
+    if (FACES.has(up)) { g.fillStyle = 'rgba(10,6,20,0.28)'; g.fillRect(sx, sy, TS, 3); g.fillStyle = 'rgba(10,6,20,0.14)'; g.fillRect(sx, sy + 3, TS, 3); }
+    else if (up === T.CLIFF || up === T.MOUNTAIN) { // sombra que proyecta el cortado (hacia abajo y a la derecha, luz arriba-izquierda)
+      g.fillStyle = 'rgba(10,6,24,0.34)'; g.fillRect(sx, sy, TS, 4); g.fillStyle = 'rgba(10,6,24,0.18)'; g.fillRect(sx, sy + 4, TS, 4);
+    }
+    const lf = w.get(x - 1, y);
+    if (lf === T.CLIFF || lf === T.MOUNTAIN) { g.fillStyle = 'rgba(10,6,24,0.22)'; g.fillRect(sx, sy, 5, TS); }
   }
   if (t === T.WALL_WHITE || t === T.WINDOW) {
     const below = w.get(x, y + 1);
     if (below === T.WALL_WHITE || below === T.WINDOW || below === T.DOOR) { g.fillStyle = '#f2eee6'; g.fillRect(sx, sy + 12, TS, 4); g.fillStyle = '#e5dfd3'; g.fillRect(sx + 3, sy + 13, 1, 1); }
   }
+};
+// relieve: la cima de los cortados y la sierra se ve desde arriba; las dos filas del borde sur son la pared
+G.drawHigh = function (g, t, x, y, sx, sy) {
+  const w = this.world, same = n => n === t || n === T.VOID;
+  const b1 = w.get(x, y + 1), b2 = w.get(x, y + 2);
+  const row = !same(b1) ? 1 : !same(b2) ? 0 : -1;
+  const lf = same(w.get(x - 1, y)), rt = same(w.get(x + 1, y)), up = same(w.get(x, y - 1));
+  if (row >= 0) {
+    g.drawImage(cv(Art.faces[t][row][x & 3]), sx, sy);
+    if (!lf) { g.fillStyle = 'rgba(255,240,210,0.14)'; g.fillRect(sx, sy, 2, TS); }
+    if (!rt) { g.fillStyle = 'rgba(8,4,16,0.4)'; g.fillRect(sx + TS - 4, sy, 4, TS); }
+    if (row === 0 && !up) { g.fillStyle = 'rgba(255,240,210,0.25)'; g.fillRect(sx, sy, TS, 1); }
+    return;
+  }
+  g.drawImage(cv(Art.tile(t, x, y, 0)), sx, sy);
+  // bordes de la cima: oscuro por fuera, labio claro donde da la luz (arriba e izquierda)
+  if (!up) { g.fillStyle = 'rgba(8,4,16,0.55)'; g.fillRect(sx, sy, TS, 1); g.fillStyle = 'rgba(255,240,200,0.22)'; g.fillRect(sx, sy + 1, TS, 2); }
+  if (!lf) { g.fillStyle = 'rgba(8,4,16,0.5)'; g.fillRect(sx, sy, 1, TS); g.fillStyle = 'rgba(255,240,200,0.18)'; g.fillRect(sx + 1, sy, 2, TS); }
+  if (!rt) { g.fillStyle = 'rgba(8,4,16,0.55)'; g.fillRect(sx + TS - 1, sy, 1, TS); g.fillStyle = 'rgba(8,4,16,0.3)'; g.fillRect(sx + TS - 4, sy, 3, TS); }
 };
 G.shadow = function (g, x, y, r) { if (r <= 0) return; g.fillStyle = 'rgba(0,0,0,0.27)'; g.beginPath(); g.ellipse(x, y, r, r * 0.4 + 0.5, 0, 0, Math.PI * 2); g.fill(); };
 G.glow = function (g, x, y, r, col) {

@@ -27,48 +27,6 @@ CINE.continuara = { pages: [
   ['guardian', 'La cueva PB4 se abre bajo la Sierra de Castril. Al otro lado, dicen, hay una casa llena de relojes parados.'],
   ['alba', 'CONTINUARÁ\n\nCapítulo IV · La Sierra (en preparación)'],
 ] };
-SCENES.caseta = function (t) {
-  C.sky(['#06040a', '#120a14', '#1e1018', '#2a1418']);
-  C.stars(20, 401, t, 0.5);
-  C.r(0, 84, CW, 29, '#1a1614'); for (let x = 0; x < CW; x += 7) C.r(x, 84 + (x % 3), 6, 1, '#24201c');
-  // la caseta, grande y en el centro
-  C.r(70, 40, 60, 44, '#b8b0a2'); C.r(70, 40, 60, 2, '#d8d0c2'); for (let x = 66; x < 134; x += 6) C.r(x, 30, 6, 11, '#6a2a1a');
-  C.r(76, 52, 18, 14, '#1a1614'); C.r(74, 66, 22, 3, '#a89a84');
-  const pulse = 0.5 + 0.5 * Math.sin(t * 2);
-  C.r(104, 48, 18, 36, '#100204'); C.glow(113, 70, 28 + pulse * 6, `rgba(220,40,20,${0.35 + 0.25 * pulse})`);
-  for (let i = 0; i < 5; i++) C.r(106 + i, 56 + i * 6, 14 - i * 2, 2, `rgba(${120 - i * 15},20,10,0.9)`);
-  // fuente del Músico al lado
-  cg.fillStyle = '#5a564e'; cg.beginPath(); cg.ellipse(42, 84, 18, 5, 0, 0, Math.PI * 2); cg.fill(); C.r(40, 60, 4, 24, '#6a665e'); C.r(39, 52, 6, 9, '#3a4a40'); C.r(40, 48, 4, 4, '#3a4a40');
-  C.r(166, 40, 3, 44, '#141414'); C.r(163, 34, 9, 7, '#141414'); C.r(164, 35, 7, 5, '#f0c050'); C.glow(167, 38, 14, 'rgba(255,200,90,0.45)');
-};
-SCENES.caida = function (t) {
-  C.sky(['#0a0814', '#1a1020', '#3a1a20', '#6a2a1a']);
-  C.ridge(80, 6, 0.04, 411, '#140c10');
-  for (let x = 6; x < CW; x += 9) { const y = 92 + (x % 3); C.r(x, y - 6, 1, 6, '#1a1210'); C.r(x - 3, y - 9, 7, 4, '#2a2a1e'); }
-  C.r(0, 96, CW, 17, '#0e0a0a');
-  // la cruz encendida a la izquierda
-  C.glow(30, 70, 30, 'rgba(255,220,140,0.45)'); C.r(28, 58, 4, 24, '#d8ccb8'); C.r(22, 64, 16, 4, '#d8ccb8');
-  // el ángel cayendo en llamas
-  const k = Math.min(1, t / 3), x = 170 - k * 60, y = 6 + k * 84;
-  for (let i = 0; i < 18; i++) { const tt = i / 18; C.r(x + tt * 40, y - tt * 50, 3 - tt * 2, 3 - tt * 2, `rgba(255,${180 - i * 6},60,${1 - tt})`); }
-  C.glow(x, y, 22, 'rgba(255,240,200,0.7)');
-  cg.fillStyle = '#fff8e8'; cg.beginPath(); cg.moveTo(x, y); cg.lineTo(x - 12, y - 6); cg.lineTo(x - 4, y + 3); cg.fill(); cg.beginPath(); cg.moveTo(x, y); cg.lineTo(x + 10, y - 9); cg.lineTo(x + 5, y + 3); cg.fill();
-  if (t > 3) { C.glow(110, 92, 40 + Math.sin(t * 10) * 3, 'rgba(255,160,60,0.5)'); }
-};
-SCENES.tentacion = function (t) {
-  C.sky(['#0a0a10', '#14141c', '#1e1e26', '#2a2a30']);
-  C.reflect ? 0 : 0;
-  C.r(0, 52, CW, 30, '#1c2024'); for (let i = 0; i < 30; i++) C.r((i * 37 + t * 4) % CW, 54 + (i * 7) % 26, 8, 1, 'rgba(160,170,180,0.15)');
-  C.r(0, 82, CW, 8, '#5a5a54'); C.r(0, 82, CW, 1, '#7a7a72'); for (let x = 4; x < CW; x += 14) C.r(x, 84, 1, 6, '#3a3a36');
-  C.r(0, 90, CW, 23, '#121416');
-  // el hombre de blanco en la presa
-  const x = 120;
-  C.glow(x, 66, 26, 'rgba(255,230,180,0.25)');
-  C.r(x - 4, 64, 8, 18, '#eeeae2'); C.r(x - 4, 64, 2, 18, '#ffffff'); C.r(x - 3, 56, 6, 8, '#e0bc9c'); C.r(x - 3, 54, 6, 3, '#d8b050'); C.r(x - 1, 66, 2, 6, '#8a1a14');
-  C.r(x - 1, 59, 1, 1, '#c89a20'); C.r(x + 1, 59, 1, 1, '#c89a20');
-  C.knight(60, 108, t);
-};
-
 // ---------------------------------------------------------------- elecciones en los diálogos
 ST.CHOICE = 'CHOICE';
 G.ask = function (who, text, options, cb) {

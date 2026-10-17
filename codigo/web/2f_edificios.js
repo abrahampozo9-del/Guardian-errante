@@ -125,25 +125,25 @@ Art.initBuildings = function () {
     }
     for (let i = 0; i < 3; i++) p(b, R.int(16), R.int(16), 0x6a7a3a);
   });
-  // ---------------------------------------------------------------- interiores: tarima de madera continua (atlas 64×64)
+  // ---------------------------------------------------------------- interiores: losa de barro cocido (como en las fotos de la casa)
   {
     const S = 64, f = img(S, S), R = RNG(2024);
-    const woods = [0x8a5a34, 0x96643a, 0xa06c40, 0x8e6038, 0x9a6a3e];
-    for (let row = 0; row < S / 5 + 1; row++) {
-      let x = -R.int(20);
-      while (x < S) {
-        const len = 14 + R.int(18), c = woods[R.int(woods.length)];
-        for (let yy = 0; yy < 5; yy++) for (let xx = 0; xx < len; xx++) {
-          const X = ((x + xx) % S + S) % S, Y = row * 5 + yy; if (Y >= S) continue;
-          let col = c;
-          if (yy === 4) col = 0x4e3018; else if (yy === 0) col = shade(c, 1.14);
-          else if (xx === 0) col = 0x5a3820;
-          else if (hash(X, Y >> 1, 77) < 0.12) col = shade(c, 0.88); // veta
-          f.d[Y * S + X] = (0xff000000 | col) >>> 0;
-        }
-        if (R.next() < 0.25) { const kx = ((x + 4 + R.int(len - 8)) % S + S) % S, ky = row * 5 + 2; if (ky < S) { f.d[ky * S + kx] = 0xff5a3820; } }
-        x += len;
+    const clay = [0x9a5236, 0xa45a3a, 0xae6440, 0x985034, 0xb26a46];
+    const T8 = 16; // baldosas de 16 px, llaga fina
+    for (let ty = 0; ty < S / T8; ty++) for (let tx = 0; tx < S / T8; tx++) {
+      const c = clay[R.int(clay.length)];
+      for (let yy = 0; yy < T8; yy++) for (let xx = 0; xx < T8; xx++) {
+        const X = tx * T8 + xx, Y = ty * T8 + yy;
+        let col = c;
+        if (yy === T8 - 1 || xx === T8 - 1) col = 0x5a3424; // llaga
+        else if (yy === 0 || xx === 0) col = shade(c, 1.12); // canto con luz
+        else if (yy === T8 - 2 || xx === T8 - 2) col = shade(c, 0.86);
+        else if (hash(X >> 1, Y >> 1, 91) < 0.08) col = shade(c, 0.9); // poro del barro
+        else if (hash(X, Y, 93) < 0.015) col = shade(c, 1.2);
+        f.d[Y * S + X] = (0xff000000 | col) >>> 0;
       }
+      // brillo del encerado: una mancha suave en algunas baldosas
+      if (R.next() < 0.4) { const bx = tx * T8 + 3 + R.int(6), by = ty * T8 + 3 + R.int(6); for (let k = 0; k < 4; k++) f.d[(by + (k >> 1)) * S + bx + (k & 1)] = (0xff000000 | shade(c, 1.18)) >>> 0; }
     }
     Art.tiles[T.FLOOR] = [];
     for (let k = 0; k < 16; k++) { const t = img(16, 16), i = k & 3, j = k >> 2; for (let y = 0; y < 16; y++) for (let x = 0; x < 16; x++) t.d[y * 16 + x] = f.d[(j * 16 + y) * S + i * 16 + x]; Art.tiles[T.FLOOR][k] = [t]; }

@@ -182,8 +182,21 @@ G.edgeDetail = function (g, t, x, y, sx, sy) {
   } else if (t === T.CLIFF || t === T.MOUNTAIN) {
     // nada: el relieve lo pinta drawHigh
   } else if (ROOFS.has(t)) {
-    if (!ROOFS.has(w.get(x, y - 1))) { g.fillStyle = '#e89a74'; g.fillRect(sx, sy, TS, 1); g.fillStyle = '#7a3220'; g.fillRect(sx, sy + 1, TS, 1); }
-    if (!ROOFS.has(w.get(x, y + 1))) { g.fillStyle = '#5a2416'; g.fillRect(sx, sy + TS - 2, TS, 2); }
+    const m = w.roofMeta && w.roofMeta.get(y * w.w + x);
+    if (m && t !== T.ROOF_SOLAR) {
+      // tono de la teja de esta casa
+      const tones = ['rgba(0,0,0,0)', 'rgba(90,40,10,0.16)', 'rgba(40,30,30,0.18)', 'rgba(255,200,150,0.08)'];
+      if (m.tone) { g.fillStyle = tones[m.tone]; g.fillRect(sx, sy, TS, TS); }
+      if (y < m.ridge) { g.fillStyle = 'rgba(20,6,10,0.28)'; g.fillRect(sx, sy, TS, TS); } // faldón de atrás, en sombra
+      if (y === m.ridge) { g.fillStyle = 'rgba(20,6,10,0.28)'; g.fillRect(sx, sy, TS, 5); g.fillStyle = '#c87452'; g.fillRect(sx, sy + 5, TS, 2); g.fillStyle = '#5a2214'; g.fillRect(sx, sy + 7, TS, 1); for (let k = 2; k < TS; k += 5) { g.fillStyle = '#e09470'; g.fillRect(sx + k, sy + 5, 2, 1); } }
+      if (x === m.x0) { g.fillStyle = 'rgba(255,220,190,0.22)'; g.fillRect(sx, sy, 2, TS); g.fillStyle = '#3a160c'; g.fillRect(sx, sy, 1, TS); }
+      if (x === m.x1) { g.fillStyle = 'rgba(20,6,10,0.4)'; g.fillRect(sx + TS - 3, sy, 3, TS); }
+      if (y === m.y0) { g.fillStyle = '#3a160c'; g.fillRect(sx, sy, TS, 1); }
+      if (y === m.yb) { g.fillStyle = '#e89a74'; g.fillRect(sx, sy + TS - 3, TS, 1); g.fillStyle = '#4a1c10'; g.fillRect(sx, sy + TS - 2, TS, 2); } // alero
+    } else {
+      if (!ROOFS.has(w.get(x, y - 1))) { g.fillStyle = '#e89a74'; g.fillRect(sx, sy, TS, 1); g.fillStyle = '#7a3220'; g.fillRect(sx, sy + 1, TS, 1); }
+      if (!ROOFS.has(w.get(x, y + 1))) { g.fillStyle = '#5a2416'; g.fillRect(sx, sy + TS - 2, TS, 2); }
+    }
   } else if (!T.SOLID[t] || T.isWater(t)) {
     const up = w.get(x, y - 1);
     if (FACES.has(up)) { g.fillStyle = 'rgba(10,6,20,0.28)'; g.fillRect(sx, sy, TS, 3); g.fillStyle = 'rgba(10,6,20,0.14)'; g.fillRect(sx, sy + 3, TS, 3); }

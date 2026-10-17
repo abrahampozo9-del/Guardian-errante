@@ -406,7 +406,7 @@ const WG = (function () {
       w.prop('chatarra' + R.int(5), x + 0.5, h, x, h, 2, 1);
     }
     for (let i = 0; i < 6; i++) { const pt = [62 + i * 3, 110 - (i >> 1)]; if (R.next() < 0.6) w.prop('chatarra' + R.int(5), pt[0], pt[1] - 1, pt[0] - 1, pt[1] - 1, 2, 1); }
-    for (let i = 0; i < 14; i++) {
+    for (let i = 0; i < 4; i++) {
       const x = vs[R.int(vs.length)] + (R.bool() ? 0 : 1), y = 88 + R.int(46);
       if (w.get(x, y) === T.PAVING && w.get(x, y - 1) === T.PAVING) w.prop('farola', x, y, x, y, 1, 1);
     }
@@ -427,8 +427,15 @@ const WG = (function () {
       } else {
         const roof = R.int(3) === 0 ? T.ROOF_DARK : T.ROOF;
         for (let yy = y0; yy <= y1 - 2; yy++) for (let xx = x; xx < x + hw; xx++) w.set(xx, yy, roof);
+        // cada casa con su tejado: cumbrera, faldones, hastiales y un tono de teja propio
+        if (!w.roofMeta) w.roofMeta = new Map();
+        const meta = { x0: x, x1: x + hw - 1, y0, yb: y1 - 2, ridge: y0 + Math.max(0, Math.floor((y1 - 2 - y0) / 2)), tone: R.int(4) };
+        for (let yy = y0; yy <= y1 - 2; yy++) for (let xx = x; xx < x + hw; xx++) w.roofMeta.set(yy * w.w + xx, meta);
+        if (R.next() < 0.45) { const cx = x + 1 + R.int(Math.max(1, hw - 2)); w.prop('chimenea_t', cx, meta.ridge + 1); }
+        else if (R.next() < 0.3) w.prop('antena', x + R.int(hw) + 0.5, meta.ridge + 1);
         for (let xx = x; xx < x + hw; xx++) { w.set(xx, y1 - 1, R.next() < 0.45 ? T.WINDOW : T.WALL_WHITE); w.set(xx, y1, R.next() < 0.3 ? T.WINDOW : T.WALL_WHITE); }
-        w.set(x + R.int(hw), y1, T.DOOR);
+        const dx = x + R.int(hw); w.set(dx, y1, T.DOOR);
+        if (R.next() < 0.25 && w.get(dx + 1, y1 + 1) === T.PAVING) w.prop('maceta', dx + 1, y1 + 1, dx + 1, y1 + 1, 1, 1);
         if (R.next() < 0.2) w.set(x + R.int(hw), y0, T.ROOF_SOLAR);
       }
       x += hw;

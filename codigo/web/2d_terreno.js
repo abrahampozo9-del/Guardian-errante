@@ -94,7 +94,7 @@ Art.initTerrain = function () {
     return b;
   }
   function cobbles(cols, mortar, seed) {
-    const b = img(S, S), pts = [], n = 110;
+    const b = img(S, S), pts = [], n = 190;
     for (let i = 0; i < n; i++) pts.push([hash(i, 1, seed) * S, hash(i, 2, seed) * S, cols[Math.floor(hash(i, 3, seed) * cols.length)]]);
     for (let y = 0; y < S; y++) for (let x = 0; x < S; x++) {
       let best = 1e9, second = 1e9, bi = 0, bdx = 0, bdy = 0;

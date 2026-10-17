@@ -112,3 +112,19 @@ Art.initLandmarks = function () {
     put('zarza' + v, b);
   }
 };
+// ---------------------------------------------------------------- tejados: chimenea encalada y antena de tele
+Art.initRoofProps = function () {
+  const { img, p, r, ov, ova, line, shade } = Px;
+  {
+    const b = img(10, 18);
+    ova(b, 6, 16, 4, 1.4, 0x40000000);
+    r(b, 2, 5, 6, 11, 0xd8d2c4); r(b, 2, 5, 2, 11, 0xeee8da); r(b, 6, 5, 2, 11, 0xa8a294);
+    r(b, 1, 2, 8, 3, 0x8a3a22); r(b, 1, 2, 8, 1, 0xb85a36); r(b, 3, 3, 4, 2, 0x1a1410);
+    Px.outlineTint(b); Art.P.chimenea_t = b;
+  }
+  {
+    const b = img(16, 22);
+    line(b, 8, 21, 8, 3, 0x6a6a6e); line(b, 2, 6, 14, 6, 0x8a8a8e); line(b, 4, 9, 12, 9, 0x8a8a8e); line(b, 5, 12, 11, 12, 0x8a8a8e); line(b, 8, 3, 3, 0, 0x6a6a6e);
+    Art.P.antena = b;
+  }
+};

@@ -30,6 +30,7 @@ G.boot = function () {
   Art.initCharacters2();
   Art.initPlaces();
   Art.initLandmarks();
+  Art.initRoofProps();
   Art.initEnemies();
   this.buildWorlds();
   this.hasSave = !!this.readSave();

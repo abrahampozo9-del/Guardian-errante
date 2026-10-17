@@ -136,7 +136,7 @@ const Touch = {
     if (!G.touch) { G.touch = true; }
     for (const t of e.changedTouches) {
       const [x, y] = localXY(t);
-      if (G.st === ST.PLAY) {
+      if (G.st === ST.PLAY || G.st === 'PADEL') {
         Touch.layout(cw, ch);
         const b = Touch.hit(x, y);
         if (b) { G.queue.add(b.code); Touch.flash[b.id] = performance.now() + 150; if (b.id === 'atk') { Touch.atkId = t.identifier; G.keys.add('AtkHold'); } continue; }

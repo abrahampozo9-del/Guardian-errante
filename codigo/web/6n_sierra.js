@@ -165,6 +165,7 @@ SIE.buhardilla = function () {
 const _gwS = G.getWorld;
 G.getWorld = function (id) {
   if (!this.worlds[id] && ['pb4', 'sierra', 'relojero', 'buhardilla'].includes(id)) {
+    if (!this.worlds.bolera) _gwS.call(this, 'bolera'); // la boca de la cueva está en La Bolera
     if (id !== 'pb4' && !this.worlds.pb4) this.worlds.pb4 = SIE.cueva();
     if (id !== 'sierra' && id !== 'pb4' && !this.worlds.sierra) this.worlds.sierra = SIE.sierra();
     const w = { pb4: SIE.cueva, sierra: SIE.sierra, relojero: SIE.taller, buhardilla: SIE.buhardilla }[id]();

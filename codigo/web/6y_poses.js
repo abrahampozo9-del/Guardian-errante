@@ -62,7 +62,7 @@ POSE.smear = function (g, cx, cy, from, to, r0, r1, alpha) {
       const fade = alpha * c[3] * Math.pow(k1, 1.6); // más intensa cerca de la espada
       // la punta de la media luna se afila: las bandas exteriores empiezan más tarde
       if (k1 < band * 0.18) continue;
-      g.fillStyle = `rgba(${c[0]},${c[1]},${c[2]},${fade})`;
+      g.fillStyle = rgbaQ(c[0], c[1], c[2], fade);
       g.beginPath(); g.moveTo(cx + Math.cos(b0) * ra, cy + Math.sin(b0) * ra * 0.82); g.lineTo(cx + Math.cos(b1) * ra, cy + Math.sin(b1) * ra * 0.82);
       g.lineTo(cx + Math.cos(b1) * rb, cy + Math.sin(b1) * rb * 0.82); g.lineTo(cx + Math.cos(b0) * rb, cy + Math.sin(b0) * rb * 0.82); g.fill();
     }

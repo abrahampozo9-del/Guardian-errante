@@ -114,7 +114,7 @@ class Monster extends Entity {
     if (this.kind === MK.ALACRAN) {
       // se mueve a saltos, rodeando
       this.think -= dt;
-      if (this.think <= 0) { this.think = 0.4; this.wanderA = Math.atan2(dy, dx) + (MRand.bool() ? 1 : -1) * (0.6 + MRand.next() * 0.6); }
+      if (this.think <= 0 || Number.isNaN(this.wanderA)) { this.think = 0.4; this.wanderA = Math.atan2(dy, dx) + (MRand.bool() ? 1 : -1) * (0.6 + MRand.next() * 0.6); } // al pasar de quieto a perseguir, wanderA puede venir vacío (NaN)
       const mx = Math.cos(this.wanderA) * sp * dt, my = Math.sin(this.wanderA) * sp * dt;
       if (this.moveIn(w, mx, my)) this.moving = true; else this.think = 0;
       this.faceTo(dx, dy); return;

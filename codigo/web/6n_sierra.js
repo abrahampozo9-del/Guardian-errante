@@ -211,7 +211,7 @@ const _objTS = G.objectiveTarget;
 G.objectiveTarget = function () {
   const E = ETAPA;
   switch (this.stage) {
-    case E.SIERRA: return [WS.pb4[0], WS.pb4[1] + 1, 'bolera'];
+    case E.SIERRA: return WS.pb4 ? [WS.pb4[0], WS.pb4[1] + 1, 'bolera'] : [54, 2, 'pantano']; // si La Bolera aún no está construida, hacia su camino
     case E.CUEVA: return SIE.caveOut ? [SIE.caveOut[0], SIE.caveOut[1], 'pb4'] : null;
     case E.RELOJERO: case E.CANDIDA: case E.BUHARDILLA: case E.GUARDA: return SIE.door ? [SIE.door[0], SIE.door[1] + 1, 'sierra'] : null;
   }

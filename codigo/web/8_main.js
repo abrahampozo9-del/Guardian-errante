@@ -191,8 +191,28 @@ const Touch = {
     let last = performance.now();
     // un paso de lógica por cada fotograma de la pantalla, con el tiempo real que ha pasado (troceado si es
     // largo): a 60, 90 o 120 Hz todo avanza lo mismo por segundo y ningún fotograma se repite ni se salta
+    // calidad automática: si la pantalla pierde fotogramas (también por trabajo de la tarjeta gráfica, que no se ve
+    // en el tiempo de dibujo), se baja la resolución interna del mundo y se recuerda para la próxima vez
+    try { const q = +localStorage.getItem('guardian_calidad'); if (q >= 1 && q <= 3) G.rsMax = q; } catch (e) { }
+    const pace = { iv: [], late: 0, n: 0, st: null, calm: 0 };
     function frame(now) {
-      let dt = Math.min(0.1, Math.max(0, (now - last) / 1000)); last = now;
+      // a 90/120 Hz, si el aparato no da más de sí, se pinta a 60 (más regular que 120 a trompicones)
+      if (G.cap60 && now - last < 13) { requestAnimationFrame(frame); return; }
+      const raw = now - last;
+      let dt = Math.min(0.1, Math.max(0, raw / 1000)); last = now;
+      if (G.st === ST.PLAY && pace.st === ST.PLAY && raw < 250 && document.visibilityState === 'visible' && ++pace.calm > 30) {
+        pace.iv.push(raw); if (pace.iv.length > 90) pace.iv.shift();
+        const ref = pace.iv.length > 20 ? pace.iv.slice().sort((a, b) => a - b)[Math.floor(pace.iv.length * 0.3)] : 16.7;
+        pace.n++; if (raw > ref * 1.7) pace.late++;
+        if (pace.n >= 240) {
+          if (pace.late / pace.n > 0.07) {
+            if (G.rs > 1) { G.rsMax = G.rs - 1; try { localStorage.setItem('guardian_calidad', String(G.rsMax)); } catch (e) { } }
+            else if (!G.cap60 && ref < 13) { G.cap60 = true; pace.iv.length = 0; }
+          }
+          pace.n = 0; pace.late = 0;
+        }
+      } else if (G.st !== pace.st) pace.calm = 0;
+      pace.st = G.st;
       if (canvas.clientWidth !== cw || canvas.clientHeight !== ch) { resize(); G.dirty = true; }
       let first = true;
       while (dt > 0.0005) {

@@ -30,7 +30,7 @@ G.render = function (ctx, cw, ch, dpr) {
     let sc0 = Math.min(cw / VW, ch / VH); const i0 = Math.floor(sc0 * dpr) / dpr; if (i0 >= 1 && sc0 - i0 < 0.25 && !G.touch) sc0 = i0;
     const devPx = VW * sc0 * dpr / WW, S = Math.max(1, Math.min(this.rsMax, Math.round(devPx)));
     if (S !== this.rs || view.width !== WW * S) { this.rs = S; view.width = WW * S; view.height = WH * S; }
-    this.rsSmooth = Math.abs(devPx / S - Math.round(devPx / S)) > 0.04 || devPx < S;
+    this.rsSmooth = window.__NOSMOOTH ? false : (Math.abs(devPx / S - Math.round(devPx / S)) > 0.04 || devPx < S);
   }
   const t0 = performance.now();
   vctx.setTransform(this.rs, 0, 0, this.rs, 0, 0);
@@ -47,13 +47,13 @@ G.render = function (ctx, cw, ch, dpr) {
   if (isc >= 1 && sc - isc < 0.25 && !G.touch) sc = isc;
   const dw = VW * sc, dh = VH * sc, ox = (cw - dw) / 2, oy = (ch - dh) / 2;
   this.layout = { ox, oy, sc };
-  ctx.imageSmoothingEnabled = !!this.rsSmooth; if (this.rsSmooth) ctx.imageSmoothingQuality = 'high';
+  ctx.imageSmoothingEnabled = false; // sin suavizado: con el mundo ya pintado a S veces, el escalado final es casi exacto (y el suavizado 'high' daba tirones)
   ctx.drawImage(view, Math.round(ox * dpr), Math.round(oy * dpr), Math.round(dw * dpr), Math.round(dh * dpr));
   ctx.imageSmoothingEnabled = false;
   // si pintar el mundo cuesta demasiado en este aparato, se baja la resolución interna
   if (this.st === ST.PLAY && this.rs > 1) {
     const ms = performance.now() - t0; this.rsAvg = (this.rsAvg || ms) * 0.95 + ms * 0.05; this.rsN = (this.rsN || 0) + 1;
-    if (this.rsN > 90 && this.rsAvg > 11) { this.rsMax = this.rs - 1; this.rsN = 0; this.rsAvg = 0; }
+    if (this.rsN > 90 && this.rsAvg > 11) { this.rsMax = this.rs - 1; this.rsN = 0; this.rsAvg = 0; try { localStorage.setItem('guardian_calidad', String(this.rsMax)); } catch (e) { } }
   }
   ctx.setTransform(sc * dpr, 0, 0, sc * dpr, ox * dpr, oy * dpr);
   ctx.save();
@@ -109,17 +109,27 @@ G.renderWorld = function (g) {
     if (kx < 0 || ky < 0 || kx * 16 >= w.w || ky * 16 >= w.h) continue;
     g.drawImage(this.chunk(w, kx, ky, frame), kx * CHK - cx, ky * CHK - cy);
   }
-  // en los fotogramas libres, adelanta el trozo de al lado en la dirección en que se mueve el Guardián
+  // en los fotogramas libres, adelanta los trozos de alrededor (primero los de hacia donde va el Guardián, y los
+  // cuatro fotogramas del agua): así nunca hay que pintar uno entero justo cuando entra en pantalla
   if (!this._pre || this._pre-- <= 0) {
-    this._pre = 3;
-    const px = Math.floor((p.x + (p.vx || 0) * 40) / CHK), py = Math.floor((p.y + (p.vy || 0) * 40) / CHK);
-    for (const [dx, dy] of [[0, 0], [1, 0], [-1, 0], [0, 1], [0, -1]]) { const kx = px + dx, ky = py + dy; if (kx >= 0 && ky >= 0 && kx * 16 < w.w && ky * 16 < w.h && !w.chunks.has(((ky * 64 + kx) * 4) + (w.waterChunk.get(ky * 64 + kx) ? frame : 0))) { this.chunk(w, kx, ky, frame); break; } }
+    this._pre = 0;
+    const vx = p.vx || 0, vy = p.vy || 0, pkx = Math.floor((p.x + vx * 1.2) / CHK), pky = Math.floor((p.y + vy * 1.2) / CHK);
+    const ring = [[0, 0], [Math.sign(vx) || 1, 0], [0, Math.sign(vy) || 1], [Math.sign(vx) || 1, Math.sign(vy) || 1], [1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [-1, 1], [1, -1], [-1, -1]];
+    outer: for (const [dx, dy] of ring) {
+      const kx = pkx + dx, ky = pky + dy; if (kx < 0 || ky < 0 || kx * 16 >= w.w || ky * 16 >= w.h) continue;
+      const id = ky * 64 + kx; if (w.waterChunk.get(id) === undefined) { this.chunk(w, kx, ky, 0, 4); break outer; }
+      const frames = w.waterChunk.get(id) ? [0, 1, 2, 3] : [0];
+      for (const f of frames) { const c = w.chunks.get(id * 4 + f); if (!c || c._row < 16) { this.chunk(w, kx, ky, f, 4); break outer; } } // un trozo por vez, a cuartos
+    }
   }
   this.drawDecorAndEntities(g, w, p, cx, cy);
 };
 // pinta (o devuelve ya pintado) un trozo de suelo
-const CHUNK_MAX = 36;
-G.chunk = function (w, kx, ky, frame) {
+const CHUNK_MAX = 48; // trozos de 256×256 guardados ya pintados (con agua, cuatro por trozo)
+// rows: si se da, solo pinta ese número de filas de casillas más (para repartir el trabajo en varios fotogramas)
+const chunkFlush = document.createElement('canvas'); chunkFlush.width = chunkFlush.height = 1;
+const chunkFlushG = chunkFlush.getContext('2d');
+G.chunk = function (w, kx, ky, frame, rows) {
   const id = ky * 64 + kx;
   let hasWater = w.waterChunk.get(id);
   if (hasWater === undefined) { // ¿hay agua animada en este trozo?
@@ -129,14 +139,19 @@ G.chunk = function (w, kx, ky, frame) {
   }
   const key = id * 4 + (hasWater ? frame : 0);
   let c = w.chunks.get(key);
-  if (c) { w.chunks.delete(key); w.chunks.set(key, c); return c; } // recién usado: al final de la cola
-  if (w.chunks.size >= CHUNK_MAX) { const old = w.chunks.keys().next().value; const oc = w.chunks.get(old); w.chunks.delete(old); c = oc; } // reutiliza el lienzo más viejo
-  if (!c) { c = document.createElement('canvas'); c.width = c.height = 16 * TS; }
+  if (c && c._row >= 16) { w.chunks.delete(key); w.chunks.set(key, c); return c; } // recién usado: al final de la cola
+  if (!c) {
+    if (w.chunks.size >= CHUNK_MAX) { const old = w.chunks.keys().next().value; c = w.chunks.get(old); w.chunks.delete(old); } // reutiliza el lienzo más viejo
+    if (!c) { c = document.createElement('canvas'); c.width = c.height = 16 * TS; }
+    const g0 = c.getContext('2d'); g0.imageSmoothingEnabled = false; g0.fillStyle = '#0b0907'; g0.fillRect(0, 0, c.width, c.height);
+    c._row = 0; w.chunks.set(key, c);
+  }
   const g = c.getContext('2d'); g.imageSmoothingEnabled = false;
-  g.fillStyle = '#0b0907'; g.fillRect(0, 0, c.width, c.height);
-  const ox = kx * 16 * TS, oy = ky * 16 * TS;
-  for (let y = ky * 16; y < ky * 16 + 16 && y < w.h; y++) for (let x = kx * 16; x < kx * 16 + 16 && x < w.w; x++) this.drawTile(g, w, w.get(x, y), x, y, x * TS - ox, y * TS - oy, frame);
-  w.chunks.set(key, c);
+  const ox = kx * 16 * TS, oy = ky * 16 * TS, r1 = rows ? Math.min(16, c._row + rows) : 16;
+  for (let r = c._row; r < r1; r++) { const y = ky * 16 + r; if (y >= w.h) continue; for (let x = kx * 16; x < kx * 16 + 16 && x < w.w; x++) this.drawTile(g, w, w.get(x, y), x, y, x * TS - ox, y * TS - oy, frame); }
+  c._row = r1;
+  // pintarlo ya (en un lienzo de 1×1): si no, el navegador lo deja para cuando se vea y da el tirón entonces
+  if (rows) chunkFlushG.drawImage(c, 0, 0, 1, 1);
   return c;
 };
 G.drawTile = function (g, w, t, x, y, sx, sy, frame) {
@@ -160,30 +175,36 @@ G.drawTile = function (g, w, t, x, y, sx, sy, frame) {
 };
 // props agrupados por trozos de 16×16 casillas, para no recorrer los miles del mapa en cada fotograma
 G.propsNear = function (w, cx, cy, m) {
-  if (!w._pb || w._pbSrc !== w.props || w._pbLen !== w.props.length) {
-    w._pb = new Map(); w._pbSrc = w.props; w._pbLen = w.props.length;
-    for (const pr of w.props) { const k = (Math.floor(pr.y / 256) * 64) + Math.floor(pr.x / 256); let a = w._pb.get(k); if (!a) w._pb.set(k, a = []); a.push(pr); }
+  // se rehace si cambia la lista: otra lista, otro tamaño o (quitar uno y poner otro) otro último elemento
+  const last = w.props[w.props.length - 1];
+  if (!w._pb || w._pbSrc !== w.props || w._pbLen !== w.props.length || w._pbLast !== last) {
+    w._pb = new Map(); w._pbSrc = w.props; w._pbLen = w.props.length; w._pbLast = last;
+    for (let _i1 = 0, _a1 = w.props; _i1 < _a1.length; _i1++) { const pr = _a1[_i1];  const k = (Math.floor(pr.y / 256) * 64) + Math.floor(pr.x / 256); let a = w._pb.get(k); if (!a) w._pb.set(k, a = []); a.push(pr); }
   }
   const out = this._near || (this._near = []); out.length = 0;
   const x0 = Math.floor((cx - m - 64) / 256), x1 = Math.floor((cx + WW + m + 64) / 256), y0 = Math.floor((cy - m) / 256), y1 = Math.floor((cy + WH + m + 80) / 256);
-  for (let ky = y0; ky <= y1; ky++) for (let kx = x0; kx <= x1; kx++) { const a = w._pb.get(ky * 64 + kx); if (a) for (const pr of a) out.push(pr); }
+  for (let ky = y0; ky <= y1; ky++) for (let kx = x0; kx <= x1; kx++) { const a = w._pb.get(ky * 64 + kx); if (a) for (let _i2 = 0, _a2 = a; _i2 < _a2.length; _i2++) { const pr = _a2[_i2]; out.push(pr); } }
   return out;
 };
+const DL = { pool: [], list: [], byY: (a, b) => a[0] - b[0] };
 G.drawDecorAndEntities = function (g, w, p, cx, cy) {
-  for (const d of w.decor) { const im = cv(d.img); const x = Math.floor(d.x) - cx, y = Math.floor(d.y) - cy; if (x < WW && y < WH && x + im.width > 0 && y + im.height > 0) g.drawImage(im, x, y); }
-  const list = [];
-  for (const pr of this.propsNear(w, cx, cy, 0)) {
+  for (let _i1 = 0, _a1 = w.decor; _i1 < _a1.length; _i1++) { const d = _a1[_i1];  const im = cv(d.img); const x = Math.floor(d.x) - cx, y = Math.floor(d.y) - cy; if (x < WW && y < WH && x + im.width > 0 && y + im.height > 0) g.drawImage(im, x, y); }
+  // la lista de cosas que pintar se reutiliza de un fotograma a otro (sin crear arrays nuevos cada vez)
+  const pool = DL.pool, list = DL.list; list.length = 0; let pn = 0;
+  const add = (y, k, e) => { let a = pool[pn]; if (!a) a = pool[pn] = [0, 0, null]; a[0] = y; a[1] = k; a[2] = e; pn++; list.push(a); };
+  for (let _i2 = 0, _a2 = this.propsNear(w, cx, cy, 0); _i2 < _a2.length; _i2++) { const pr = _a2[_i2]; 
     if (pr.hidden) continue;
     const l = pr.left() - cx, tp = pr.top() - cy;
     if (l > WW || tp > WH || l + pr.img.w < 0 || tp + pr.img.h < 0) continue;
-    list.push([pr.y, 0, pr]);
+    add(pr.y, 0, pr);
   }
-  for (const m of w.monsters) if (!m.dead && Math.abs(m.x - cx - WW / 2) < WW && Math.abs(m.y - cy - WH / 2) < WH) list.push([m.y, 1, m]);
-  for (const n of w.npcs) list.push([n.y, 2, n]);
-  for (const k of w.pickups) if (Math.abs(k.x - cx - WW / 2) < WW && Math.abs(k.y - cy - WH / 2) < WH) list.push([k.y - 4, 3, k]);
-  list.push([p.y, 4, p]);
-  list.sort((a, b) => a[0] - b[0]);
-  for (const [, kind, e] of list) {
+  for (let _i3 = 0, _a3 = w.monsters; _i3 < _a3.length; _i3++) { const m = _a3[_i3]; if (!m.dead && Math.abs(m.x - cx - WW / 2) < WW && Math.abs(m.y - cy - WH / 2) < WH) add(m.y, 1, m); }
+  for (let _i4 = 0, _a4 = w.npcs; _i4 < _a4.length; _i4++) { const n = _a4[_i4]; add(n.y, 2, n); }
+  for (let _i5 = 0, _a5 = w.pickups; _i5 < _a5.length; _i5++) { const k = _a5[_i5]; if (Math.abs(k.x - cx - WW / 2) < WW && Math.abs(k.y - cy - WH / 2) < WH) add(k.y - 4, 3, k); }
+  add(p.y, 4, p);
+  list.sort(DL.byY);
+  for (let li = 0; li < list.length; li++) {
+    const kind = list[li][1], e = list[li][2];
     if (kind === 0) g.drawImage(cv(e.img), e.left() - cx, e.top() - cy);
     else if (kind === 1) this.drawMonster(g, e, cx, cy);
     else if (kind === 2 && (e.key === 'angel' || e.key === 'miguel')) { const s = e.sprite(this.clock), hov = Math.sin(this.clock * 2) * 2 - 6; this.glow(g, e.x - cx, e.y - 20 - cy, 34, 'rgba(255,245,200,0.35)'); this.shadow(g, e.x - cx, e.y - cy, 7); g.drawImage(cv(s), Math.round(e.x - s.w / 2) - cx, Math.round(e.y - s.h + hov) - cy); }
@@ -320,10 +341,24 @@ G.drawHigh = function (g, t, x, y, sx, sy) {
   if (!rt) { g.fillStyle = 'rgba(8,4,16,0.55)'; g.fillRect(sx + TS - 1, sy, 1, TS); g.fillStyle = 'rgba(8,4,16,0.3)'; g.fillRect(sx + TS - 4, sy, 3, TS); }
 };
 G.shadow = function (g, x, y, r) { if (r <= 0) return; g.fillStyle = 'rgba(0,0,0,0.27)'; g.beginPath(); g.ellipse(x, y, r, r * 0.4 + 0.5, 0, 0, Math.PI * 2); g.fill(); };
+// halos de luz: se pintan una vez por tamaño y color y luego solo se copian (antes, un degradado nuevo en cada fotograma)
+const GLOWS = new Map();
 G.glow = function (g, x, y, r, col) {
-  const gr = g.createRadialGradient(x, y, 0, x, y, r);
-  gr.addColorStop(0, col); gr.addColorStop(1, col.replace(/[\d.]+\)$/, '0)'));
-  g.fillStyle = gr; g.beginPath(); g.arc(x, y, r, 0, Math.PI * 2); g.fill();
+  // la transparencia va aparte (globalAlpha): así un halo que se apaga poco a poco no crea un dibujo por fotograma
+  const m = /^rgba\((\d+),\s*(\d+),\s*(\d+),\s*([\d.]+)\)$/.exec(col); if (!m) return;
+  const a = +m[4]; if (a <= 0.003 || r <= 0) return;
+  const R = Math.max(2, Math.min(64, Math.round(r))), key = m[1] + ',' + m[2] + ',' + m[3];
+  let c = GLOWS.get(key);
+  if (!c) {
+    if (GLOWS.size > 60) GLOWS.clear();
+    c = document.createElement('canvas'); c.width = c.height = 64; const x2 = c.getContext('2d');
+    const gr = x2.createRadialGradient(32, 32, 0, 32, 32, 32);
+    gr.addColorStop(0, `rgba(${key},1)`); gr.addColorStop(1, `rgba(${key},0)`);
+    x2.fillStyle = gr; x2.fillRect(0, 0, 64, 64); GLOWS.set(key, c);
+  }
+  const sm = g.imageSmoothingEnabled, ga = g.globalAlpha; g.imageSmoothingEnabled = true; g.globalAlpha = ga * Math.min(1, a);
+  g.drawImage(c, x - r, y - r, r * 2, r * 2);
+  g.imageSmoothingEnabled = sm; g.globalAlpha = ga;
 };
 G.drawMonster = function (g, m, cx, cy) {
   const s = m.sprite();

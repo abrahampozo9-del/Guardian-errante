@@ -38,14 +38,14 @@ G.lightColor = function (dk) {
 };
 // manchas de luz ya pintadas (un degradado radial por radio y color), en vez de crearlas en cada fotograma
 const LIGHTS = new Map();
-function lightSprite(r, c) {
-  const key = r + ',' + c.join(',');
+function lightSprite(r, c0, c1, c2) {
+  const key = ((r * 256 + c0) * 256 + c1) * 256 + c2; // clave numérica: sin textos ni arrays nuevos por luz
   let s = LIGHTS.get(key);
   if (!s) {
     if (LIGHTS.size > 160) LIGHTS.clear();
     s = document.createElement('canvas'); s.width = s.height = r * 2;
     const x = s.getContext('2d'), gr = x.createRadialGradient(r, r, 0, r, r, r);
-    gr.addColorStop(0, `rgb(${c[0]},${c[1]},${c[2]})`); gr.addColorStop(0.45, `rgba(${c[0]},${c[1]},${c[2]},0.6)`); gr.addColorStop(1, `rgba(${c[0]},${c[1]},${c[2]},0)`);
+    gr.addColorStop(0, `rgb(${c0},${c1},${c2})`); gr.addColorStop(0.45, `rgba(${c0},${c1},${c2},0.6)`); gr.addColorStop(1, `rgba(${c0},${c1},${c2},0)`);
     x.fillStyle = gr; x.fillRect(0, 0, r * 2, r * 2); LIGHTS.set(key, s);
   }
   return s;
@@ -59,15 +59,15 @@ G.nightOverlay = function (g, dk, cx, cy) {
   const lights = [];
   const light = (x, y, r, col, k = 1) => {
     if (x < -r || y < -r || x > WW + r || y > WH + r) return;
-    const c = col.map((v, i) => Math.round(base[i] + (v - base[i]) * Math.round(k * 20) / 20));
-    dctx.drawImage(lightSprite(r, c), Math.round(x - r), Math.round(y - r));
+    const kk = Math.round(k * 20) / 20, c0 = Math.round(base[0] + (col[0] - base[0]) * kk), c1 = Math.round(base[1] + (col[1] - base[1]) * kk), c2 = Math.round(base[2] + (col[2] - base[2]) * kk);
+    dctx.drawImage(lightSprite(r, c0, c1, c2), Math.round(x - r), Math.round(y - r));
     lights.push([x, y, r, col]);
   };
   const fl = Math.sin(this.clock * 9) * 0.04 + Math.sin(this.clock * 23) * 0.03;
   const out = this.world.outdoor;
   // alrededor del Guardián: la vista acostumbrada a la oscuridad (luz de luna fría)
   light(this.player.x - cx, this.player.y - 10 - cy, out ? 78 : 100, out ? [150, 165, 205] : [205, 180, 150], Math.min(1, dk * 1.2));
-  for (const pr of this.propsNear(this.world, cx, cy, 100).slice()) {
+  for (let _i1 = 0, _a1 = this.propsNear(this.world, cx, cy, 100); _i1 < _a1.length; _i1++) { const pr = _a1[_i1]; 
     let r = 0, col = null, oy = 6, k = 1;
     if (pr.anim === 1) { r = 84; col = [255, 170, 90]; k = 1 + fl * 3; }
     else if (pr.light) { r = 66; col = [255, 205, 130]; oy = 26; }
@@ -78,10 +78,10 @@ G.nightOverlay = function (g, dk, cx, cy) {
     if (!r) continue;
     light(pr.x - cx, pr.y - oy - cy, r, col, k);
   }
-  for (const k of this.world.pickups) if (k.type === Pickup.RELIC) light(k.x - cx, k.y - 8 - cy, 26, [255, 225, 150]);
-  for (const n of this.world.npcs) if (n.key === 'miguel' || n.key === 'angel') light(n.x - cx, n.y - 20 - cy, 80, [255, 245, 215]);
-  for (const m of this.world.monsters) if (!m.dead && m.kind === MK.DEMONIO) light(m.x - cx, m.y - 16 - cy, 60, [255, 90, 40], 0.9);
-  for (const o of this.orbs) if (o.fire) light(o.x - cx, o.y - cy, 30, [255, 140, 60]);
+  for (let _i2 = 0, _a2 = this.world.pickups; _i2 < _a2.length; _i2++) { const k = _a2[_i2]; if (k.type === Pickup.RELIC) light(k.x - cx, k.y - 8 - cy, 26, [255, 225, 150]); }
+  for (let _i3 = 0, _a3 = this.world.npcs; _i3 < _a3.length; _i3++) { const n = _a3[_i3]; if (n.key === 'miguel' || n.key === 'angel') light(n.x - cx, n.y - 20 - cy, 80, [255, 245, 215]); }
+  for (let _i4 = 0, _a4 = this.world.monsters; _i4 < _a4.length; _i4++) { const m = _a4[_i4]; if (!m.dead && m.kind === MK.DEMONIO) light(m.x - cx, m.y - 16 - cy, 60, [255, 90, 40], 0.9); }
+  for (let _i5 = 0, _a5 = this.orbs; _i5 < _a5.length; _i5++) { const o = _a5[_i5]; if (o.fire) light(o.x - cx, o.y - cy, 30, [255, 140, 60]); }
   dctx.globalCompositeOperation = 'source-over';
   g.save(); g.globalCompositeOperation = 'multiply'; g.drawImage(darkC, 0, 0); g.restore();
   // halo cálido sobre las llamas y farolas (brillo que se derrama un poco)
@@ -105,19 +105,24 @@ G.vignette = function (g) {
   }
   g.drawImage(vignetteC, 0, 0);
 };
-const AMB = { motes: [], flies: [] };
+const AMB = { motes: [], flies: [], t: null };
+// 'rgba(r,g,b,a)' con el alfa redondeado a centésimas y guardado: no se fabrica un texto nuevo en cada fotograma
+const RGBA = new Map();
+function rgbaQ(r, g, b, a) { const q = Math.max(0, Math.min(100, Math.round(a * 100))), k = ((r * 256 + g) * 256 + b) * 128 + q; let s = RGBA.get(k); if (!s) { if (RGBA.size > 4000) RGBA.clear(); s = 'rgba(' + r + ',' + g + ',' + b + ',' + q / 100 + ')'; RGBA.set(k, s); } return s; }
 G.ambient = function (g, cx, cy, dark) {
   const w = this.world; if (!w.outdoor) return;
   const t = this.clock, rnd = this.rnd;
+  // lo que se mueve aquí avanza con el tiempo del juego, no con cada dibujo (a 120 Hz iba el doble de rápido)
+  const st = AMB.t === null ? 1 : Math.max(0, Math.min(6, (t - AMB.t) * 60)); AMB.t = t;
   // ceniza que cae despacio, meciéndose (alguna brasa)
   const wantM = 30;
   while (AMB.motes.length < wantM) AMB.motes.push({ x: cx + rnd.next() * WW, y: cy + rnd.next() * WH, ph: rnd.next() * 9, sp: 3 + rnd.next() * 5 });
   if (AMB.motes.length > wantM) AMB.motes.length = wantM;
   for (const m of AMB.motes) {
-    m.x += Math.sin(t * 0.9 + m.ph) * 0.12 + 0.05; m.y += m.sp * 0.012;
+    m.x += (Math.sin(t * 0.9 + m.ph) * 0.12 + 0.05) * st; m.y += m.sp * 0.012 * st;
     if (m.x < cx - 4 || m.x > cx + WW + 4 || m.y < cy - 4 || m.y > cy + WH + 4) { m.x = cx + rnd.next() * WW; m.y = cy - 2; }
     const a = 0.3 + 0.2 * Math.sin(t * 2 + m.ph);
-    g.fillStyle = m.ph > 8.4 ? `rgba(255,130,60,${a + 0.2})` : `rgba(205,200,210,${a})`; g.fillRect(Math.round(m.x - cx), Math.round(m.y - cy), m.ph > 5 ? 1 : 2, 1);
+    g.fillStyle = m.ph > 8.4 ? rgbaQ(255, 130, 60, a + 0.2) : rgbaQ(205, 200, 210, a); g.fillRect(Math.round(m.x - cx), Math.round(m.y - cy), m.ph > 5 ? 1 : 2, 1);
   }
   // luciérnagas (de noche, cerca del agua y la hierba)
   const wantF = dark > 0.55 ? 14 : 0;
@@ -129,15 +134,15 @@ G.ambient = function (g, cx, cy, dark) {
   if (AMB.flies.length > wantF) AMB.flies.length = wantF;
   g.save(); g.globalCompositeOperation = 'lighter';
   for (const f of AMB.flies) {
-    f.vx += (rnd.next() - 0.5) * 0.04; f.vy += (rnd.next() - 0.5) * 0.04; f.vx *= 0.96; f.vy *= 0.96;
-    f.x += f.vx; f.y += f.vy;
+    f.vx += (rnd.next() - 0.5) * 0.04 * st; f.vy += (rnd.next() - 0.5) * 0.04 * st; const dmp = Math.pow(0.96, st); f.vx *= dmp; f.vy *= dmp;
+    f.x += f.vx * st; f.y += f.vy * st;
     if (f.x < cx - 10 || f.x > cx + WW + 10 || f.y < cy - 10 || f.y > cy + WH + 10) { f.x = cx + rnd.next() * WW; f.y = cy + rnd.next() * WH; }
     const blink = Math.max(0, Math.sin(t * 2.2 + f.ph)) * Math.min(1, dark * 1.5);
     if (blink < 0.05) continue;
     const sx = f.x - cx, sy = f.y - cy, gr = g.createRadialGradient(sx, sy, 0, sx, sy, 7);
-    gr.addColorStop(0, `rgba(190,255,120,${0.55 * blink})`); gr.addColorStop(1, 'rgba(190,255,120,0)');
+    gr.addColorStop(0, rgbaQ(190, 255, 120, 0.55 * blink)); gr.addColorStop(1, 'rgba(190,255,120,0)');
     g.fillStyle = gr; g.fillRect(sx - 7, sy - 7, 14, 14);
-    g.fillStyle = `rgba(240,255,190,${blink})`; g.fillRect(Math.round(sx), Math.round(sy), 1, 1);
+    g.fillStyle = rgbaQ(240, 255, 190, blink); g.fillRect(Math.round(sx), Math.round(sy), 1, 1);
   }
   g.restore();
 };

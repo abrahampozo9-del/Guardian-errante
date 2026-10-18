@@ -185,9 +185,9 @@ G.render = function (ctx, cw, ch, dpr) {
 };
 G.uiPause = function (g) {
   g.fillStyle = 'rgba(0,0,0,0.6)'; g.fillRect(0, 0, VW, VH);
-  this.panel(g, VW / 2 - 70, 18, 140, 176);
-  g.font = FT(11); this.center(g, 'Pausa', 36, GOLD);
-  this.menuList(g, this.pauseMenu(), 54, 15);
+  this.panel(g, VW / 2 - 70, 14, 140, 184);
+  g.font = FT(11); this.center(g, 'Pausa', 32, GOLD);
+  this.menuList(g, this.pauseMenu(), 48, 15);
   g.font = FB(5.8);
   this.center(g, 'Reliquias ' + this.player.relics + '/5  ·  Ataque ' + this.player.atk + '  ·  Nivel ' + this.player.lvl, 186, SOFT);
 };
@@ -887,7 +887,7 @@ Q.pasilloBack = function () { const d = G.q.pasillo && G.q.pasillo.d; if (d && G
 // ---------------------------------------------------------------- diario de misiones (en el menú de pausa)
 ST.QUESTS = 'QUESTS';
 const _pm = G.pauseMenu;
-G.pauseMenu = function () { const m = _pm.call(this); m.splice(1, 0, 'Diario de misiones'); return m; };
+G.pauseMenu = function () { const m = _pm.call(this); m.splice(1, 0, 'Diario de misiones'); m.splice(m.length - 1, 0, 'Gráficos: ' + ['', 'ligeros', 'medios', 'finos'][this.rsMax || 3]); return m; };
 G.updatePause = function () {
   const m = this.pauseMenu();
   if (this.pressed('Escape', 'KeyP')) { this.st = ST.PLAY; return; }
@@ -899,7 +899,12 @@ G.updatePause = function () {
       case 3: this.save(); this.toast('Partida guardada'); this.st = ST.PLAY; break;
       case 4: this.helpBack = ST.PAUSE; this.st = ST.HELP; break;
       case 5: Sound.toggle(); break;
-      case 6: this.st = ST.TITLE; this.menuIdx = 0; this.hasSave = !!this.readSave(); Sound.music('noche'); break;
+      case 6: { // finos (más suave en móviles potentes) → medios → ligeros (para móviles justos) → finos
+        this.rsMax = (this.rsMax || 3) <= 1 ? 3 : (this.rsMax || 3) - 1; this.rsN = 0; this.rsAvg = 0; this.cap60 = false;
+        try { localStorage.setItem('guardian_calidad', String(this.rsMax)); } catch (e) { }
+        this.toast(['', 'Gráficos ligeros: para móviles justos de potencia.', 'Gráficos medios.', 'Gráficos finos: el movimiento más suave.'][this.rsMax]); break;
+      }
+      case 7: this.st = ST.TITLE; this.menuIdx = 0; this.hasSave = !!this.readSave(); Sound.music('noche'); break;
     }
   }
 };

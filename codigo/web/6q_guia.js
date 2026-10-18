@@ -69,7 +69,7 @@ G.mainTarget = function () { return _objTG.call(this); };
 G.objectiveTarget = function () {
   const id = this.q && this.q._track;
   if (id && Q.defs[id] && Q.st(id) > 0 && !Q.done(id)) return Q.target(id);
-  return _objTG.call(this);
+  try { return _objTG.call(this); } catch (e) { return null; } // la flecha nunca debe tumbar el dibujo
 };
 
 // ---------------------------------------------------------------- cómo se llega: cada interior y su puerta

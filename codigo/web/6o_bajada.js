@@ -157,7 +157,7 @@ G.objective = function () {
   const E = ETAPA;
   switch (this.stage) {
     case E.VUELTA: return 'Vuelve a Pozo Alcón con el Reloj del Cielo.' + (this.flags.has('reloj_pulsera') ? '' : ' (El Relojero quiere verte antes.)');
-    case E.ASEDIO: return 'Los demonios sitian Pozo Alcón. Defiende la plaza de la Encarnación.';
+    case E.ASEDIO: { const n = this.worlds.exterior.monsters.filter(m => m.asedio && !m.dead).length; return 'Los demonios sitian Pozo Alcón. Defiende la plaza de la Encarnación.' + (n ? ' (Quedan ' + n + '.)' : ''); }
     case E.BAJADA: return 'Baja por la caseta de turismo con el Reloj del Cielo.';
     case E.ATRIL: return this.world && this.world.id === 'abajo' && ABJ.room !== 3 ? 'Baja las escaleras. Fíjate en tu reloj.' : 'Vence al más horrible de todos.';
     case E.ANTICRISTO: return 'Vence al hombre de blanco, con Miguel a tu lado.';
@@ -171,7 +171,11 @@ G.objectiveTarget = function () {
   const E = ETAPA;
   switch (this.stage) {
     case E.VUELTA: return this.flags.has('reloj_pulsera') ? [WG.fireX, WG.fireY + 1, 'exterior'] : (SIE.door ? [SIE.door[0], SIE.door[1] + 1, 'sierra'] : null);
-    case E.ASEDIO: return [WG.fireX, WG.fireY + 1, 'exterior'];
+    case E.ASEDIO: { // la flecha va al demonio más cercano que quede
+      const w = this.worlds.exterior, p = this.player, ms = w.monsters.filter(m => m.asedio && !m.dead);
+      if (ms.length && this.world === w) { ms.sort((a, b) => Math.hypot(a.x - p.x, a.y - p.y) - Math.hypot(b.x - p.x, b.y - p.y)); return [Math.floor(ms[0].x / 16), Math.floor(ms[0].y / 16), 'exterior']; }
+      return [WG.fireX, WG.fireY + 1, 'exterior'];
+    }
     case E.BAJADA: return [WG.casetaX, WG.casetaY + 1, 'exterior'];
     case E.ATRIL: case E.ANTICRISTO: case E.ELECCION: return this.world && this.world.id === 'abajo' ? [32, 31, 'abajo'] : [WG.casetaX, WG.casetaY + 1, 'exterior'];
   }
@@ -211,16 +215,27 @@ ABJ.allyTick = function (dt) {
   }
   if (G.beams) G.beams = G.beams.filter(b => (b.t -= dt) > 0);
 };
+// lo que se queda encajado en una pared o escondido encima de un tejado (los demonios en picado no chocan) vuelve al suelo
+ABJ.unstick = function (w) {
+  for (const m of w.monsters) {
+    if (m.dead) continue;
+    const tx = Math.floor(m.x / 16), ty = Math.floor(m.y / 16);
+    if (m.kind === MK.AHOGADO || m.kind === MK.BESTIA || T.isWater(w.get(tx, ty))) continue;
+    if (w.solid(tx, ty) && (m.state !== 'atk' || m.stT <= 0)) { const [x, y] = Q.free(w, tx, ty); m.x = x * 16 + 8; m.y = y * 16 + 8; m.homeX = m.x; m.homeY = m.y; }
+  }
+};
 const _updB = G.updatePlay;
 G.updatePlay = function (dt) {
   _updB.call(this, dt);
   const E = ETAPA, w = this.world, p = this.player;
   if (!w || this.st !== ST.PLAY && this.st !== ST.DIALOG) return;
   ABJ.allyTick(dt);
+  ABJ.unstickT = (ABJ.unstickT || 0) - dt; if (ABJ.unstickT <= 0) { ABJ.unstickT = 1; ABJ.unstick(w); }
   if (w.id === 'exterior') {
     const tx = Math.floor(p.x / 16), ty = Math.floor(p.y / 16), inTown = tx > 10 && tx < 72 && ty > 82 && ty < 140;
     if (this.stage === E.VUELTA && inTown && this.st === ST.PLAY) { this.stage = E.ASEDIO; this.save(); this.playCine('asedio', () => ABJ.asedio()); return; }
     if (this.stage === E.ASEDIO && inTown && this.st === ST.PLAY) {
+      ABJ.unstick(w);
       if (!w.monsters.some(m => m.asedio && !m.dead)) {
         if (this.flags.has('asedio_empezado')) {
           this.stage = E.BAJADA; this.flags.delete('asedio_empezado'); this.save();

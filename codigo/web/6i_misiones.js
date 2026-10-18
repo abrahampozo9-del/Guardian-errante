@@ -789,7 +789,8 @@ Q.defs.infierno = {
   place() {
     const s = Q.st('infierno');
     Q.prop('q_infierno', 'escalera_abajo', 'q_esc1', 18, 15); Q.prop('q_infierno', 'escalera_abajo', 'q_esc2', 39, 15);
-    Q.prop('q_infierno', 'escalera_abajo', 'q_esc0', 3, 4);
+    // en cada sala, una escalera para volver arriba (subir siempre se puede, aunque cueste)
+    for (const x of [3, 24, 45]) Q.prop('q_infierno', 'escalera_abajo', 'q_esc0', x, 4);
     Q.prop('q_infierno', 'atril', 'q_atril', 53, 7);
     for (const [x, y] of [[8, 6], [14, 12], [28, 6], [36, 11], [47, 9], [58, 9]]) Q.prop('q_infierno', 'vela', 'q_vela', x, y);
   },
@@ -808,7 +809,10 @@ Q.defs.infierno = {
     if (pr.id === 'q_esc2') { G.player.x = 46 * TS; G.player.y = 6 * TS; G.snapCamera(); Q.sala(2); return true; }
     if (pr.id === 'q_vela') { G.say('Guardián', 'Una vela negra que no se consume. Las escaleras giran en tramos de tres, describiendo triángulos.'); return true; }
     if (pr.id === 'q_atril') {
-      if (G.world.monsters.some(m => !m.dead)) { G.toast('No puedes leer con los condenados encima.'); return true; }
+      // solo cuentan los condenados vivos de esta sala que estén de verdad en el suelo (no encajados en la pared)
+      const w = G.world; ABJ.unstick(w);
+      const cerca = w.monsters.filter(m => !m.dead && m.x / 16 >= 44 && m.x / 16 < 62 && Math.hypot(m.x - G.player.x, m.y - G.player.y) < 12 * 16);
+      if (cerca.length) { G.toast('No puedes leer con los condenados encima (' + cerca.length + ').'); return true; }
       if (s >= QDONE) { G.say('Guardián', 'El libro del atril sigue abierto por la misma página. Mi nombre ya no está.'); return true; }
       G.say('Guardián', 'Sobre el atril, un libro enorme abierto. Una lista de nombres del pueblo, con letra apretada. Algunos tachados. Otros, en rojo.',
         'Al final de la página está el mío. Al lado, en vez de una cruz o de una raya, pone: «Ni frío ni caliente».',

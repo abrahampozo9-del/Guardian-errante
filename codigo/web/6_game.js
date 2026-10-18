@@ -236,8 +236,8 @@ G.updatePlay = function (dt) {
     const tx = Math.floor(o.x / TS), ty = Math.floor(o.y / TS);
     let gone = o.life <= 0 || (w.solid(tx, ty) && !T.isWater(w.get(tx, ty)));
     if (!gone && p.rolling && Math.hypot(o.x - p.x, o.y - (p.y - 8)) < 10) this.perfectDodge();
-    if (!gone && p.invul <= 0 && Math.hypot(o.x - p.x, o.y - (p.y - 8)) < 8) { this.hurtPlayer(o.dmg, o.x, o.y); gone = true; }
-    if (gone) for (let i = 0; i < 4; i++) this.fx.push(Fx.spark(o.x, o.y, this.rnd.gauss() * 30, this.rnd.gauss() * 30, o.mud ? 0x6a7a3a : 0x50d8c8, 0.3));
+    if (!gone && p.invul <= 0 && Math.hypot(o.x - p.x, o.y - (p.y - 8)) < 8) { this.hurtPlayer(o.dmg, o.x, o.y, o.acid ? 4 : 0); gone = true; }
+    if (gone) for (let i = 0; i < 4; i++) this.fx.push(Fx.spark(o.x, o.y, this.rnd.gauss() * 30, this.rnd.gauss() * 30, o.mud || o.acid ?0x6a7a3a : 0x50d8c8, 0.3));
     return !gone;
   });
   this.spawnLogic(dt);
@@ -296,7 +296,7 @@ G.gainXp = function (amount, x, y) {
     this.fx.push(Fx.ring(p.x, p.y - 8, 40, 0xffe080));
     const how = this.touch ? 'el botón Hab.' : 'la tecla H';
     if (p.lvl === 3) this.say('Guardián', '¡Nivel 3! Siento la luz más fuerte que nunca.', 'Has aprendido LUZ: pulsa L (o el botón Luz) para liberar una onda sagrada que daña a los engendros cercanos. Cuesta 40 de Fe.', 'Y tienes un punto de habilidad nuevo: gástalo en el árbol con ' + how + '.');
-    else if (!this.flags.has('tuto_hab')) { this.flags.add('tuto_hab'); this.say('Guardián', '¡Nivel ' + p.lvl + '! Vida y Fe al máximo.', 'Has ganado un punto de habilidad. Ábrelo con ' + how + ': hay tres ramas, Espada, Fe y Camino.'); }
+    else if (!this.flags.has('tuto_hab')) { this.flags.add('tuto_hab'); this.say('Guardián', '¡Nivel ' + p.lvl + '! Vida y Fe al máximo.', 'Has ganado un punto de habilidad. Ábrelo con ' + how + ': hay cuatro ramas: Espada, Fe, Camino y Armas.'); }
     else this.toast('¡Nivel ' + p.lvl + '! +' + gain + (gain > 1 ? ' puntos' : ' punto') + ' de habilidad (' + how + ')');
   }
 };
@@ -547,8 +547,8 @@ G.use = function (pr) {
         this.say('Guardián', 'Bajo las toallas, envuelta en un paño, mi espada.', 'Has cogido la ESPADA. Ataca con Espacio, J o el botón de la espada.');
       } else this.say('Guardián', 'Mantas, toallas y la caja vacía de la vieja escopeta del abuelo.');
       break;
-    case 'pc': this.say('Guardián', 'El ordenador enciende sin problema: las placas dan de sobra. Lo que no hay es internet.', 'Encima del escritorio siguen mis apuntes de primeros auxilios. Me han servido más que nada en estos años.'); break;
-    case 'libros': this.say('Guardián', 'Libros por todas partes: filosofía, teología, historia, primeros auxilios, novelas que he leído tres veces...', 'Cuando cayó el mundo, los libros siguieron hablando. Por eso los guardo.'); break;
+    case 'pc': this.say('Guardián', 'El ordenador enciende sin problema: las placas dan de sobra. Lo que no hay es internet.', 'Dentro siguen las fotos de antes del Colapso. Alguna noche las miro, cuando no puedo dormir.'); break;
+    case 'libros': this.say('Guardián', 'Libros por todas partes: filosofía, teología, historia, novelas que he leído tres veces...', 'Cuando cayó el mundo, los libros siguieron hablando. Por eso los guardo.'); break;
     case 'ventilador': this.say('Guardián', 'El ventilador zumba a toda potencia. En agosto, en este valle, es casi un lujo.'); break;
     case 'tele': this.say('Guardián', 'La tele enciende, pero todos los canales son nieve.', 'Por lo menos el reproductor aún lee las películas viejas. Alguna noche me pongo una.'); break;
     case 'nevera': this.say('Guardián', 'La nevera funciona gracias a las baterías. Agua fría, embutido de la matanza y poco más.'); break;

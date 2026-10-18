@@ -173,7 +173,7 @@ G.drawDecorAndEntities = function (g, w, p, cx, cy) {
   }
   this.drawCombatFx(g, cx, cy);
   this.drawBirds(g, cx, cy);
-  for (const o of this.orbs) { const im = o.fire ? Art.E.fire : o.mud ? Art.E.mud : Art.orb; g.drawImage(cv(im), Math.floor(o.x) - (im.w >> 1) - cx, Math.floor(o.y) - (im.h >> 1) - cy); }
+  for (const o of this.orbs) { const im = o.fire ? Art.E.fire : o.acid ? Art.E.acid : o.mud ? Art.E.mud : Art.orb; g.drawImage(cv(im), Math.floor(o.x) - (im.w >> 1) - cx, Math.floor(o.y) - (im.h >> 1) - cy); }
   for (const f of this.fx) {
     const a = Math.max(0, Math.min(1, f.life / f.max));
     if (f.ring) {

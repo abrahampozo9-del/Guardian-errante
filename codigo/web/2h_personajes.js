@@ -116,6 +116,18 @@ Art.initCharacters2 = function () {
   const heroL = Look(0xc89470, 0x2a1d16, 0x45413a, 0x3a3a40, 0x2a1e14, { beard: true, cloak: true, eyes: 0x4a3a28 });
   Art.hero = personSet(heroL);
   Art.heroAtk = [0, 1, 2, 3].map(d => { const im = person(heroL, d === 2 ? 3 : d, 1, true); return d === 2 ? flipH(im) : im; });
+  // los dos hermanos: Abraham (moreno) y Oliver (tez más blanca, castaño)
+  const oliL = Look(0xecc8a8, 0x6a4426, 0x45413a, 0x3a3a40, 0x2a1e14, { beard: true, cloak: true, eyes: 0x4a3a28 });
+  Art.heroSets = {
+    abraham: { hero: Art.hero, atk: Art.heroAtk, skin: '#c89470' },
+    oliver: { hero: personSet(oliL), atk: [0, 1, 2, 3].map(d => { const im = person(oliL, d === 2 ? 3 : d, 1, true); return d === 2 ? flipH(im) : im; }), skin: '#ecc8a8' },
+  };
+  // y de paisano, para cuando el otro hermano viene a vivir a la casa del río
+  Art.people.abraham_c = personSet(Look(0xc89470, 0x2a1d16, 0x3a5a6a, 0x3a3a48, 0x2a2a2a, { beard: true, eyes: 0x4a3a28 }));
+  Art.people.oliver_c = personSet(Look(0xecc8a8, 0x6a4426, 0x7a3a2a, 0x3a3a48, 0x2a2a2a, { beard: true, eyes: 0x4a3a28 }));
+  // Mario, el niño: un personaje en pequeño
+  const small = (s, k) => { const W = Math.round(s.w * k), H = Math.round(s.h * k), o = img(20, 28); const ox = (20 - W) >> 1, oy = 28 - H; for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) o.d[(y + oy) * 20 + x + ox] = s.d[Math.floor(y / k) * s.w + Math.floor(x / k)]; return o; };
+  Art.people.mario = personSet(Look(0xf0ccb0, 0x7a5030, 0xe0b030, 0x3a5a8a, 0xb03a2a, { blush: true, eyes: 0x4a6a8a })).map(d => d.map(s => small(s, 0.66)));
   Art.people.cura = personSet(Look(0xd8a884, 0xb8b4ac, 0x1e1e26, 0x1e1e26, 0x141414, { robe: true, bald: true, glasses: true, eyes: 0x3a5a7a }));
   Art.people.curandera = personSet(Look(0xd0a078, 0x8a8a8a, 0x6a3a4a, 0x3a2a30, 0x2a2020, { apron: true, longHair: true, eyes: 0x4a6a3a }));
   Art.people.guardia = personSet(Look(0xb88058, 0x3a2a1e, 0x5a6a3e, 0x3a3e30, 0x2a2420, { helmet: true, beard: true }));

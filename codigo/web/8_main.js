@@ -120,7 +120,7 @@ const Touch = {
 
   function toView(x, y) { const L = G.layout; return [(x - L.ox) / L.sc, (y - L.oy) / L.sc]; }
   function tapAt(x, y) {
-    if (G.st === ST.TITLE || G.st === ST.PAUSE || G.st === ST.SKILLS || G.st === ST.CHOICE || G.st === 'QUESTS' || G.st === 'TALLER') {
+    if (G.st === ST.TITLE || G.st === ST.PAUSE || G.st === ST.SKILLS || G.st === ST.CHOICE || G.st === 'QUESTS' || G.st === 'TALLER' || G.st === 'HEROE') {
       const [vx, vy] = toView(x, y);
       for (const r of G.menuRects) if (vx >= r.x && vx <= r.x + r.w && vy >= r.y && vy <= r.y + r.h) { G.queue.add('Pick' + r.i); return; }
       return;

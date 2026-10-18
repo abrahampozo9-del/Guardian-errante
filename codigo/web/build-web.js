@@ -8,7 +8,7 @@ const js = fs.readdirSync('src').filter(f => f.endsWith('.js')).sort().map(f => 
 const path = require('path'), outDir = path.dirname(path.resolve(process.argv[2] || '.'));
 let ver = '__VERSION__'; try { const m = fs.readFileSync(path.join(outDir, 'sw.js'), 'utf8').match(/guardian-v\d+/); if (m) ver = m[0]; } catch (e) { }
 let out = js.replace("'__VERSION__'", "'" + ver + "'");
-if (esbuild) out = esbuild.transformSync(js, { minify: true, target: 'es2019', charset: 'utf8', legalComments: 'none' }).code;
+if (esbuild) out = esbuild.transformSync(out, { minify: true, target: 'es2019', charset: 'utf8', legalComments: 'none' }).code;
 else console.warn('esbuild no está: se publica sin minificar');
 const shell = fs.readFileSync('shell.html', 'utf8');
 const head = `<!doctype html>

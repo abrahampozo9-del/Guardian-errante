@@ -269,6 +269,8 @@ const FIG = (function () {
   const { q, poly, ell, put, R, cyl, outline, rim, L } = CP;
   const SKIN = R([0x3a2418, 0x6a4430, 0x9a6a4a, 0xc08a64, 0xdcaa80]);
   const HAIR = R([0x0e0a08, 0x1e1612, 0x2e221a, 0x40322a]);
+  // la piel y el pelo del Guardián van aparte: cambian según el hermano que elijas
+  const GSKIN = SKIN.slice(), GHAIR = HAIR.slice();
   const CLOAK = R([0x10140f, 0x1c2219, 0x2a3226, 0x3a4434, 0x4e5a46, 0x66705a]);
   const TAB = R([0x6a6458, 0x9a9282, 0xc4bca8, 0xe2dccb, 0xf6f0e2]);
   const RED = R([0x4a0e0a, 0x7a1810, 0xa8261a, 0xc8402a]);
@@ -311,27 +313,27 @@ const FIG = (function () {
     // brazos: el izquierdo (nuestra derecha) sobre la empuñadura; el derecho (nuestra izquierda) con el bastón
     poly(b, [[X - 17, Y - 97], [X - 10, Y - 95], [X - 14, Y - 70], [X - 21, Y - 72]], cyl(CLOTH, lit));
     poly(b, [[X - 21, Y - 74], [X - 14, Y - 72], [X - 15, Y - 62], [X - 22, Y - 63]], cyl(LEATHER, lit));
-    ell(b, X - 19, Y - 60, 4, 3.6, (x, y, dx) => q(SKIN, 0.6 - dx * 0.3, x, y));
+    ell(b, X - 19, Y - 60, 4, 3.6, (x, y, dx) => q(GSKIN, 0.6 - dx * 0.3, x, y));
     poly(b, [[X + 10, Y - 95], [X + 17, Y - 97], [X + 16, Y - 74], [X + 10, Y - 74]], cyl(CLOTH, lit));
     poly(b, [[X + 9, Y - 76], [X + 16, Y - 76], [X + 14, Y - 67], [X + 8, Y - 68]], cyl(LEATHER, lit));
-    ell(b, X + 11, Y - 66, 3.6, 3.2, (x, y, dx) => q(SKIN, 0.55 - dx * 0.3, x, y));
+    ell(b, X + 11, Y - 66, 3.6, 3.2, (x, y, dx) => q(GSKIN, 0.55 - dx * 0.3, x, y));
     // capucha caída: un rollo de tela sobre los hombros y el cuello
     ell(b, X, Y - 97, 16, 6, (x, y, dx, dy) => q(CLOAK, 0.55 - dx * 0.35 - dy * 0.3 + Math.sin(x * 0.9) * 0.08, x, y));
     // cabeza: cuello, cara, barba, pelo corto, orejas y ojos
-    poly(b, [[X - 4, Y - 104], [X + 4, Y - 104], [X + 4, Y - 98], [X - 4, Y - 98]], cyl(SKIN, lit, -0.2));
-    ell(b, X, Y - 112, 8, 9.5, (x, y, dx, dy) => q(SKIN, 0.68 - dx * (lit < 0 ? 0.42 : -0.42) - dy * 0.12, x, y));
-    ell(b, X - 8, Y - 112, 1.8, 2.6, SKIN[1]); ell(b, X + 8, Y - 112, 1.8, 2.6, SKIN[2]);
+    poly(b, [[X - 4, Y - 104], [X + 4, Y - 104], [X + 4, Y - 98], [X - 4, Y - 98]], cyl(GSKIN, lit, -0.2));
+    ell(b, X, Y - 112, 8, 9.5, (x, y, dx, dy) => q(GSKIN, 0.68 - dx * (lit < 0 ? 0.42 : -0.42) - dy * 0.12, x, y));
+    ell(b, X - 8, Y - 112, 1.8, 2.6, GSKIN[1]); ell(b, X + 8, Y - 112, 1.8, 2.6, GSKIN[2]);
     // barba que tapa mandíbula y mejillas bajas
     poly(b, [[X - 8, Y - 113], [X - 6, Y - 108], [X - 3, Y - 106], [X + 3, Y - 106], [X + 6, Y - 108], [X + 8, Y - 113], [X + 8, Y - 106], [X + 5, Y - 100], [X, Y - 98], [X - 5, Y - 100], [X - 8, Y - 106]],
-      (x, y, u, v) => q(HAIR, 0.55 - (lit < 0 ? u : 1 - u) * 0.3 + (CP.vn(x / 1.5, y / 1.5, 8) - 0.5) * 0.5, x, y));
-    poly(b, [[X - 3, Y - 108], [X + 3, Y - 108], [X + 2, Y - 106.5], [X - 2, Y - 106.5]], HAIR[1]); // bigote
-    put(b, X - 1, Y - 105, SKIN[1]); put(b, X, Y - 105, SKIN[1]); put(b, X + 1, Y - 105, SKIN[1]); // labio
+      (x, y, u, v) => q(GHAIR, 0.55 - (lit < 0 ? u : 1 - u) * 0.3 + (CP.vn(x / 1.5, y / 1.5, 8) - 0.5) * 0.5, x, y));
+    poly(b, [[X - 3, Y - 108], [X + 3, Y - 108], [X + 2, Y - 106.5], [X - 2, Y - 106.5]], GHAIR[1]); // bigote
+    put(b, X - 1, Y - 105, GSKIN[1]); put(b, X, Y - 105, GSKIN[1]); put(b, X + 1, Y - 105, GSKIN[1]); // labio
     // pelo corto
-    ell(b, X, Y - 118, 8.6, 5.5, (x, y, dx, dy) => dy > 0.35 && Math.abs(dx) < 0.55 ? -1 : q(HAIR, 0.6 - dx * 0.3 - dy * 0.3 + (CP.vn(x, y, 2) - 0.5) * 0.5, x, y));
+    ell(b, X, Y - 118, 8.6, 5.5, (x, y, dx, dy) => dy > 0.35 && Math.abs(dx) < 0.55 ? -1 : q(GHAIR, 0.6 - dx * 0.3 - dy * 0.3 + (CP.vn(x, y, 2) - 0.5) * 0.5, x, y));
     // ojos marrones, cejas, nariz
-    for (const s of [-1, 1]) { put(b, X + s * 3, Y - 113, 0x1a0e08); put(b, X + s * 3 + (s < 0 ? 1 : -1), Y - 113, 0xe8d8c0); for (let k = -1; k <= 1; k++) put(b, X + s * 3 + k, Y - 115, HAIR[1]); }
-    put(b, X - 1, Y - 112, SKIN[1]); put(b, X, Y - 111, SKIN[1]); put(b, X, Y - 110, SKIN[0]);
-    put(b, X + 4, Y - 116, SKIN[0]); // la cicatriz de la ceja
+    for (const s of [-1, 1]) { put(b, X + s * 3, Y - 113, 0x1a0e08); put(b, X + s * 3 + (s < 0 ? 1 : -1), Y - 113, 0xe8d8c0); for (let k = -1; k <= 1; k++) put(b, X + s * 3 + k, Y - 115, GHAIR[1]); }
+    put(b, X - 1, Y - 112, GSKIN[1]); put(b, X, Y - 111, GSKIN[1]); put(b, X, Y - 110, GSKIN[0]);
+    put(b, X + 4, Y - 116, GSKIN[0]); // la cicatriz de la ceja
     // colgante: cruz dorada con cordón
     for (let k = 0; k < 6; k++) put(b, X - 2 + k * 0.4, Y - 96 + k, LEATHER[1]);
     poly(b, [[X - 0.5, Y - 92], [X + 1.5, Y - 92], [X + 1.5, Y - 86], [X - 0.5, Y - 86]], GOLD[3]); poly(b, [[X - 2, Y - 90.5], [X + 3, Y - 90.5], [X + 3, Y - 89], [X - 2, Y - 89]], GOLD[2]);
@@ -342,7 +344,7 @@ const FIG = (function () {
       for (let k = 0; k < 4; k++) for (let i = -2; i <= 2; i++) put(b, sx + i, Y - 126 + k * 3, LEATHER[3]);
       for (let k = 0; k < 14; k++) put(b, sx - 3 + Math.sin(k * 0.6) * 0.8, Y - 124 + k, LEATHER[2]);
       poly(b, [[sx - 5, Y - 110], [sx - 1, Y - 110], [sx, Y - 102], [sx - 6, Y - 102]], GOLD[1]);
-      ell(b, sx - 19 + 19, Y - 61, 4.2, 3.6, (x, y, dx) => q(SKIN, 0.62 - dx * 0.3, x, y)); // la mano delante del bastón
+      ell(b, sx - 19 + 19, Y - 61, 4.2, 3.6, (x, y, dx) => q(GSKIN, 0.62 - dx * 0.3, x, y)); // la mano delante del bastón
     }
     if (o.drawn) { // espada desenvainada al rojo, apuntando al suelo
       for (let i = 0; i < 46; i++) { const t = i / 46, bx = X + 14 + i * 0.55, by = Y - 66 + i * 1.32; const c = t < 0.35 ? STEEL[3] : t < 0.6 ? 0xffb060 : 0xff6a20; put(b, bx, by, c); put(b, bx + 1, by, t < 0.35 ? STEEL[2] : 0xd84a14); put(b, bx - 1, by, t < 0.35 ? STEEL[4] : 0xffd090); }
@@ -456,13 +458,14 @@ const FIG = (function () {
     outline(b, 0x050101);
     return b;
   }
-  return { guardian, antichrist, miguel, demon, SKIN, CLOAK, TAB, LEATHER, WOOD, GOLD, STEEL };
+  return { guardian, antichrist, miguel, demon, GSKIN, GHAIR, SKIN, CLOAK, TAB, LEATHER, WOOD, GOLD, STEEL };
 })();
 
 // ====================================================================== motor de escenas
 const CS = (function () {
   const defs = {}, built = {}, pending = new Set();
   function def(name, build, draw) { defs[name] = { build, draw }; SCENES[name] = t => run(name, t); }
+  function flush() { for (const k in built) delete built[k]; recent.length = 0; }
   function prepare(name) { if (!defs[name] || built[name]) return; built[name] = defs[name].build(); }
   function prepareSoon(name) { if (!defs[name] || built[name] || pending.has(name)) return; pending.add(name); setTimeout(() => { prepare(name); pending.delete(name); }, 30); }
   // solo se quedan en memoria las últimas escenas usadas (cada una ocupa varios MB de capas)
@@ -516,7 +519,7 @@ const CS = (function () {
     }
   }
   function fade(a, col = '0,0,0') { if (a > 0) { cg.fillStyle = `rgba(${col},${Math.min(1, a)})`; cg.fillRect(0, 0, CW, CH); } }
-  return { def, prepare, prepareSoon, run, cam, lay, img, pan, glow, rays, rain, embers, ash, flash, bolt, flame, fade };
+  return { def, flush, prepare, prepareSoon, run, cam, lay, img, pan, glow, rays, rain, embers, ash, flash, bolt, flame, fade };
 })();
 const SCENES = {};
 

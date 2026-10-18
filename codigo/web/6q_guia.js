@@ -102,7 +102,12 @@ const ARROW = G.arrowTarget = function () {
   const i = chain.indexOf(w.id);
   if (i > 0) { const door = QG.parent(chain[i - 1]); return door ? [door[1][0], door[1][1]] : null; }
   // si estás en un interior que no va hacia allí, sal por donde entraste
-  if (!w.outdoor) { const wp = w.warps[w.warps.length - 1]; return wp ? [wp.x + Math.floor(wp.w / 2), wp.y + Math.floor(wp.h / 2)] : null; }
+  if (!w.outdoor) {
+    const wp = w.warps[w.warps.length - 1]; if (wp) return [wp.x + Math.floor(wp.w / 2), wp.y + Math.floor(wp.h / 2)];
+    // mazmorras sin puerta: la escalera de subida más cercana
+    const p = this.player, ups = w.props.filter(pr => pr.id === 'q_esc0' || pr.id === 'abajo_subir').sort((a, b) => Math.hypot(a.x - p.x, a.y - p.y) - Math.hypot(b.x - p.x, b.y - p.y));
+    return ups.length ? [Math.floor(ups[0].x / 16), Math.floor(ups[0].y / 16) + 1] : null;
+  }
   // de una zona a otra: primero el camino directo, si lo hay; si no, hacia la zona siguiente
   const O = chain[chain.length - 1];
   const direct = w.warps.find(wp => wp.load && wp.to === O);

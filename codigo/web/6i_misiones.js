@@ -813,12 +813,12 @@ Q.defs.infierno = {
       const w = G.world; ABJ.unstick(w);
       const cerca = w.monsters.filter(m => !m.dead && m.x / 16 >= 44 && m.x / 16 < 62 && Math.hypot(m.x - G.player.x, m.y - G.player.y) < 12 * 16);
       if (cerca.length) { G.toast('No puedes leer con los condenados encima (' + cerca.length + ').'); return true; }
-      if (s >= QDONE) { G.say('Guardián', 'El libro del atril sigue abierto por la misma página. Mi nombre ya no está.'); return true; }
+      if (s >= QDONE) { G.say('Guardián', 'El libro del atril sigue abierto por la misma página. Mi nombre ya no está.'); G.dlgEnd = () => G.ask('Guardián', 'Aquí abajo ya no queda nada para mí.', ['Subir a la plaza.', 'Quedarme un rato.'], k => { if (k === 0) { Sound.play('door'); G.enter('exterior', (WG.casetaX + 1) * TS, (WG.casetaY + 2) * TS, 0); G.toast('La subida es mucho más dura y lenta que la bajada.'); } }); return true; }
       G.say('Guardián', 'Sobre el atril, un libro enorme abierto. Una lista de nombres del pueblo, con letra apretada. Algunos tachados. Otros, en rojo.',
         'Al final de la página está el mío. Al lado, en vez de una cruz o de una raya, pone: «Ni frío ni caliente».',
         'Una voz detrás de mí, tranquila, horrible: «Esto es solo una parte, tibio. El infierno que hay en este pueblo. El de cada uno se lo trae puesto».',
         'Arranco la página. Arde en mis manos sin quemarme. (+500 XP · +1 punto de habilidad · Fe máxima +15)');
-      G.dlgEnd = () => { Q.reward(500, 1, p => { p.maxFe += 15; p.fe = p.maxFe; }); Q.set('infierno', QDONE); };
+      G.dlgEnd = () => { Q.reward(500, 1, p => { p.maxFe += 15; p.fe = p.maxFe; }); Q.set('infierno', QDONE); G.dlgEnd = null; G.ask('Guardián', 'La página arde y se apaga. Ya está.', ['Subir a la plaza.', 'Quedarme un rato.'], k => { if (k === 0) { Sound.play('door'); G.enter('exterior', (WG.casetaX + 1) * TS, (WG.casetaY + 2) * TS, 0); } }); };
       return true;
     }
   },

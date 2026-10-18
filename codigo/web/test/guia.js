@@ -38,14 +38,12 @@ const { chromium } = require('playwright');
       // desde Campocámara hacia el pantano y desde la sierra hacia el pueblo
       G.q.malasuerte.s = 5; G.q._track = 'malasuerte'; G.getWorld('campocamara'); G.enter('campocamara', 30 * 16, 24 * 16, 0); { const a = G.arrowTarget(); check('desde Campocámara, la salida hacia el valle', a && a[0] === 0); }
       G.q.malasuerte.s = 2; Q.d('malasuerte').p = {}; { const a = G.arrowTarget(); check('en Campocámara, a la primera pista', a && a[0] === 34); }
-      // obsequios: mientras toca esperar al día siguiente, lo dice y la flecha va a la cama
-      G.q.obsequios = { s: 3, d: { robo: true, day: G.dayN } }; G.q._track = 'obsequios'; Q.refresh(); home();
-      check('Úrsula aún no está (hasta mañana)', !G.worlds.exterior.npcs.some(n => n.key === 'ursula'));
-      check('el objetivo dice que es mañana', /Mañana, Úrsula/.test(Q.defs.obsequios.steps(3)));
+      // obsequios: solo la moneda espera al día siguiente; el resto de la semana aparece sin esperar
+      G.q.obsequios = { s: 2, d: { robo: true, day: G.dayN } }; G.q._track = 'obsequios'; Q.refresh(); home();
+      check('la moneda aún no está (hasta mañana)', !QG.prop('exterior', 'q_moneda') && /Mañana/.test(Q.defs.obsequios.steps(2)));
       { const t = G.objectiveTarget(); check('la flecha lleva a la cama', t && t[2] === 'casa_alta'); }
-      G.dayN++; Q.newDay(); check('al día siguiente Úrsula está en la plaza', G.worlds.exterior.npcs.some(n => n.key === 'ursula'));
-      { const t = G.objectiveTarget(), n = G.worlds.exterior.npcs.find(n => n.key === 'ursula'); check('y la flecha va a ella', t && t[2] === 'exterior' && Math.abs(t[0] - n.x / 16) < 2); }
-      check('el objetivo ya dice que está', /está en la Plaza/.test(Q.defs.obsequios.steps(3)));
+      G.dayN++; Q.newDay(); check('al día siguiente, la moneda', !!QG.prop('exterior', 'q_moneda'));
+      for (const [s, key] of [[3, 'ursula'], [4, 'malpario'], [5, 'huevo']]) { G.q.obsequios.s = s; G.q.obsequios.d.day = G.dayN; Q.refresh(); const n = G.worlds.exterior.npcs.find(n => n.key === key), t = G.objectiveTarget(); check(key + ' está sin esperar y la flecha va a él', !!n && t && Math.abs(t[0] - n.x / 16) < 2 && !/Mañana/.test(Q.defs.obsequios.steps(s))); }
       // diario: hay principal, se desplaza y se dibuja
       G.st = 'QUESTS'; G.qSel = 9; G.render(ctx, 800, 450, 1); check('el diario se dibuja con scroll', G.menuRects.some(r => r.i === 97));
       G.queue.add('Pick97'); G.just = new Set(G.queue); G.queue.clear(); G.update(1 / 60); check('flecha arriba del diario', G.qSel === 8);

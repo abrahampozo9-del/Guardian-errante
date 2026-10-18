@@ -437,18 +437,18 @@ Q.defs.bujero = {
 Q.defs.obsequios = {
   title: 'La semana de los obsequios',
   // un obsequio por día: mientras no amanezca, toca esperar
-  waiting(s) { const d = Q.d('obsequios'); return [2, 3, 4, 5, 7].includes(s) && d.day !== undefined && G.dayN <= d.day; },
+  waiting(s) { const d = Q.d('obsequios'); return s === 2 && d.day !== undefined && G.dayN <= d.day; },
   steps: s => Q.defs.obsequios.waiting(s) ? ['', '', 'Mañana, otro obsequio en tu puerta.', 'Mañana, Úrsula estará en la Plaza del Ayuntamiento.', 'Mañana el Malparío rondará por las calles del pueblo.', 'Mañana Huevo estará bebiendo delante de El Greco.', '', 'Mañana Úrsula te invitará a merendar a su casa.'][s] + ' (Un obsequio al día: duerme en tu cama o espera a que amanezca.)' : ['', 'Hay un maletín en la puerta de tu cortijo.', 'Espera al día siguiente: otro obsequio.', 'Úrsula ha vuelto al pueblo: está en la Plaza del Ayuntamiento.', 'El Malparío ronda por las calles del pueblo.', 'Huevo bebe delante de El Greco.', 'Coge lo que hay en la grieta del baño de El Greco.', 'Úrsula te invita a merendar a su casa.', 'Esta noche, en tu puerta, el último obsequio.'][s] || '',
   place() {
     const s = Q.st('obsequios'), d = Q.d('obsequios'), ow = G.worlds.exterior;
     if (s === 1) Q.prop('exterior', 'maletin', 'q_maletin', WG.doorX + 2, WG.doorY + 2);
     if (s === 2 && G.dayN > d.day) Q.prop('exterior', 'moneda', 'q_moneda', WG.doorX + 2, WG.doorY + 2);
-    if ((s === 3 || s === 7) && G.dayN > d.day) { const [x, y] = Q.free(ow, 44, 115); Q.npc('exterior', 'ursula', 'Úrsula', x, y, { mark: () => true }); }
-    if (s === 4 && G.dayN > d.day) { const [x, y] = Q.free(ow, 30, 111); Q.npc('exterior', 'malpario', 'El Malparío', x, y, { mark: () => true }); }
-    if ((s === 5 || s === 6) && G.dayN > d.day) { const [x, y] = Q.free(ow, WG.grecoX + 3, WG.grecoY + 2); Q.npc('exterior', 'huevo', 'Huevo', x, y, { mark: () => Q.st('obsequios') === 5 }); }
+    if (s === 3 || s === 7) { const [x, y] = Q.free(ow, 44, 115); Q.npc('exterior', 'ursula', 'Úrsula', x, y, { mark: () => true }); }
+    if (s === 4) { const [x, y] = Q.free(ow, 30, 111); Q.npc('exterior', 'malpario', 'El Malparío', x, y, { mark: () => true }); }
+    if (s === 5 || s === 6) { const [x, y] = Q.free(ow, WG.grecoX + 3, WG.grecoY + 2); Q.npc('exterior', 'huevo', 'Huevo', x, y, { mark: () => Q.st('obsequios') === 5 }); }
     if (s === 6) Q.prop('exterior', 'pistola', 'q_pistola', WG.grecoX - 2, WG.grecoY + 1);
     if (!d.door) d.door = Q.door(52, 92, [Q.d('puerta').door]);
-    if (s === 7 && G.dayN > d.day && d.door) Q.prop('exterior', 'compuerta', 'q_ursula_casa', d.door[0], d.door[1], { hidden: true });
+    if (s === 7 && d.door) Q.prop('exterior', 'compuerta', 'q_ursula_casa', d.door[0], d.door[1], { hidden: true });
     if (s === 7) { Q.npc('q_casa_ursula', 'ursula', 'Úrsula', 5, 6); Q.npc('q_casa_ursula', 'casimiro', 'Casimiro', 9, 6, { mark: () => true }); }
   },
   newDay() {

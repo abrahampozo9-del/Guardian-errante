@@ -101,13 +101,13 @@ G.padelEnd = function (win) {
   const res = P.games[0] + ' – ' + P.games[1];
   const first = win && !this.flags.has('padel_win');
   if (win) {
-    this.flags.add('padel_win'); if (P.bet) p.herbs += P.bet * 2;
+    this.flags.add('padel_win'); if (P.bet) this.addDuros(P.bet * 2);
     this.gainXp(first ? 200 : 80, p.x, p.y - 30);
     if (first) p.pts += 1;
-    this.say('Manuel', '¡' + res + '! Ni el fin del mundo te quita el revés, ¿eh?', P.bet ? 'Toma, lo apostado y lo mío. (+' + P.bet * 2 + ' hierbas)' : 'La próxima nos apostamos algo, que así no tiene gracia.', first ? 'Hacía años que no perdía en mi pista. Te has ganado esto. (+1 punto de habilidad)' : '');
+    this.say('Manuel', '¡' + res + '! Ni el fin del mundo te quita el revés, ¿eh?', P.bet ? 'Toma, lo apostado y lo mío. (+' + nDuros(P.bet * 2) + ')' : 'La próxima nos apostamos algo, que así no tiene gracia.', first ? 'Hacía años que no perdía en mi pista. Te has ganado esto. (+1 punto de habilidad)' : '');
   } else {
-    if (P.bet) p.herbs = Math.max(0, p.herbs - P.bet);
-    this.say('Manuel', res + '. Aquí la pista la conocemos de memoria, no te sientas mal.', P.bet ? 'Las hierbas, para la casa. (−' + P.bet + ' hierbas)' : 'Cuando quieras la revancha, ya sabes dónde está la red.');
+    if (P.bet) this.duros = Math.max(0, (this.duros || 0) - P.bet);
+    this.say('Manuel', res + '. Aquí la pista la conocemos de memoria, no te sientas mal.', P.bet ? 'Los duros, para la casa. (−' + nDuros(P.bet) + ')' : 'Cuando quieras la revancha, ya sabes dónde está la red.');
   }
   this.dlg = this.dlg.filter(l => l[1]);
   this.save();
@@ -284,11 +284,11 @@ const _useP = G.use;
 G.use = function (pr) {
   if (pr.id !== 'padel') return _useP.call(this, pr);
   const p = this.player;
-  this.say('Manuel', '¡Hombre! ¿Un partidito? Tú con Doña Pura, contra Elena y yo. A tres juegos, con punto de oro.', 'Aquí se apuestan hierbas. Tú dirás.');
-  this.dlgEnd = () => this.ask('Manuel', 'Hierbas que llevas: ' + p.herbs + '.', ['Jugar apostando 2 hierbas.', 'Jugar por gusto.', 'Ahora no.'], k => {
+  this.say('Manuel', '¡Hombre! ¿Un partidito? Tú con Doña Pura, contra Elena y yo. A tres juegos, con punto de oro.', 'Aquí se apuestan duros. Tú dirás.');
+  this.dlgEnd = () => this.ask('Manuel', 'Llevas ' + nDuros(this.duros || 0) + '.', ['Jugar apostando 10 duros.', 'Jugar por gusto.', 'Ahora no.'], k => {
     if (k === 2) return;
-    if (k === 0 && p.herbs < 2) { this.say('Manuel', 'Con lo que llevas no te llega ni para apostar. Jugamos por gusto, anda.'); this.dlgEnd = () => this.startPadel(0); return; }
-    this.startPadel(k === 0 ? 2 : 0);
+    if (k === 0 && (this.duros || 0) < 10) { this.say('Manuel', 'Con lo que llevas no te llega ni para apostar. Jugamos por gusto, anda.'); this.dlgEnd = () => this.startPadel(0); return; }
+    this.startPadel(k === 0 ? 10 : 0);
   });
 };
 const _updP = G.update;

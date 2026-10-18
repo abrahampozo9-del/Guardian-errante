@@ -1,6 +1,6 @@
 // Guarda el juego en el móvil para que funcione sin conexión.
 // Si cambias index.html, sube también este archivo cambiando el número de versión.
-const VERSION = 'guardian-v24';
+const VERSION = 'guardian-v25';
 const FILES = ['./', './index.html', './manifest.webmanifest', './icono-180.png', './icono-192.png', './icono-512.png'];
 
 self.addEventListener('install', e => {

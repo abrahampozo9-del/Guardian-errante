@@ -34,6 +34,8 @@ const { chromium } = require('playwright');
       G.world.monsters = []; G.player.x = (SIE.caveOut[0] + 2) * 16 + 8; G.player.y = SIE.caveOut[1] * 16 + 8; step(3);
       check('sales a la Sierra de Castril', G.world.id === 'sierra' && G.stage === E.RELOJERO); draw('sierra');
       { const w = G.world, r = bfs(w, 4, 42); check('de la cueva al cortijo andando', near(w, r, SIE.door[0], SIE.door[1] + 1)); for (const L of w.lairs) check('guarida ' + L.name + ' alcanzable', near(w, r, L.x, L.y)); check('hoguera del relojero alcanzable', near(w, r, SIE.fire[0], SIE.fire[1])); }
+      { const w = G.world, r = bfs(w, 4, 42), wp = w.warps.find(x => x.to === 'pb4'); check('de vuelta: se llega andando a la boca de la cueva', wp && [0, 1, 2, 3, 4].some(j => near(w, r, wp.x, wp.y + j))); }
+      { const sx = G.player.x, sy = G.player.y; use('sierra', 'cueva_sierra'); check('usar la boca de la cueva te mete en la PB4', G.world.id === 'pb4'); G.world.monsters = []; G.player.x = 1 * 16 + 8; G.player.y = SIE.caveIn[1] * 16 + 8; G.player.x -= 16; step(3); check('y al otro lado sales a La Bolera', G.world.id === 'bolera'); G.enter('sierra', sx, sy, 0); }
       use('sierra', 'relojero_puerta'); check('dentro del taller', G.world.id === 'relojero'); draw('taller');
       { const w = G.world, r = bfs(w, 8, 10); check('escalera de la buhardilla alcanzable', near(w, r, 15, 3)); }
       talk('relojero', 'relojero'); check('el Relojero cuenta lo de los dos relojes', G.stage === E.CANDIDA);

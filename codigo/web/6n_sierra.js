@@ -93,7 +93,7 @@ SIE.sierra = function () {
   }
   const road = (pts, t = T.TRACK) => { for (let i = 0; i < pts.length - 1; i++) { const [x0, y0] = pts[i], [x1, y1] = pts[i + 1], L = Math.max(Math.abs(x1 - x0), Math.abs(y1 - y0)); for (let k = 0; k <= L; k++) { const x = Math.round(x0 + (x1 - x0) * k / L), y = Math.round(y0 + (y1 - y0) * k / L); for (const [dx, dy] of [[0, 0], [1, 0], [0, 1]]) w.set(x + dx, y + dy, t); } } };
   // la salida de la cueva, al oeste, bajo un cantil
-  for (let y = 36; y <= 48; y++) for (let x = 1; x <= 8; x++) w.set(x, y, x < 3 && (y < 40 || y > 44) ? T.MOUNTAIN : T.DIRT);
+  for (let y = 36; y <= 48; y++) for (let x = 0; x <= 8; x++) w.set(x, y, x < 3 && (y < 40 || y > 44) ? T.MOUNTAIN : T.DIRT);
   w.prop('cueva_pb4', 2, 41, 1, 41, 3, 1).id = 'cueva_sierra';
   const back = new Warp(0, 40, 1, 5, 'pb4', SIE.caveOut[0] * 16 + 8, SIE.caveOut[1] * 16 + 8, 2); back.load = true; w.warps.push(back);
   // caminos: de la cueva al cortijo, del cortijo a las cumbres y a la majada
@@ -282,7 +282,7 @@ G.use = function (pr) {
         this.travel(w); return;
       }
       break;
-    case 'cueva_sierra': this.say('Guardián', 'La boca de la PB4 por el lado de la sierra. Huele a humedad y a tierra vieja. Para volver al pantano, hay que cruzarla otra vez.'); return;
+    case 'cueva_sierra': this.getWorld('pb4'); this.travel({ to: 'pb4', tx: SIE.caveOut[0] * 16 + 8, ty: SIE.caveOut[1] * 16 + 8, dir: 2, load: true }); return;
     case 'relojero_puerta': Sound.play('door'); this.enter('relojero', 8 * 16 + 8, 10 * 16 + 8, 1); return;
     case 'hoguera_relojero':
       this.restWorld = 'sierra'; this.restX = SIE.fire[0] * 16 + 8; this.restY = (SIE.fire[1] + 1) * 16 + 8;

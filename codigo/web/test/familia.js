@@ -96,6 +96,13 @@ const { chromium } = require('playwright');
         const r2 = bfs(G.worlds.exterior, WG.doorX, WG.doorY + 1);
         for (const l of L.filter(l => l.kinds.some(k => [MK.PERRO, MK.ESCUPIDOR, MK.MOLE].includes(k)))) check('guarida ' + l.name + ' alcanzable', near(G.worlds.exterior, r2, l.x, l.y)); }
       { G.stage = E.HOTEL; let el = 0; for (let i = 0; i < 60; i++) { const L = { name: 't', x: Math.floor(p.x / 16), y: Math.floor(p.y / 16) + 2, kinds: [MK.HUECO, MK.HUECO], tier: 1 }; G.world.monsters = []; G.spawnLair(L); el += G.world.monsters.filter(x => x.elite).length; } check('salen engendros de élite (' + el + '/120)', el > 3 && el < 40); draw('élite'); }
+      // ---------- jefes a tu altura
+      { const p = G.player; G.stage = E.GUARDA; p.lvl = 20; p.atk = 37; G.world.monsters = []; G.player.invul = 0;
+        const m = new Monster(MK.HUMANO, p.x + 80, p.y, 1); m.set = Art.people.casetero; m.maxHp = m.hp = 640; m.dmg = 20; m.quest = true; G.world.monsters.push(m); G.boss = m; step();
+        check('el jefe crece con tu nivel (' + m.maxHp + ' vida, ' + m.dmg + ' daño)', m.maxHp > 1100 && m.dmg >= 35);
+        m.hp = Math.floor(m.maxHp * 0.45); step(); check('a media vida se enfurece', m.rage === true); G.boss = null; G.world.monsters = [];
+        p.lvl = 2; p.atk = 13; const m2 = new Monster(MK.HUMANO, p.x + 80, p.y, 1); m2.maxHp = m2.hp = 300; m2.dmg = 15; G.world.monsters.push(m2); G.boss = m2; step();
+        check('a nivel bajo el jefe sigue como estaba', m2.maxHp === 300); G.boss = null; G.world.monsters = []; }
     } catch (e) { check('excepción: ' + e.message + ' ' + (e.stack || '').split('\n').slice(1, 3).join(' '), false); }
     return { log, fails };
   });

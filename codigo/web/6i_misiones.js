@@ -436,7 +436,9 @@ Q.defs.bujero = {
 // Casimiro deja un maletín en tu puerta. Si te llevas sus monedas, empieza una semana de "regalos".
 Q.defs.obsequios = {
   title: 'La semana de los obsequios',
-  steps: s => ['', 'Hay un maletín en la puerta de tu cortijo.', 'Espera al día siguiente: otro obsequio.', 'Úrsula ha vuelto al pueblo: está en la Plaza del Ayuntamiento.', 'El Malparío ronda por las calles del pueblo.', 'Huevo bebe delante de El Greco.', 'Coge lo que hay en la grieta del baño de El Greco.', 'Úrsula te invita a merendar a su casa.', 'Esta noche, en tu puerta, el último obsequio.'][s] || '',
+  // un obsequio por día: mientras no amanezca, toca esperar
+  waiting(s) { const d = Q.d('obsequios'); return [2, 3, 4, 5, 7].includes(s) && d.day !== undefined && G.dayN <= d.day; },
+  steps: s => Q.defs.obsequios.waiting(s) ? ['', '', 'Mañana, otro obsequio en tu puerta.', 'Mañana, Úrsula estará en la Plaza del Ayuntamiento.', 'Mañana el Malparío rondará por las calles del pueblo.', 'Mañana Huevo estará bebiendo delante de El Greco.', '', 'Mañana Úrsula te invitará a merendar a su casa.'][s] + ' (Un obsequio al día: duerme en tu cama o espera a que amanezca.)' : ['', 'Hay un maletín en la puerta de tu cortijo.', 'Espera al día siguiente: otro obsequio.', 'Úrsula ha vuelto al pueblo: está en la Plaza del Ayuntamiento.', 'El Malparío ronda por las calles del pueblo.', 'Huevo bebe delante de El Greco.', 'Coge lo que hay en la grieta del baño de El Greco.', 'Úrsula te invita a merendar a su casa.', 'Esta noche, en tu puerta, el último obsequio.'][s] || '',
   place() {
     const s = Q.st('obsequios'), d = Q.d('obsequios'), ow = G.worlds.exterior;
     if (s === 1) Q.prop('exterior', 'maletin', 'q_maletin', WG.doorX + 2, WG.doorY + 2);

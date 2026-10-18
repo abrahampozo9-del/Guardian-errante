@@ -31,6 +31,7 @@ Q.targets = {
   },
   bujero: s => s === 2 ? QG.prop('exterior', 'q_saco') : QG.at(17, 12, 'q_sotano'),
   obsequios: s => {
+    if (Q.defs.obsequios.waiting(s)) return QG.at(7, 12, 'casa_alta'); // a esperar al día siguiente: a la cama
     if (s === 1) return QG.prop('exterior', 'q_maletin');
     if (s === 2) return QG.prop('exterior', 'q_moneda') || [WG.doorX + 2, WG.doorY + 2, 'exterior'];
     if (s === 3) return QG.npc('exterior', 'ursula') || [44, 115, 'exterior'];

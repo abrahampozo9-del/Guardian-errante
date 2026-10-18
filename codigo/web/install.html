@@ -57,15 +57,26 @@
   const caja = document.getElementById('instalar');
   const ua = navigator.userAgent;
   const instalada = window.matchMedia('(display-mode: standalone)').matches || window.matchMedia('(display-mode: fullscreen)').matches || navigator.standalone === true;
-  if (instalada || /[?&]pc=1/.test(location.search)) return; // dentro de la app de PC no hace falta
   const esIOS = /iPad|iPhone|iPod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
   const esAndroid = /Android/i.test(ua);
+  let promptGuardado = null;
+  const mostrar = () => { caja.hidden = false; };
+  // para el menú del juego: en Android (o iPhone) sin instalar, la opción «Instalar en el móvil»
+  window.guardianInstall = {
+    android: esAndroid, ios: esIOS, instalada,
+    puede: !instalada && (esAndroid || esIOS) && !/[?&]pc=1/.test(location.search),
+    directo: () => !!promptGuardado,
+    abrir() {
+      if (esAndroid) { const d = !!promptGuardado; document.getElementById('instalar-si').hidden = !d; document.getElementById('instalar-android').hidden = d; }
+      if (esIOS) document.getElementById('instalar-ios').hidden = false;
+      mostrar();
+    },
+  };
+  if (instalada || /[?&]pc=1/.test(location.search)) return; // dentro de la app de PC no hace falta
   if (!esIOS && !esAndroid) return; // en el PC no molesta
   let rechazado = 0;
   try { rechazado = +localStorage.getItem('guardian_instalar_no') || 0; } catch (e) { }
-  if (Date.now() - rechazado < 3 * 24 * 3600 * 1000) return; // vuelve a ofrecerlo a los 3 días
-  let promptGuardado = null;
-  const mostrar = () => { caja.hidden = false; };
+  const callado = Date.now() - rechazado < 3 * 24 * 3600 * 1000; // el aviso solo vuelve a salir solo a los 3 días
   const ocultar = () => { caja.hidden = true; };
   document.getElementById('instalar-luego').addEventListener('click', () => {
     try { localStorage.setItem('guardian_instalar_no', String(Date.now())); } catch (e) { }
@@ -75,7 +86,7 @@
     const esSafari = /Safari/.test(ua) && !/CriOS|FxiOS|EdgiOS|GSA/.test(ua);
     if (esSafari) document.getElementById('instalar-ios').hidden = false;
     else document.getElementById('instalar-texto').textContent = 'Para instalarlo como app en el iPhone, abre esta página en Safari y usa Compartir → Añadir a pantalla de inicio.';
-    setTimeout(mostrar, 1200);
+    if (!callado) setTimeout(mostrar, 1200);
   } else {
     // Android: Chrome ofrece instalación directa con un botón
     window.addEventListener('beforeinstallprompt', e => {
@@ -83,10 +94,10 @@
       promptGuardado = e;
       document.getElementById('instalar-si').hidden = false;
       document.getElementById('instalar-android').hidden = true;
-      mostrar();
+      if (!callado) mostrar();
     });
     // si el navegador no lo ofrece en 3 s, se enseñan los pasos a mano
-    setTimeout(() => { if (!promptGuardado) { document.getElementById('instalar-android').hidden = false; mostrar(); } }, 3000);
+    setTimeout(() => { if (!promptGuardado && !callado) { document.getElementById('instalar-android').hidden = false; mostrar(); } }, 3000);
     document.getElementById('instalar-si').addEventListener('click', async () => {
       if (!promptGuardado) return;
       promptGuardado.prompt();
@@ -94,7 +105,7 @@
       promptGuardado = null;
       ocultar();
     });
-    window.addEventListener('appinstalled', ocultar);
+    window.addEventListener('appinstalled', () => { ocultar(); window.guardianInstall.puede = false; });
   }
 })();
 </script>

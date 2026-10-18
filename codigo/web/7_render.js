@@ -592,7 +592,11 @@ G.uiTitle = function (g) {
   g.drawImage(cv(Art.hero[0][0]), VW / 2 - 20, 88, 40, 56);
   this.menuList(g, this.menu(), 160, 15);
   g.font = FB(5.6);
-  this.center(g, G.touch ? 'Toca una opción · Juega con el móvil en horizontal' : 'Flechas/WASD para elegir · Enter para aceptar · F11 pantalla completa', VH - 6, '#8a7a60');
+  const GI = typeof window !== 'undefined' && window.guardianInstall;
+  const hint = GI && GI.puede && GI.android ? (GI.directo() ? 'Instálalo como app: elige «Instalar en el móvil»' : 'Instálalo como app: menú ⋮ de Chrome → «Instalar aplicación»')
+    : GI && GI.puede && GI.ios ? 'Instálalo como app: Compartir → «Añadir a pantalla de inicio»'
+    : G.touch ? 'Toca una opción · Juega con el móvil en horizontal' : 'Flechas/WASD para elegir · Enter para aceptar · F11 pantalla completa';
+  this.center(g, hint, VH - 6, GI && GI.puede ? '#e8c46a' : '#8a7a60');
 };
 G.uiHelp = function (g) {
   this.panel(g, 30, 12, VW - 60, VH - 24);

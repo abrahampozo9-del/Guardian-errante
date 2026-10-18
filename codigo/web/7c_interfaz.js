@@ -82,5 +82,9 @@ G.uiTitle = function (g) {
   for (let y = y0 - 14; y < y0 + items.length * step; y += 5) { const xx = x0 - 6 + Math.sin(y * 0.35) * 1.6, s = (y / 5) % 2 ? 1 : -1; g.fillRect(xx + s * 1.5, y, s * 2.5, 0.8); }
   this.menuList(g, items, y0, step, x0);
   g.font = FB(5.6);
-  this.text(g, G.touch ? 'Toca una opción · Juega con el móvil en horizontal' : 'Flechas para elegir · Enter para aceptar · F11 pantalla completa', 30, VH - 8, '#7a6a5a');
+  const GI = typeof window !== 'undefined' && window.guardianInstall, inst = GI && GI.puede;
+  const hint = inst && GI.android ? (GI.directo() ? 'Instálalo como app: elige «Instalar en el móvil»' : 'Instálalo como app: menú ⋮ de Chrome → «Instalar aplicación»')
+    : inst && GI.ios ? 'Instálalo como app: Compartir → «Añadir a pantalla de inicio»'
+    : G.touch ? 'Toca una opción · Juega con el móvil en horizontal' : 'Flechas para elegir · Enter para aceptar · F11 pantalla completa';
+  this.text(g, hint, 30, VH - 8, inst ? '#e8c46a' : '#7a6a5a');
 };

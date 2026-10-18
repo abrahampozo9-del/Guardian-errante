@@ -139,13 +139,27 @@ G.drawPlayerPose = function (g, cx, cy) {
   };
   const showBack = p.hasSword && !attacking && !p.rolling && !spin && !guard;
   if (!posed) {
-    // como siempre: andando, rodando o quieto
-    const s = Art.hero[p.dir][p.moving ? 1 + Math.floor(p.anim * 7) % 2 : 0];
-    const sx = Math.round(p.x - s.w / 2) - cx, sy = Math.round(p.y - s.h + 1) - cy;
-    if (showBack && p.dir !== 1) backSword();
-    if (p.rolling) { g.save(); g.translate(sx + 8, sy + 23); g.rotate((1 - p.rollT / 0.3) * Math.PI * 2 * (p.rollX < 0 ? -1 : 1)); g.drawImage(cv(s), -s.w / 2, -s.h * 0.75, s.w, s.h * 0.8); g.restore(); }
-    else g.drawImage(cv(p.flash > 0 ? white(s) : s), sx, sy);
-    if (showBack && p.dir === 1) backSword();
+    if (p.rolling) { AGIL.drawRoll(g, p, fx, fy, S); return; }
+    // andando: ciclo de 8 tiempos con rebote, el torso inclinado hacia donde va y la capa ondeando
+    const d = p.dir, moving = p.moving, wf = Math.floor(p.anim * 15) % 8, st = [0, 1, 2, 1, 0, -1, -2, -1][wf];
+    const s = moving && S.walk ? S.walk[d][wf] : Art.hero[d][0];
+    const bob = moving ? (Math.abs(st) === 2 ? 1 : st === 0 ? -1 : 0) : 0;
+    // respirar: quieto, el pecho se hincha (la mitad de arriba crece un píxel) y la capa se mece
+    const br = AGIL.breath(p), up = !moving && br > 0.25 ? 1 : 0;
+    const spd = Math.hypot(p.vx || 0, p.vy || 0), lean = moving && Math.abs(p.vx || 0) > 30 ? Math.sign(p.vx) : 0;
+    const [kx, ky] = AGIL.squash(p);
+    const W = s.w * kx, Hh = s.h * ky, x0 = p.x - W / 2 - cx, y0 = p.y + 1 - Hh - cy + bob;
+    if (showBack && d !== 1) { g.save(); g.translate(0, bob - up); backSword(); g.restore(); }
+    if (d >= 2 && (moving ? spd > 40 : true)) AGIL.cape(g, p, x0, y0, d, moving ? wf : br * 1.2, !moving);
+    const im = cv(p.flash > 0 ? white(s) : s), cut = 15; // de la cintura para arriba: se adelanta al correr, sube al respirar
+    const xs = Math.round(x0), ws = Math.round(W), ys = Math.round(y0), ym = Math.round(y0 + cut * ky), ye = Math.round(y0 + Hh);
+    const sm = g.imageSmoothingEnabled; g.imageSmoothingEnabled = false;
+    g.drawImage(im, 0, cut, s.w, s.h - cut, xs, ym, ws, ye - ym);
+    g.drawImage(im, 0, 0, s.w, cut, xs + lean, ys - up, ws, ym - ys);
+    if (up) g.drawImage(im, 0, cut - 1, s.w, 1, xs + lean, ym - 1, ws, 1); // el pecho se hincha: la fila de la cintura se repite
+    g.imageSmoothingEnabled = sm;
+    AGIL.blink(g, p, d, xs + lean, ys - up, S, this.clock);
+    if (showBack && d === 1) { g.save(); g.translate(0, bob - up); backSword(); g.restore(); }
     return;
   }
   // ---- con algo en las manos: cuerpo sin brazos + brazos + arma

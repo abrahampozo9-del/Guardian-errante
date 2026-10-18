@@ -84,7 +84,12 @@ G.update = function (dt) {
   }
 };
 
-G.menu = function () { return this.hasSave ? ['Continuar', 'Nueva partida', 'Controles'] : ['Nueva partida', 'Controles']; };
+G.menu = function () {
+  const m = this.hasSave ? ['Continuar', 'Nueva partida', 'Controles'] : ['Nueva partida', 'Controles'];
+  // en el móvil (Android o iPhone) sin instalar: cómo tenerlo como app
+  if (typeof window !== 'undefined' && window.guardianInstall && window.guardianInstall.puede) m.push('Instalar en el móvil');
+  return m;
+};
 G.menuNav = function (m) {
   if (this.pressed('ArrowUp', 'KeyW')) this.menuIdx = (this.menuIdx + m.length - 1) % m.length;
   if (this.pressed('ArrowDown', 'KeyS')) this.menuIdx = (this.menuIdx + 1) % m.length;
@@ -99,6 +104,7 @@ G.updateTitle = function () {
     if (o === 'Continuar') { if (this.load()) { this.st = ST.PLAY; Sound.music('calma'); } else this.toast('No se pudo cargar la partida.'); }
     else if (o === 'Nueva partida') this.startIntro();
     else if (o === 'Controles') { this.helpBack = ST.TITLE; this.st = ST.HELP; }
+    else if (o === 'Instalar en el móvil') { window.guardianInstall.abrir(); }
   }
 };
 G.startIntro = function () { Sound.music('infierno'); this.playCine('intro', () => this.newGame()); };
@@ -210,13 +216,19 @@ G.updatePlay = function (dt) {
     if (this.rnd.next() < 0.5) this.fx.push(Fx.spark(p.x + this.rnd.gauss() * 3, p.y, this.rnd.gauss() * 10, -8, 0xc8b898, 0.35));
     p.moving = true; p.anim += dt * 2;
     if (p.rollT <= 0) p.rolling = false;
-  } else
-  if ((p.moving = len > 0.25 && p.kbT <= 0)) {
-    const sp = 74 * (this.has('ligero') ? 1.12 : 1) * (p.atkT > 0 || p.charge > 0.2 ? 0.45 : 1) * Math.min(1, len);
-    if (p.atkT <= 0) p.faceTo(ix, iy);
-    p.move(w, ix / len * sp * dt, iy / len * sp * dt);
-    p.anim += dt;
-  } else p.anim = 0;
+  } else {
+    // arranca y frena en unas centésimas: responde igual de rápido, pero ya no se desliza como un bloque
+    const want = len > 0.25 && p.kbT <= 0;
+    const sp = 80 * (this.has('ligero') ? 1.12 : 1) * (p.atkT > 0 || p.charge > 0.2 ? 0.45 : 1) * Math.min(1, len);
+    const tvx = want ? ix / len * sp : 0, tvy = want ? iy / len * sp : 0;
+    if (p.kbT > 0) { p.vx = 0; p.vy = 0; }
+    else { const k = 1 - Math.exp(-dt * (want ? 30 : 38)); p.vx = (p.vx || 0) + (tvx - (p.vx || 0)) * k; p.vy = (p.vy || 0) + (tvy - (p.vy || 0)) * k; }
+    if (!want && Math.hypot(p.vx, p.vy) < 6) { p.vx = 0; p.vy = 0; }
+    if (want && p.atkT <= 0) p.faceTo(ix, iy);
+    if (p.vx || p.vy) p.move(w, p.vx * dt, p.vy * dt);
+    p.moving = want || Math.hypot(p.vx, p.vy) > 20;
+    if (p.moving) p.anim += dt * Math.max(0.6, Math.hypot(p.vx, p.vy) / 80); else p.anim = 0;
+  }
   p.feAcc += dt * (this.isNight() ? 1.0 : 1.6) * (this.has('fervor') ? 2 : 1);
   while (p.feAcc >= 1) { p.feAcc -= 1; if (p.fe < p.maxFe) p.fe++; }
   this.updateCombat(dt);

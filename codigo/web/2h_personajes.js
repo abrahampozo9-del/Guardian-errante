@@ -7,7 +7,9 @@ Art.initCharacters2 = function () {
 
   function person(L, dir, frame, attack, free) {
     const b = img(20, 28);
-    const step = frame === 1 ? 1 : frame === 2 ? -1 : 0, bob = frame ? 1 : 0;
+    // frame 10..17: ciclo de paso de 8 tiempos (zancada -2..2); 0..2: los fotogramas de siempre
+    const wf = frame >= 10 ? [0, 1, 2, 1, 0, -1, -2, -1][frame - 10] : null;
+    const step = wf !== null ? wf : frame === 1 ? 1 : frame === 2 ? -1 : 0, bob = frame ? 1 : 0;
     const side = dir >= 2, back = dir === 1;
     const hairD = shade(L.hair, 0.7), hairL = shade(L.hair, 1.35), skinD = shade(L.skin, 0.82);
     // ---------------- capa (detrás)
@@ -47,7 +49,7 @@ Art.initCharacters2 = function () {
       if (L.scarf) { r(b, 5, tY - 1, 10, 2, L.scarf); if (dir === 0) r(b, 12, tY + 1, 2, 3, L.scarf); }
       // brazos
       const armC = L.cloak ? 0x4e5660 : shade(L.shirt, 0.9);
-      const aL = frame === 1 ? -1 : frame === 2 ? 1 : 0;
+      const aL = wf !== null ? -Math.sign(wf) : frame === 1 ? -1 : frame === 2 ? 1 : 0;
       if (attack && dir === 0) { r(b, 3, tY + 1, 2, 7, armC); r(b, 15, tY - 2, 2, 7, armC); r(b, 15, tY - 3, 2, 1, L.skin); r(b, 3, tY + 8, 2, 1, L.skin); }
       else {
         // free: 1 = sin el brazo de la espada (el derecho del personaje), 2 = sin ninguno (se pintan aparte, con el arma)
@@ -63,7 +65,7 @@ Art.initCharacters2 = function () {
       if (L.scarf) r(b, 6, tY - 1, 8, 2, L.scarf);
       const armC = L.cloak ? 0x4e5660 : shade(L.shirt, 0.85);
       if (attack || L.hollow) { r(b, 10, tY + 3, 7, 2, armC); r(b, 17, tY + 3, 2, 2, L.skin); }
-      else if (!free) { const sw = frame === 1 ? -1 : frame === 2 ? 1 : 0; r(b, 9 + sw, tY + 1, 3, 7, armC); r(b, 9 + sw, tY + 8, 3, 2, L.skin); }
+      else if (!free) { const sw = wf !== null ? -wf : frame === 1 ? -1 : frame === 2 ? 1 : 0; r(b, 9 + sw, tY + 1, 3, 7, armC); r(b, 9 + sw, tY + 8, 3, 2, L.skin); }
     }
     // ---------------- cabeza grande
     const hx = 4, hy = 1 + (frame === 1 ? 1 : 0) * 0;
@@ -118,6 +120,7 @@ Art.initCharacters2 = function () {
     for (let d = 0; d < 4; d++) { s.push([]); const dd = d === 2 ? 3 : d; for (let f = 0; f < 3; f++) { const im = person(L, dd, f, false); s[d].push(d === 2 ? flipH(im) : im); } }
     return s;
   }
+  const walkSet = L => { const s = []; for (let d = 0; d < 4; d++) { s.push([]); const dd = d === 2 ? 3 : d; for (let f = 0; f < 8; f++) { const im = person(L, dd, 10 + f, false); s[d].push(d === 2 ? flipH(im) : im); } } return s; };
   const freeSet = (L, fr) => { const s = []; for (let d = 0; d < 4; d++) { s.push([]); const dd = d === 2 ? 3 : d; for (let f = 0; f < 3; f++) { const im = person(L, dd, f, false, fr); s[d].push(d === 2 ? flipH(im) : im); } } return s; };
   const heroL = Look(0xc89470, 0x2a1d16, 0x45413a, 0x3a3a40, 0x2a1e14, { beard: true, cloak: true, eyes: 0x4a3a28 });
   Art.hero = personSet(heroL);
@@ -125,8 +128,8 @@ Art.initCharacters2 = function () {
   // los dos hermanos: Abraham (moreno) y Oliver (tez más blanca, castaño)
   const oliL = Look(0xecc8a8, 0x6a4426, 0x45413a, 0x3a3a40, 0x2a1e14, { beard: true, cloak: true, eyes: 0x4a3a28 });
   Art.heroSets = {
-    abraham: { hero: Art.hero, atk: Art.heroAtk, skin: '#c89470', free1: freeSet(heroL, 1), free2: freeSet(heroL, 2) },
-    oliver: { hero: personSet(oliL), atk: [0, 1, 2, 3].map(d => { const im = person(oliL, d === 2 ? 3 : d, 1, true); return d === 2 ? flipH(im) : im; }), skin: '#ecc8a8', free1: freeSet(oliL, 1), free2: freeSet(oliL, 2) },
+    abraham: { hero: Art.hero, atk: Art.heroAtk, skin: '#c89470', walk: walkSet(heroL), free1: freeSet(heroL, 1), free2: freeSet(heroL, 2) },
+    oliver: { hero: personSet(oliL), atk: [0, 1, 2, 3].map(d => { const im = person(oliL, d === 2 ? 3 : d, 1, true); return d === 2 ? flipH(im) : im; }), skin: '#ecc8a8', walk: walkSet(oliL), free1: freeSet(oliL, 1), free2: freeSet(oliL, 2) },
   };
   // y de paisano, para cuando el otro hermano viene a vivir a la casa del río
   Art.people.abraham_c = personSet(Look(0xc89470, 0x2a1d16, 0x3a5a6a, 0x3a3a48, 0x2a2a2a, { beard: true, eyes: 0x4a3a28 }));

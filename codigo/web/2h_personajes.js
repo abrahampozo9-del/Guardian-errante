@@ -5,7 +5,7 @@ Art.initCharacters2 = function () {
   const { img, p, r, ov, line, shade, flipH } = Px;
   const Look = (skin, hair, shirt, pants, shoes, o = {}) => Object.assign({ skin, hair, shirt, pants, shoes, eyes: 0x2a3a5a }, o);
 
-  function person(L, dir, frame, attack) {
+  function person(L, dir, frame, attack, free) {
     const b = img(20, 28);
     const step = frame === 1 ? 1 : frame === 2 ? -1 : 0, bob = frame ? 1 : 0;
     const side = dir >= 2, back = dir === 1;
@@ -49,7 +49,12 @@ Art.initCharacters2 = function () {
       const armC = L.cloak ? 0x4e5660 : shade(L.shirt, 0.9);
       const aL = frame === 1 ? -1 : frame === 2 ? 1 : 0;
       if (attack && dir === 0) { r(b, 3, tY + 1, 2, 7, armC); r(b, 15, tY - 2, 2, 7, armC); r(b, 15, tY - 3, 2, 1, L.skin); r(b, 3, tY + 8, 2, 1, L.skin); }
-      else { r(b, 3, tY + 1 + aL, 2, 7, armC); r(b, 15, tY + 1 - aL, 2, 7, armC); r(b, 3, tY + 8 + aL, 2, 2, L.skin); r(b, 15, tY + 8 - aL, 2, 2, L.skin); }
+      else {
+        // free: 1 = sin el brazo de la espada (el derecho del personaje), 2 = sin ninguno (se pintan aparte, con el arma)
+        const noL = free === 2 || (free === 1 && dir === 0), noR = free === 2 || (free === 1 && dir === 1);
+        if (!noL) { r(b, 3, tY + 1 + aL, 2, 7, armC); r(b, 3, tY + 8 + aL, 2, 2, L.skin); }
+        if (!noR) { r(b, 15, tY + 1 - aL, 2, 7, armC); r(b, 15, tY + 8 - aL, 2, 2, L.skin); }
+      }
     } else {
       r(b, 6, tY, 8, 9, L.shirt);
       if (L.robe) r(b, 6, 20, 8, 6, L.shirt);
@@ -58,7 +63,7 @@ Art.initCharacters2 = function () {
       if (L.scarf) r(b, 6, tY - 1, 8, 2, L.scarf);
       const armC = L.cloak ? 0x4e5660 : shade(L.shirt, 0.85);
       if (attack || L.hollow) { r(b, 10, tY + 3, 7, 2, armC); r(b, 17, tY + 3, 2, 2, L.skin); }
-      else { const sw = frame === 1 ? -1 : frame === 2 ? 1 : 0; r(b, 9 + sw, tY + 1, 3, 7, armC); r(b, 9 + sw, tY + 8, 3, 2, L.skin); }
+      else if (!free) { const sw = frame === 1 ? -1 : frame === 2 ? 1 : 0; r(b, 9 + sw, tY + 1, 3, 7, armC); r(b, 9 + sw, tY + 8, 3, 2, L.skin); }
     }
     // ---------------- cabeza grande
     const hx = 4, hy = 1 + (frame === 1 ? 1 : 0) * 0;
@@ -113,14 +118,15 @@ Art.initCharacters2 = function () {
     for (let d = 0; d < 4; d++) { s.push([]); const dd = d === 2 ? 3 : d; for (let f = 0; f < 3; f++) { const im = person(L, dd, f, false); s[d].push(d === 2 ? flipH(im) : im); } }
     return s;
   }
+  const freeSet = (L, fr) => { const s = []; for (let d = 0; d < 4; d++) { s.push([]); const dd = d === 2 ? 3 : d; for (let f = 0; f < 3; f++) { const im = person(L, dd, f, false, fr); s[d].push(d === 2 ? flipH(im) : im); } } return s; };
   const heroL = Look(0xc89470, 0x2a1d16, 0x45413a, 0x3a3a40, 0x2a1e14, { beard: true, cloak: true, eyes: 0x4a3a28 });
   Art.hero = personSet(heroL);
   Art.heroAtk = [0, 1, 2, 3].map(d => { const im = person(heroL, d === 2 ? 3 : d, 1, true); return d === 2 ? flipH(im) : im; });
   // los dos hermanos: Abraham (moreno) y Oliver (tez más blanca, castaño)
   const oliL = Look(0xecc8a8, 0x6a4426, 0x45413a, 0x3a3a40, 0x2a1e14, { beard: true, cloak: true, eyes: 0x4a3a28 });
   Art.heroSets = {
-    abraham: { hero: Art.hero, atk: Art.heroAtk, skin: '#c89470' },
-    oliver: { hero: personSet(oliL), atk: [0, 1, 2, 3].map(d => { const im = person(oliL, d === 2 ? 3 : d, 1, true); return d === 2 ? flipH(im) : im; }), skin: '#ecc8a8' },
+    abraham: { hero: Art.hero, atk: Art.heroAtk, skin: '#c89470', free1: freeSet(heroL, 1), free2: freeSet(heroL, 2) },
+    oliver: { hero: personSet(oliL), atk: [0, 1, 2, 3].map(d => { const im = person(oliL, d === 2 ? 3 : d, 1, true); return d === 2 ? flipH(im) : im; }), skin: '#ecc8a8', free1: freeSet(oliL, 1), free2: freeSet(oliL, 2) },
   };
   // y de paisano, para cuando el otro hermano viene a vivir a la casa del río
   Art.people.abraham_c = personSet(Look(0xc89470, 0x2a1d16, 0x3a5a6a, 0x3a3a48, 0x2a2a2a, { beard: true, eyes: 0x4a3a28 }));

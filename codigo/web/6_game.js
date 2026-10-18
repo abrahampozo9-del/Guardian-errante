@@ -102,14 +102,6 @@ G.updateTitle = function () {
   }
 };
 G.startIntro = function () { Sound.music('infierno'); this.playCine('intro', () => this.newGame()); };
-G.startIntroOld = function () {
-  this.introPages = [
-    'Primero fueron los apagones. Luego, el silencio en la radio.\nY después... ellos.',
-    'Salieron del agua y de la tierra.\nEn pocos meses, casi toda la humanidad había caído.',
-    'Siete años después del Colapso, en un cortijo junto al río Guadalentín,\na las afueras de Pozo Alcón, un hombre sigue en pie.',
-    '«No soy un santo. Solo un hombre que sigue la luz,\naunque a veces la encuentre en la oscuridad.»'];
-  this.introIdx = 0; this.introChars = 0; this.st = ST.INTRO;
-};
 G.updateIntro = function (dt) {
   this.introChars += dt * 38;
   if (this.pressed('Escape')) { this.newGame(); return; }
@@ -613,16 +605,6 @@ G.startEnding = function () {
   this.stage = 9;
   this.playCine('final', () => { Sound.music('calma'); this.save(); this.toast('Partida guardada. Pozo Alcón es tuyo: explora libremente.'); });
 };
-G.startEndingOld = function () {
-  this.endPages = [
-    'Las semanas siguientes, el agua de La Bolera volvió a bajar limpia por el Guadalentín.',
-    'Los once supervivientes de la Encarnación salieron de detrás de las barricadas.\nDespués llegaron otros, desde Hinojares, desde Huesa, desde Fontanar.',
-    'En el cortijo del río, las placas siguen dando luz.\nEl gato duerme al sol, y el perrillo ya no ladra de noche.',
-    '«La calma también es una forma de lucha.\nPozo Alcón... siempre será mi lugar.»',
-    'EL GUARDIÁN ERRANTE\n\nGracias por jugar.'];
-  this.endIdx = 0; this.introChars = 0; this.stage = 9; this.st = ST.END;
-};
-
 // --------------------------------------------------------------------- diálogos
 G.say = function (who, ...lines) {
   if (lines.length === 0) { this.toast(who); return; }

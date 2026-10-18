@@ -323,3 +323,11 @@ Q.late = function () {
   }
 };
 CONSEJOS.push('Los duros se ganan matando engendros, limpiando guaridas, cumpliendo misiones y registrando coches abandonados.', 'En el taller de la cochera se compran armas de distancia. Se disparan con F (o el botón de tiro) y R cambia de arma.', 'El acero, aunque sea de bala, apenas hace mella en los demonios. La Luz, sí.');
+
+// ---------------------------------------------------------------- memoria: solo el mundo en el que estás guarda su suelo pintado
+// (cada mundo podía quedarse con 36 trozos de 256×256 y ahora hay más de diez mundos)
+const _enterMem = G.enter;
+G.enter = function (id, x, y, dir) {
+  _enterMem.call(this, id, x, y, dir);
+  for (const k in this.worlds) { const w = this.worlds[k]; if (w !== this.world && w.chunks && w.chunks.size) { w.chunks = null; w.waterChunk = null; } }
+};

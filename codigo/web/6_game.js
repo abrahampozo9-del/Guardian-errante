@@ -225,7 +225,7 @@ G.updatePlay = function (dt) {
     else { const k = 1 - Math.exp(-dt * (want ? 30 : 38)); p.vx = (p.vx || 0) + (tvx - (p.vx || 0)) * k; p.vy = (p.vy || 0) + (tvy - (p.vy || 0)) * k; }
     if (!want && Math.hypot(p.vx, p.vy) < 6) { p.vx = 0; p.vy = 0; }
     if (want && p.atkT <= 0) p.faceTo(ix, iy);
-    if (p.vx || p.vy) p.move(w, p.vx * dt, p.vy * dt);
+    if (p.vx || p.vy) { const ox = p.x, oy = p.y; p.move(w, p.vx * dt, p.vy * dt); if (p.x === ox && Math.abs(p.vx) > Math.abs(p.vy)) p.vx *= 0.5; if (p.y === oy && Math.abs(p.vy) >= Math.abs(p.vx)) p.vy *= 0.5; } // contra una pared no se sigue corriendo en el sitio
     p.moving = want || Math.hypot(p.vx, p.vy) > 20;
     if (p.moving) p.anim += dt * Math.max(0.6, Math.hypot(p.vx, p.vy) / 80); else p.anim = 0;
   }

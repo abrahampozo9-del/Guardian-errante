@@ -129,7 +129,7 @@ Q.late = function () {
     _rw.call(this, g);
     if (this.padel || this.st !== ST.PLAY) return;
     const w = this.world, tgt = this.arrowTarget(); if (!tgt) return;
-    const cx = Math.round(this.camX), cy = Math.round(this.camY);
+    const cx = this.camRX, cy = this.camRY;
     const ox = tgt[0] * TS + 8 - cx, oy = tgt[1] * TS + 8 - cy;
     const col = this.q._track ? '120,220,255' : '255,214,110';
     if (ox >= 8 && ox <= WW - 8 && oy >= 8 && oy <= WH - 8) {

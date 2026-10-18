@@ -177,7 +177,7 @@ const _drawShotsA = G.drawShots;
 G.drawShots = function (g) {
   _drawShotsA.call(this, g);
   if (!this.shots) return;
-  const cx = Math.round(this.camX), cy = Math.round(this.camY);
+  const cx = this.camRX, cy = this.camRY;
   for (const s of this.shots) if (s.holy) { g.fillStyle = 'rgba(255,246,210,0.55)'; g.fillRect(Math.round(s.x - cx) - 1, Math.round(s.y - cy) - 1, 3, 3); }
 };
 

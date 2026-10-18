@@ -156,5 +156,5 @@ const _lateAg = Q.late;
 Q.late = function () {
   _lateAg();
   const _vig = G.vignette;
-  G.vignette = function (g) { if (!this.padel) this.drawFire(g, Math.round(this.camX), Math.round(this.camY)); return _vig.call(this, g); };
+  G.vignette = function (g) { if (!this.padel) this.drawFire(g, this.camRX, this.camRY); return _vig.call(this, g); };
 };

@@ -159,7 +159,7 @@ Q.late = function () {
   G.renderWorld = function (g) {
     _rw.call(this, g);
     if (this.padel || !this.world) return;
-    const cx = Math.round(this.camX), cy = Math.round(this.camY), t = this.clock;
+    const cx = this.camRX, cy = this.camRY, t = this.clock;
     for (const m of this.world.monsters) {
       if (m.dead || !m.elite) continue;
       const x = m.x - cx, y = m.y - cy; if (x < -30 || y < -40 || x > WW + 30 || y > WH + 30) continue;

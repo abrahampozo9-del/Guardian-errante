@@ -188,15 +188,19 @@ const Touch = {
     G.boot();
     const load = document.getElementById('cargando');
     if (load) load.remove();
-    let last = performance.now(), acc = 0;
-    const step = 1 / 60;
+    let last = performance.now();
+    // un paso de lógica por cada fotograma de la pantalla, con el tiempo real que ha pasado (troceado si es
+    // largo): a 60, 90 o 120 Hz todo avanza lo mismo por segundo y ningún fotograma se repite ni se salta
     function frame(now) {
-      acc += Math.min(0.25, (now - last) / 1000); last = now;
+      let dt = Math.min(0.1, Math.max(0, (now - last) / 1000)); last = now;
       if (canvas.clientWidth !== cw || canvas.clientHeight !== ch) { resize(); G.dirty = true; }
-      let steps = 0;
-      while (acc >= step) { const j = G.just; j.clear(); for (const k of G.queue) j.add(k); G.queue.clear(); G.update(step); acc -= step; steps++; }
-      // en pantallas de 120 Hz la lógica va a 60: no tiene sentido repintar si nada ha cambiado
-      if (steps > 0 || G.dirty) { G.dirty = false; G.render(ctx, cw, ch, dpr); }
+      let first = true;
+      while (dt > 0.0005) {
+        const h = Math.min(1 / 50, dt); dt -= h;
+        const j = G.just; j.clear(); if (first) { for (const k of G.queue) j.add(k); G.queue.clear(); first = false; }
+        G.update(h);
+      }
+      G.dirty = false; G.render(ctx, cw, ch, dpr);
       requestAnimationFrame(frame);
     }
     requestAnimationFrame(frame);

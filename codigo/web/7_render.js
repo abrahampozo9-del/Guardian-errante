@@ -19,7 +19,21 @@ G.buildMap = function (ow) {
   return c;
 };
 
+// El mundo se pinta a S veces su resolución (S según la pantalla, hasta 3): el pixel art sigue igual de nítido,
+// pero la cámara y el Guardián se mueven en fracciones de píxel, sin tembleques ni tirones. Si un móvil va justo
+// de potencia, S baja solo. La cámara hereda la fracción de la posición del Guardián: él queda quieto en
+// pantalla y es el suelo el que corre, suave.
+G.rs = 1; G.rsMax = 3; G.camRX = 0; G.camRY = 0;
+G.qz = function (v) { return Math.round(v * this.rs) / this.rs; };
 G.render = function (ctx, cw, ch, dpr) {
+  {
+    let sc0 = Math.min(cw / VW, ch / VH); const i0 = Math.floor(sc0 * dpr) / dpr; if (i0 >= 1 && sc0 - i0 < 0.25 && !G.touch) sc0 = i0;
+    const devPx = VW * sc0 * dpr / WW, S = Math.max(1, Math.min(this.rsMax, Math.round(devPx)));
+    if (S !== this.rs || view.width !== WW * S) { this.rs = S; view.width = WW * S; view.height = WH * S; }
+    this.rsSmooth = Math.abs(devPx / S - Math.round(devPx / S)) > 0.04 || devPx < S;
+  }
+  const t0 = performance.now();
+  vctx.setTransform(this.rs, 0, 0, this.rs, 0, 0);
   vctx.imageSmoothingEnabled = false;
   if (this.st === ST.TITLE || (this.st === ST.HELP && this.helpBack !== ST.PAUSE)) this.renderTitleBg(vctx);
   else if (this.st === ST.INTRO || this.st === ST.END || this.st === ST.CINE || this.st === ST.LOAD) { vctx.fillStyle = '#08060a'; vctx.fillRect(0, 0, WW, WH); this.embers(vctx); }
@@ -33,8 +47,14 @@ G.render = function (ctx, cw, ch, dpr) {
   if (isc >= 1 && sc - isc < 0.25 && !G.touch) sc = isc;
   const dw = VW * sc, dh = VH * sc, ox = (cw - dw) / 2, oy = (ch - dh) / 2;
   this.layout = { ox, oy, sc };
-  ctx.imageSmoothingEnabled = false;
+  ctx.imageSmoothingEnabled = !!this.rsSmooth; if (this.rsSmooth) ctx.imageSmoothingQuality = 'high';
   ctx.drawImage(view, Math.round(ox * dpr), Math.round(oy * dpr), Math.round(dw * dpr), Math.round(dh * dpr));
+  ctx.imageSmoothingEnabled = false;
+  // si pintar el mundo cuesta demasiado en este aparato, se baja la resolución interna
+  if (this.st === ST.PLAY && this.rs > 1) {
+    const ms = performance.now() - t0; this.rsAvg = (this.rsAvg || ms) * 0.95 + ms * 0.05; this.rsN = (this.rsN || 0) + 1;
+    if (this.rsN > 90 && this.rsAvg > 11) { this.rsMax = this.rs - 1; this.rsN = 0; this.rsAvg = 0; }
+  }
   ctx.setTransform(sc * dpr, 0, 0, sc * dpr, ox * dpr, oy * dpr);
   ctx.save();
   ctx.beginPath(); ctx.rect(0, 0, VW, VH); ctx.clip();
@@ -64,10 +84,22 @@ G.render = function (ctx, cw, ch, dpr) {
 
 G.renderWorld = function (g) {
   const p = this.player, w = this.world;
-  this.camX += (p.x - WW / 2 - this.camX) * 0.18; this.camY += (p.y - 10 - WH / 2 - this.camY) * 0.18;
+  const now = this.clock, rdt = Math.min(0.1, Math.max(0, now - (this._camT === undefined ? now : this._camT))); this._camT = now; // tiempo del juego
+  const kc = 1 - Math.pow(0.82, rdt * 60); // lo mismo que antes a 60 fps, pero igual a 90 o a 120
+  this.camX += (p.x - WW / 2 - this.camX) * kc; this.camY += (p.y - 10 - WH / 2 - this.camY) * kc;
   this.clampCam();
-  let cx = Math.round(this.camX), cy = Math.round(this.camY);
+  // la cámara que se pinta: la posición exacta del Guardián + el retraso de la cámara redondeado a 1/S
+  const tx = p.x - WW / 2, ty = p.y - 10 - WH / 2;
+  const S = this.rs, lx = this.camX - tx, ly = this.camY - ty;
+  // el retraso se redondea con margen: no salta adelante y atrás entre dos valores cuando está justo en medio
+  let qx = Math.round(lx * S) / S, qy = Math.round(ly * S) / S;
+  if (this.camLQ && this.camLQ.s === S) { if (Math.abs(lx - this.camLQ.x) < 0.8 / S) qx = this.camLQ.x; if (Math.abs(ly - this.camLQ.y) < 0.8 / S) qy = this.camLQ.y; }
+  this.camLQ = { x: qx, y: qy, s: S };
+  let ex = tx + qx, ey = ty + qy;
+  const sx0 = this.camX, sy0 = this.camY; this.camX = ex; this.camY = ey; this.clampCam(); ex = this.camX; ey = this.camY; this.camX = sx0; this.camY = sy0;
+  let cx = this.qz(ex), cy = this.qz(ey);
   if (this.shakeT > 0) { cx += this.rnd.int(5) - 2; cy += this.rnd.int(5) - 2; }
+  this.camRX = cx; this.camRY = cy;
   g.fillStyle = '#0b0907'; g.fillRect(0, 0, WW, WH);
   // suelo: se dibuja por trozos de 16×16 casillas que se guardan ya pintados (el agua, en sus 4 fotogramas)
   const frame = Math.floor(this.clock * 3) & 3, CHK = 16 * TS;

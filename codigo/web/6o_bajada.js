@@ -347,7 +347,7 @@ Q.late = function () {
   G.renderWorld = function (g) {
     _rw.call(this, g);
     if (this.padel) return;
-    const cx = Math.round(this.camX), cy = Math.round(this.camY);
+    const cx = this.camRX, cy = this.camRY;
     if (this.beams && this.beams.length) {
       g.save(); g.globalCompositeOperation = 'screen';
       for (const b of this.beams) { g.strokeStyle = `rgba(255,240,190,${Math.min(1, b.t * 4)})`; g.lineWidth = 2; g.beginPath(); g.moveTo(b.x0 - cx, b.y0 - cy); g.lineTo(b.x1 - cx, b.y1 - cy); g.stroke(); g.strokeStyle = `rgba(255,255,255,${Math.min(1, b.t * 3)})`; g.lineWidth = 0.8; g.stroke(); }

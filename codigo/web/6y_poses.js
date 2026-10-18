@@ -261,5 +261,10 @@ G.swordHit = function (m, mult) {
 const _latePose = Q.late;
 Q.late = function () {
   _latePose();
-  G.drawPlayer = function (g, cx, cy) { return this.drawPlayerPose(g, cx, cy); };
+  // el Guardián y los engendros se colocan con precisión de 1/S de píxel (el dibujo interno redondea a píxel
+  // entero; aquí se le suma lo que se pierde al redondear), así se deslizan sin ir a saltitos
+  const sub = (g, x, y) => { if (G.rs <= 1) return false; const dx = G.qz(x) - Math.round(x), dy = G.qz(y) - Math.round(y); if (!dx && !dy) return false; g.save(); g.translate(dx, dy); return true; };
+  G.drawPlayer = function (g, cx, cy) { const t = sub(g, this.player.x, this.player.y); this.drawPlayerPose(g, cx, cy); if (t) g.restore(); };
+  const _dm = G.drawMonster;
+  G.drawMonster = function (g, m, cx, cy) { const t = sub(g, m.x, m.y); _dm.call(this, g, m, cx, cy); if (t) g.restore(); };
 };

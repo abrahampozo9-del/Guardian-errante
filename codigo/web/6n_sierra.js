@@ -377,7 +377,7 @@ Q.late = function () {
   G.renderWorld = function (g) {
     _rw.call(this, g);
     const w = this.world; if (!w || !w.cave || this.padel) return;
-    const p = this.player, cx = Math.round(this.camX), cy = Math.round(this.camY);
+    const p = this.player, cx = this.camRX, cy = this.camRY;
     const lit = Math.max(0, Math.min(1, (this.caveLit || 0) / 2));
     const base = 20 + (this.flags.has('esfera') ? 12 : 0) + Math.sin(this.clock * 3) * 1.5, rr = base + lit * 70;
     mg.globalCompositeOperation = 'source-over'; mg.fillStyle = 'rgba(2,2,4,0.985)'; mg.fillRect(0, 0, WW, WH);

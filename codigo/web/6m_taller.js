@@ -109,7 +109,7 @@ G.updateShots = function (dt) {
 };
 G.drawShots = function (g) {
   if (!this.shots || !this.shots.length) return;
-  const cx = Math.round(this.camX), cy = Math.round(this.camY);
+  const cx = this.camRX, cy = this.camRY;
   for (const s of this.shots) {
     const x = s.x - cx, y = s.y - cy, l = Math.hypot(s.vx, s.vy), ux = s.vx / l, uy = s.vy / l;
     if (s.kind === 'flecha' || s.kind === 'virote') {

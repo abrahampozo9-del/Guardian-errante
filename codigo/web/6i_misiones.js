@@ -13,9 +13,9 @@ const Q = {
     if (!G.q[id]) G.q[id] = { s: 0, d: {} };
     const was = G.q[id].s; G.q[id].s = s; G.q[id].t = G.clock;
     if (s >= QDONE && was < QDONE) { G.toast('Misión cumplida: ' + Q.defs[id].title); Sound.play('purify'); G.q._last = id; Q.pasilloBack(); }
-    else if (was === 0 && s > 0) { G.toast('Nueva misión: ' + Q.defs[id].title); Sound.play('level'); }
+    else if (was === 0 && s > 0) { G.toast('Nueva misión: ' + Q.defs[id].title + '. Síguela desde el Diario de misiones.'); Sound.play('level'); }
     else if (msg !== false) G.toast(Q.defs[id].title + ': ' + Q.defs[id].steps(s));
-    G.q._track = s >= QDONE ? null : id;
+    if (s >= QDONE && G.q._track === id) G.q._track = null; // al acabarla, la flecha vuelve a la historia principal
     G.save(); Q.refresh();
   },
   done(id) { return Q.st(id) >= QDONE; },
@@ -97,7 +97,7 @@ const Q = {
     Object.assign(m, o.props || {});
     m.aggro = true; m.spawnFade = 0.5; m.qfoe = true; m.quest = true;
     // si mueres o sales de la sala a media pelea, vuelve a estar ahí cuando regreses
-    const qid = G.q._track, qs = qid ? Q.st(qid) : 0, rec = { qid, qs, args: [key, name, x, y, o] };
+    const qid = Q.cur || G.q._track, qs = qid ? Q.st(qid) : 0, rec = { qid, qs, args: [key, name, x, y, o] };
     Q.pending[w.id] = rec;
     m.onDeath = mm => { if (Q.pending[w.id] === rec) delete Q.pending[w.id]; if (o.onDeath) o.onDeath(mm); };
     w.monsters.push(m);
@@ -212,16 +212,16 @@ G.enter = function (id, x, y, dir) {
   if (this.boss && this.boss.qfoe) this.boss = null;
   const pd = Q.pending[id], w = this.worlds[id];
   if (pd && w && (!pd.qid || Q.st(pd.qid) === pd.qs) && !w.monsters.some(m => m.qfoe && !m.dead)) { delete Q.pending[id]; Q.foe(w, ...pd.args); }
-  for (const k in Q.defs) if (Q.defs[k].enter) Q.defs[k].enter(id);
+  for (const k in Q.defs) if (Q.defs[k].enter) { Q.cur = k; Q.defs[k].enter(id); }
 };
 const _talkQ = G.talk;
 G.talk = function (n) {
-  for (const k in Q.defs) { const f = Q.defs[k].talk; if (f && f(n) === true) { Sound.play('talk'); return; } }
+  for (const k in Q.defs) { Q.cur = k; const f = Q.defs[k].talk; if (f && f(n) === true) { Sound.play('talk'); return; } }
   _talkQ.call(this, n);
 };
 const _useQ = G.use;
 G.use = function (pr) {
-  for (const k in Q.defs) { const f = Q.defs[k].use; if (f && f(pr) === true) return; }
+  for (const k in Q.defs) { Q.cur = k; const f = Q.defs[k].use; if (f && f(pr) === true) return; }
   _useQ.call(this, pr);
 };
 const _killQ = G.killMonster;
@@ -267,7 +267,7 @@ G.getWorld = function (id) { const had = !!this.worlds[id]; const w = _gw.call(t
 // lo que pone en el HUD bajo el objetivo principal
 G.sideObjective = function () {
   const id = this.q._track; if (!id || !Q.defs[id] || Q.done(id) || Q.st(id) === 0) return null;
-  return '◆ ' + Q.defs[id].title + ': ' + Q.defs[id].steps(Q.st(id));
+  return '➤ ' + Q.defs[id].title + ': ' + Q.defs[id].steps(Q.st(id));
 };
 const hora = () => G.hour();
 const noche = () => { const h = hora(); return h >= 20 || h < 5; };
@@ -902,8 +902,10 @@ G.updateQuests = function () {
   if (this.pressed('Escape', 'KeyP', 'Back')) { this.st = ST.PAUSE; return; }
   if (this.pressed('ArrowDown', 'KeyS')) this.qSel = Math.min(list.length - 1, (this.qSel || 0) + 1);
   if (this.pressed('ArrowUp', 'KeyW')) this.qSel = Math.max(0, (this.qSel || 0) - 1);
-  if (this.pressed('Enter', 'KeyE', 'Space') && list[this.qSel]) { this.q._track = list[this.qSel].id; this.toast('Siguiendo: ' + list[this.qSel].title); this.st = ST.PLAY; }
-  for (let i = 0; i < list.length; i++) if (this.just.has('Pick' + i)) { this.just.delete('Pick' + i); if (this.qSel === i) { this.q._track = list[i].id; this.toast('Siguiendo: ' + list[i].title); this.st = ST.PLAY; } else this.qSel = i; }
+  if (this.pressed('Enter', 'KeyE', 'Space') && list[this.qSel]) { this.setGuide(list[this.qSel]); this.st = ST.PLAY; }
+  for (let i = 0; i < list.length; i++) if (this.just.has('Pick' + i)) { this.just.delete('Pick' + i); if (this.qSel === i) { this.setGuide(list[i]); this.st = ST.PLAY; } else this.qSel = i; }
+  if (this.just.has('Pick97')) { this.just.delete('Pick97'); this.qSel = Math.max(0, (this.qSel || 0) - 1); }
+  if (this.just.has('Pick98')) { this.just.delete('Pick98'); this.qSel = Math.min(list.length - 1, (this.qSel || 0) + 1); }
   if (this.just.has('Pick99') || this.just.has('Tap')) { this.just.delete('Pick99'); this.just.delete('Tap'); this.st = ST.PAUSE; }
 };
 Q.list = () => Object.keys(Q.defs).filter(k => Q.st(k) > 0).map(k => ({ id: k, title: Q.defs[k].title, done: Q.done(k), step: Q.done(k) ? ({ verdad: 'Le contaste la verdad a Manuel.', mentira: 'Le dijiste a Manuel que no había nada.', tapado: 'El bujero está tapado. Doro vive con ello.', doro: 'Doro se asomó al bujero.', honrado: 'Ni un céntimo del maletín.', disparo: 'Le disparaste a Casimiro.', devuelto: 'Devolviste lo que no era tuyo.', justicia: 'Nolasco, encerrado en la sacristía.', destierro: 'Nolasco, desterrado al pantano.', salvada: 'Andrea está viva.', oscuro: 'Fue el día de Baldomero.', tarde: 'Llegaste tarde al Cortijo del Conde.', fallo: 'Perdiste a Javier.', abuela: 'La urna de la abuela.' }[Q.d(k).fin] || 'Cumplida.') : Q.defs[k].steps(Q.st(k)) }));
@@ -914,14 +916,19 @@ G.uiQuests = function (g) {
   g.fillStyle = UI.bronze; g.fillRect(VW / 2 - 60, 36, 120, 1);
   const list = Q.list();
   if (!list.length) { g.font = FB(7); this.center(g, 'Todavía no te has metido en los asuntos de nadie.', 70, PAPER); }
-  list.forEach((q, i) => {
-    const y = 50 + i * 17, sel = i === (this.qSel || 0);
+  const vis = 8, selI = this.qSel || 0, off = Math.max(0, Math.min(list.length - vis, selI - 3));
+  list.slice(off, off + vis).forEach((q, j) => {
+    const i = j + off, y = 50 + j * 17, sel = i === selI;
     if (sel) { g.fillStyle = 'rgba(160,30,24,0.3)'; g.fillRect(32, y - 9, VW - 64, 16); }
-    g.font = FT(7.6); this.text(g, (q.done ? '✓ ' : (this.q._track === q.id ? '◆ ' : '· ')) + q.title, 38, y, q.done ? '#8a7a62' : GOLD);
-    g.font = FB(6); this.text(g, q.step, 160, y, q.done ? '#7a6a5a' : PAPER);
+    g.font = FT(7.6); this.text(g, (q.done ? '✓ ' : (this.isGuided(q.id) ? '➤ ' : '· ')) + q.title, 38, y, q.done ? '#8a7a62' : this.isGuided(q.id) ? '#8ad8ff' : GOLD);
+    g.font = FB(6); const ln = this.wrap(g, q.step, VW - 64 - 132); this.text(g, ln[0] + (ln.length > 1 ? '…' : ''), 166, y, q.done ? '#7a6a5a' : PAPER);
     this.menuRects.push({ i, x: 32, y: y - 9, w: VW - 64, h: 16 });
   });
-  g.font = FB(5.6); this.center(g, G.touch ? 'Toca una misión para seguirla (dos toques)' : 'Enter: seguir esta misión · Esc o clic en Volver: salir', VH - 34, DIM);
+  if (off > 0) { g.font = FB(7); this.text(g, '▲', VW - 40, 46, GOLD); this.menuRects.push({ i: 97, x: VW - 50, y: 38, w: 20, h: 12 }); }
+  if (off + vis < list.length) { g.font = FB(7); this.text(g, '▼', VW - 40, 50 + vis * 17 - 6, GOLD); this.menuRects.push({ i: 98, x: VW - 50, y: 50 + vis * 17 - 14, w: 20, h: 12 }); }
+  // la elegida, con su paso entero
+  const cur = list[selI]; if (cur) { g.font = FB(6); this.wrap(g, cur.step, VW - 80).slice(0, 2).forEach((l, k) => this.text(g, l, 40, 50 + vis * 17 - 2 + k * 7, SOFT)); }
+  g.font = FB(5.6); this.center(g, G.touch ? 'Toca una misión dos veces para que la flecha te guíe' : 'Enter: que la flecha te guíe a esta · Esc o Volver: salir', VH - 34, DIM);
   // botón de volver
   this.panel(g, VW / 2 - 34, VH - 30, 68, 15, false);
   g.font = FT(7.4); this.center(g, '‹ Volver', VH - 19.5, PAPER);
